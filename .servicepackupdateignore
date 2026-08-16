@@ -1,0 +1,67 @@
+# .servicepackupdateignore
+# Files and patterns to exclude when updating servicepack framework
+# Uses rsync exclude syntax - supports wildcards and paths
+
+# Example: Custom framework modifications
+# Makefile
+# Dockerfile.dev
+# .golangci.yml
+
+# Example: Custom scripts
+# scripts/custom_*
+# scripts/deploy.sh
+
+# Example: Local configuration files
+# *.local
+# .env*
+# config/local.yml
+
+# User files - never overwritten by framework updates
+cmd/init.go
+cmd/commands.go
+
+# chatz customizes the linter config (depguard allowlist for chatz's own deps,
+# ireturn carve-out for the generated strict handlers, lint-exclusion paths for
+# servicepack-owned dirs). Keep it project-owned so framework updates don't wipe
+# it -- the framework's baseline .golangci.yml would otherwise overwrite ours.
+.golangci.yml
+
+# chatz adds its own make targets to the root Makefile (web-* frontend
+# lifecycle, test-integration / test-real / test-e2e, run-showcase, etc.). Keep
+# it project-owned so framework updates don't clobber them -- the framework's
+# baseline Makefile would otherwise overwrite ours.
+Makefile
+
+# chatz's pipeline sets has_codegen: true -- it commits gorm repositories, the
+# OpenAPI server/client and the embedded GenUI prompt, so it needs the
+# codegen-drift gate the framework leaves off by default. The framework's
+# pipeline also publishes its agent skill to ClawHub, which chatz does not have.
+.github/workflows/pipeline.yml
+
+# The framework ships the agent skill describing SERVICEPACK. Landing it here
+# would tell an agent reading chatz that it is looking at the framework repo.
+.agents
+
+# --- Project-owned config the framework also ships ---------------------------
+#
+# Each of these exists in both repos with different contents, so without an
+# entry the framework's version silently replaces chatz's.
+
+# chatz's allowlist covers its own untracked paths (web build output, test
+# fixtures, the local .env); the framework's covers the framework's.
+.gitleaks.toml
+
+# chatz's docker context excludes the web build tree and node_modules, which
+# the framework has no concept of.
+.dockerignore
+
+# Chatz owns its Go dependency age-gate implementation. Do not introduce a
+# duplicate hyphenated framework script beside the project-owned underscore
+# variant used by its custom Make targets.
+scripts/check-go-age.sh
+
+# chatz pins its own ecosystems (gomod plus the web app's npm tree); the
+# framework only knows about gomod.
+.github/dependabot.yml
+
+# Note: internal/pkg/services/* is always excluded - your services are never touched

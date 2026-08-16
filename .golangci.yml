@@ -1,0 +1,193 @@
+version: "2"
+
+run:
+  # The integration / real / e2e / qa suites sit behind build tags, so without
+  # this they are invisible to both `go build ./...` and the linter — which is
+  # how they were allowed to stop compiling for a whole release without
+  # anything going red.
+  build-tags:
+    - integration
+    - real
+    - e2e
+    - qa
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - err113
+    - mnd
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+    - depguard
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - exhaustive
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - ginkgolinter
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - grouper
+    - importas
+    - interfacebloat
+    - ireturn
+    - lll
+    - loggercheck
+    - maintidx
+    - makezero
+    - mirror
+    - misspell
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - tagalign
+    - tagliatelle
+    - testableexamples
+    # - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - wsl_v5
+    - zerologlint
+
+  settings:
+    lll:
+      line-length: 80
+      tab-width: 4
+    ireturn:
+      # Driver and TokenCounter ARE elelem's public abstractions -- the whole
+      # point of the package is that callers hold the interface while
+      # constructors, decorators (WithRetry, the usage recorder) and test
+      # doubles hand one back. Returning them is the design, not a leak, so
+      # allow it here instead of scattering nine //nolint:ireturn directives
+      # that nolintlint then reports as unused.
+      allow:
+        - anon
+        - error
+        - empty
+        - stdlib
+        - generic
+        - github.com/psyb0t/elelem\.(Driver|TokenCounter)
+        # Same shape on the chatz side: the tool-executor factory returns the
+        # abstraction (manager or filtered wrapper) on purpose.
+        - github.com/psyb0t/chatz/internal/pkg/core/chat\.ToolExecutor
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+    depguard:
+      rules:
+        main:
+          allow:
+            - $gostd
+            - github.com/stretchr/testify/
+            - github.com/pkg/errors
+            - github.com/spf13/viper
+            - github.com/sirupsen/logrus
+            - github.com/google/uuid
+            - github.com/google/jsonschema-go/
+            - github.com/psyb0t
+            - github.com/joho/godotenv
+            - github.com/spf13/cobra
+            - gorm.io
+            - github.com/modelcontextprotocol/go-sdk
+            - github.com/anthropics/anthropic-sdk-go
+            - github.com/openai/openai-go
+            - github.com/testcontainers/testcontainers-go
+            - github.com/prometheus/client_golang
+            - golang.org/x/crypto
+            - github.com/labstack/echo/v4
+            - github.com/oapi-codegen
+            - github.com/getkin/kin-openapi
+            - github.com/glebarez/sqlite
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      # servicepack-owned code: overwritten on `make servicepack-update`, so
+      # it must not be gated against this project's lint/format config.
+      - internal/app/
+      - internal/pkg/service-manager/
+      - pkg/runner/
+    rules:
+      - path: _test\.go
+        linters:
+          - cyclop
+          - funlen
+          - gocognit
+          - maintidx
+          - wrapcheck
+      # Generated strict handlers MUST return the api.*ResponseObject interfaces.
+      - path: internal/pkg/http/server/
+        linters:
+          - ireturn
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+      # servicepack-owned code: overwritten on `make servicepack-update`.
+      - internal/app/
+      - internal/pkg/service-manager/
+      - pkg/runner/

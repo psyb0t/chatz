@@ -1,0 +1,10 @@
+package: client
+generate:
+  client: true
+  models: true
+output: client.gen.go
+# Match the server config: force type-prefixed enum consts so the shared
+# transport enum (stdio/http) across schemas doesn't collapse to collision-prone
+# unprefixed names.
+compatibility:
+  always-prefix-enum-values: true

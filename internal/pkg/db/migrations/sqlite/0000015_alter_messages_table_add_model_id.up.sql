@@ -1,0 +1,2 @@
+ALTER TABLE messages
+    ADD COLUMN model_id TEXT NOT NULL DEFAULT '';

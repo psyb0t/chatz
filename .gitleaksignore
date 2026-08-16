@@ -1,0 +1,6 @@
+# Generated Windows-only modernc.org/sqlite bindings.  Both source files are
+# byte-identical and contain a BCrypt type name that trips generic-api-key;
+# the fingerprint pins this exception to that exact rule and line, while the
+# rest of the committed vendor tree remains scanned.
+/repo/vendor/modernc.org/sqlite/lib/sqlite_windows_amd64.go:generic-api-key:41264
+/repo/vendor/modernc.org/sqlite/lib/sqlite_windows_arm64.go:generic-api-key:41264

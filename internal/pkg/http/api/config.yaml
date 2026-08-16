@@ -1,0 +1,12 @@
+package: api
+generate:
+  echo-server: true
+  strict-server: true
+  models: true
+  embedded-spec: true
+output: api.gen.go
+# The `transport` enum (stdio/http) appears in both MCPServer and
+# CreateMCPServerRequest; force type-prefixed enum consts so overlapping value
+# sets don't collapse to unprefixed, collision-prone names.
+compatibility:
+  always-prefix-enum-values: true

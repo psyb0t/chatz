@@ -1,0 +1,15 @@
+Quarter-to-date cloud spend is $412k against a $450k budget, so you're technically under — but the forecast is the problem. At the current run rate the quarter lands at $486k, about 8% over budget. Compute is the biggest bucket at $186k, and the overrun is being driven by storage: media-store has grown to $68k.
+
+```spec
+{"op":"add","path":"/root","value":"fin-showcase"}
+{"op":"add","path":"/elements/fin-showcase","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"lg"},"children":["fin-summary","fin-breakdown"]}}
+{"op":"add","path":"/elements/fin-summary","value":{"type":"Grid","props":{"id":"fin-summary","columns":3},"children":["fin-spend","fin-forecast","fin-trend"]}}
+{"op":"add","path":"/elements/fin-spend","value":{"type":"Stat","props":{"id":null,"label":"SPEND (QTD)","value":"$412k","unit":null,"delta":null},"children":[]}}
+{"op":"add","path":"/elements/fin-forecast","value":{"type":"Stat","props":{"id":null,"label":"FORECAST vs BUDGET","value":"$486k","unit":null,"delta":8},"children":[]}}
+{"op":"add","path":"/elements/fin-trend","value":{"type":"Sparkline","props":{"id":null,"label":"Monthly spend","value":"$159k","unit":null,"values":[122,131,159],"trend":"up"},"children":[]}}
+{"op":"add","path":"/elements/fin-breakdown","value":{"type":"Grid","props":{"id":"fin-breakdown","columns":2},"children":["fin-category","fin-service"]}}
+{"op":"add","path":"/elements/fin-category","value":{"type":"DonutChart","props":{"id":null,"title":"SPEND BY CATEGORY","centerLabel":"$412k","slices":[{"label":"Compute","value":186},{"label":"Storage","value":92},{"label":"Data transfer","value":58},{"label":"Managed DB","value":44},{"label":"Observability","value":32}],"height":320},"children":[]}}
+{"op":"add","path":"/elements/fin-service","value":{"type":"Treemap","props":{"id":null,"title":"SPEND BY SERVICE ($k)","items":[{"label":"checkout-api","value":74,"group":"Compute"},{"label":"search-cluster","value":61,"group":"Compute"},{"label":"media-store","value":68,"group":"Storage"},{"label":"analytics-warehouse","value":44,"group":"Managed DB"},{"label":"cdn-egress","value":41,"group":"Data transfer"},{"label":"log-pipeline","value":32,"group":"Observability"}],"height":320},"children":[]}}
+```
+
+The fastest lever is a lifecycle policy on media-store — it's the top overrun and most of its footprint is cold objects that can move to infrequent-access tiers. Pair that with a look at cdn-egress ($41k), and the quarter comes back under $450k without touching compute.

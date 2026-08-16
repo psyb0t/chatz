@@ -1,0 +1,1742 @@
+openapi: 3.0.3
+info:
+  title: chatz API
+  version: 0.1.0
+  description: >
+    Self-hosted AI chat API. Streaming chat with inline UI-spec rendering,
+    MCP tool calling, model discovery across OpenAI-compatible upstreams, and
+    admin-provisioned auth. Chat streams use Anthropic-style SSE.
+
+servers:
+  - url: /v1
+
+tags:
+  - name: health
+  - name: auth
+  - name: users
+  - name: models
+  - name: upstreams
+  - name: admin
+  - name: chats
+  - name: mcp
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: chatz_session
+
+  schemas:
+    # aichteeteapee error envelope: top-level {code, message, details}. code is
+    # UPPER_SNAKE_CASE machine-readable; clients switch on it.
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: object
+          additionalProperties: true
+
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+
+    User:
+      type: object
+      required: [id, username, isAdmin, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        isAdmin:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    AuthStatus:
+      type: object
+      required: [needsSetup, authenticated]
+      properties:
+        needsSetup:
+          type: boolean
+          description: True when no users exist yet (first-run bootstrap).
+        authenticated:
+          type: boolean
+        user:
+          $ref: '#/components/schemas/User'
+
+    Credentials:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+
+    CreateUserRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        isAdmin:
+          type: boolean
+
+    Model:
+      type: object
+      description: >-
+        A model currently advertised by a configured upstream. Capability and
+        limit fields are optional instance metadata; omitted fields are
+        unknown, not false or zero.
+      required: [id, upstream, availability, default]
+      properties:
+        id:
+          type: string
+        upstream:
+          type: string
+        alias:
+          type: string
+          description: A friendly instance-local model name for the picker.
+        contextWindow:
+          type: integer
+          minimum: 1
+        maxOutputTokens:
+          type: integer
+          minimum: 1
+        supportsTools:
+          type: boolean
+        supportsReasoning:
+          type: boolean
+        supportsVision:
+          type: boolean
+        supportsFiles:
+          type: boolean
+        expectedFirstTokenLatencyMs:
+          type: integer
+          minimum: 1
+          format: int64
+          description: Instance-configured expected time to first token, in milliseconds.
+        inputPricePerMillionTokens:
+          $ref: '#/components/schemas/TokenPrice'
+        outputPricePerMillionTokens:
+          $ref: '#/components/schemas/TokenPrice'
+        availability:
+          type: string
+          enum: [available]
+          description: The model was advertised by its upstream during startup discovery.
+        default:
+          type: boolean
+          description: Whether this is the instance's configured default model.
+
+    TokenPrice:
+      type: object
+      description: >-
+        Price for one million tokens. Amount is a decimal string in the
+        currency's smallest unit, avoiding floating-point loss in clients.
+      required: [amount, currency]
+      properties:
+        amount:
+          type: string
+          pattern: '^(0|[1-9][0-9]*)$'
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+
+    UpstreamHealth:
+      type: object
+      description: >-
+        A redacted runtime-health snapshot for one configured LLM upstream.
+        Failure details are stable classes only; provider response text,
+        requests, and credentials are never exposed here.
+      required: [upstream, state, consecutiveFailures]
+      properties:
+        upstream:
+          type: string
+        state:
+          type: string
+          enum: [unknown, healthy, degraded]
+        lastOperation:
+          type: string
+        lastLatencyMs:
+          type: integer
+          minimum: 0
+          format: int64
+        lastSuccessAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastFailureAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastFailureClass:
+          type: string
+        consecutiveFailures:
+          type: integer
+          minimum: 0
+
+    BackupFreshness:
+      type: object
+      description: >-
+        The status of an operator-written backup completion marker. A current
+        marker proves only that the backup command completed; it is not an
+        archive-content verification result.
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [current, not_recorded, stale, invalid, unavailable]
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        driver:
+          type: string
+          enum: [postgres, sqlite]
+
+    AdminReadiness:
+      type: object
+      description: >-
+        A redacted operational snapshot for an administrator. It never
+        includes credentials, backup paths, prompt content, or raw provider
+        errors.
+      required:
+        [appVersion, databaseDriver, migrationVersion, migrationDirty, backup,
+         upstreams]
+      properties:
+        appVersion:
+          type: string
+        commit:
+          type: string
+        databaseDriver:
+          type: string
+          enum: [postgres, sqlite]
+        migrationVersion:
+          type: integer
+          minimum: 0
+        migrationDirty:
+          type: boolean
+        backup:
+          $ref: '#/components/schemas/BackupFreshness'
+        upstreams:
+          type: array
+          items:
+            $ref: '#/components/schemas/UpstreamHealth'
+
+    ChatSummary:
+      type: object
+      required: [id, title, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        projectId:
+          type: string
+          format: uuid
+          description: Optional user-owned project containing this chat.
+        archivedAt:
+          type: string
+          format: date-time
+          description: Present when the chat is archived.
+        pinnedAt:
+          type: string
+          format: date-time
+          description: Present when the chat is pinned.
+
+    Project:
+      type: object
+      required: [id, name, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    CreateProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+
+    RenameProjectRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+
+    ProjectAssignmentRequest:
+      type: object
+      required: [projectId]
+      properties:
+        projectId:
+          type: string
+          format: uuid
+
+    MessageToolCall:
+      type: object
+      required: [id, name, arguments]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        arguments:
+          type: string
+
+    Message:
+      type: object
+      required: [id, role, content, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          type: string
+          enum: [user, assistant, tool]
+        model:
+          type: string
+          description: >-
+            The model that completed this turn. Omitted for messages created
+            before model attribution was introduced.
+        content:
+          type: string
+        incomplete:
+          type: boolean
+          description: >-
+            True when this is an interrupted turn checkpoint. It is visible on
+            reload but is never replayed into a future model request.
+        # thinking is an assistant round's reasoning trace (omitted when the
+        # round had none). toolCalls is set on an assistant row that
+        # requested tools. toolCallId + isError are set on a tool-role row
+        # (content carries that call's result); toolCallId links it back to
+        # the toolCalls entry it answers.
+        thinking:
+          type: string
+        toolCalls:
+          type: array
+          items:
+            $ref: "#/components/schemas/MessageToolCall"
+        toolCallId:
+          type: string
+        isError:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    Chat:
+      type: object
+      required: [id, title, model]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        model:
+          type: string
+          description: The model id the chat was created with (used for continuation).
+        settings:
+          $ref: '#/components/schemas/ChatSettings'
+
+    ChatList:
+      type: object
+      description: >-
+        A page of the caller's chats. total is a scoped, indexed count (by
+        user_id) — cheap regardless of dataset size.
+      required: [items, limit, offset, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatSummary'
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+
+    MessageList:
+      type: object
+      description: >-
+        A page of one chat's messages, oldest-first. total is a scoped,
+        indexed count (by chat_id) — cheap regardless of dataset size.
+      required: [items, limit, offset, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Message'
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+
+    ChatSettings:
+      type: object
+      description: >-
+        Per-chat model-generation settings. Every field is optional; an omitted
+        field is unset — the provider default applies (temperature / topP /
+        reasoningEffort / maxOutputTokens). maxHistoryTokens defaults to
+        100000 and caps the complete outbound prompt, including the sticky
+        system message and current user message.
+      properties:
+        temperature:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 2
+        topP:
+          type: number
+          format: double
+          minimum: 0
+          maximum: 1
+        reasoningEffort:
+          type: string
+          enum: [minimal, low, medium, high]
+        maxOutputTokens:
+          type: integer
+          minimum: 1
+        maxHistoryTokens:
+          type: integer
+          minimum: 1
+
+    PromptContextPreviewRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          description: The unsent user message to include in the preview.
+
+    PromptContextPreview:
+      type: object
+      description: >-
+        The exact context selection the next turn would use, counted by the
+        server tokenizer. availableTokens is zero when sticky instructions and
+        the current message alone exceed the configured history budget.
+      required:
+        [budgetTokens, systemTokens, historyTokens, currentMessageTokens,
+         totalTokens, availableTokens, retainedMessages, retainedTurns,
+         omittedMessages, omittedTurns]
+      properties:
+        budgetTokens:
+          type: integer
+          minimum: 1
+        systemTokens:
+          type: integer
+          minimum: 0
+        historyTokens:
+          type: integer
+          minimum: 0
+        currentMessageTokens:
+          type: integer
+          minimum: 0
+        totalTokens:
+          type: integer
+          minimum: 0
+        availableTokens:
+          type: integer
+          minimum: 0
+        retainedMessages:
+          type: integer
+          minimum: 0
+        retainedTurns:
+          type: integer
+          minimum: 0
+        omittedMessages:
+          type: integer
+          minimum: 0
+        omittedTurns:
+          type: integer
+          minimum: 0
+
+    ChatMCPServer:
+      type: object
+      description: >-
+        An MCP server as it applies to a chat: the server's identity and live
+        global connection status, plus whether it is enabled for THIS chat.
+        Enablement here is per-chat and independent of the server's global
+        enabled flag (see MCPServer.enabled) — a globally-disabled server is not
+        available to any chat regardless.
+      required: [id, name, status, enabled]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          enum: [connecting, connected, failed, disabled]
+          description: Live global connection status of the server.
+        enabled:
+          type: boolean
+          description: Whether this server's tools are available to this chat.
+
+    ChatMCPServerUpdate:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: Enable or disable this server's tools for this chat.
+
+    CreateChatRequest:
+      type: object
+      required: [model, message]
+      properties:
+        model:
+          type: string
+        message:
+          type: string
+
+    ContinueChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+        model:
+          type: string
+          description: >-
+            Model for this and subsequent turns; switching it updates the chat's
+            model. Omit to keep the chat's current model.
+
+    MCPServer:
+      type: object
+      required: [id, name, transport, enabled, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        transport:
+          type: string
+          enum: [stdio, http]
+        command:
+          type: string
+        url:
+          type: string
+        enabled:
+          type: boolean
+        status:
+          type: string
+          enum: [connecting, connected, failed, disabled]
+          description: Live connection state of the server.
+        statusError:
+          type: string
+          description: Error detail, present when status is failed.
+        statusReason:
+          type: string
+          enum: [unreachable, access_denied, not_responding, failed]
+          description: Coarse failure classification, present when status is failed.
+        toolCount:
+          type: integer
+          description: Number of tools discovered, present when connected.
+        lastConnectionAttemptAt:
+          type: string
+          format: date-time
+          description: UTC time at which the most recent connection attempt started.
+        lastSuccessfulConnectionAt:
+          type: string
+          format: date-time
+          description: UTC time at which this server most recently connected successfully.
+        lastConnectionFailureAt:
+          type: string
+          format: date-time
+          description: UTC time at which this server most recently failed to connect or disconnected unexpectedly.
+        lastConnectionLatencyMs:
+          type: integer
+          minimum: 0
+          description: Elapsed milliseconds for the most recent completed connection attempt.
+        lastError:
+          type: string
+          description: Most recent connection or unexpected-disconnect error detail. Admin-only and never includes decrypted credentials.
+        args:
+          type: array
+          items:
+            type: string
+          description: Command arguments (stdio transport).
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: >-
+            HTTP headers (http transport). Authorization values are returned as
+            '<scheme> [SECRET]' for edit prefill; resubmitting that unchanged
+            value preserves the existing sealed credential. Other header values
+            are returned as configured. Admin-only response; sealed at rest and
+            never logged (the request logger records no bodies).
+        env:
+          type: object
+          additionalProperties:
+            type: string
+          description: >-
+            Environment variables (stdio transport), decrypted for edit prefill.
+            Admin-only response; sealed at rest, never logged.
+
+    UpdateMCPServerRequest:
+      type: object
+      description: >-
+        Edit an MCP server. Every field is optional; an omitted field keeps its
+        current value. Providing transport-specific fields replaces them.
+      properties:
+        name:
+          type: string
+        transport:
+          type: string
+          enum: [stdio, http]
+        command:
+          type: string
+        args:
+          type: array
+          items:
+            type: string
+        url:
+          type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: >-
+            HTTP headers to replace. An Authorization value returned as
+            '<scheme> [SECRET]' preserves the existing sealed credential when
+            sent back unchanged; any other value replaces it.
+        env:
+          type: object
+          additionalProperties:
+            type: string
+        enabled:
+          type: boolean
+
+    RenameChatRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+
+    CreateMCPServerRequest:
+      type: object
+      required: [name, transport]
+      properties:
+        name:
+          type: string
+        transport:
+          type: string
+          enum: [stdio, http]
+        command:
+          type: string
+        args:
+          type: array
+          items:
+            type: string
+        url:
+          type: string
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+        env:
+          type: object
+          additionalProperties:
+            type: string
+
+    ImportMCPRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          description: Raw .mcp.json file content (Claude-style).
+
+    MCPImportResult:
+      type: object
+      required: [imported]
+      properties:
+        imported:
+          type: array
+          items:
+            $ref: '#/components/schemas/MCPServer'
+
+    MCPTool:
+      type: object
+      required: [name, description, parameters]
+      properties:
+        name:
+          type: string
+          description: Unqualified tool name (no server prefix).
+        description:
+          type: string
+        parameters:
+          type: object
+          additionalProperties: true
+          description: The tool's input JSON Schema.
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+paths:
+  /healthz:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Liveness probe.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+
+  /auth/status:
+    get:
+      tags: [auth]
+      operationId: getAuthStatus
+      summary: Whether setup is needed and whether the caller is authenticated.
+      responses:
+        '200':
+          description: OK
+          headers:
+            Set-Cookie:
+              description: >-
+                Present only when single-user passwordless auto-login mints a
+                fresh session for the sole admin on first load.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthStatus'
+
+  /auth/setup:
+    post:
+      tags: [auth]
+      operationId: setup
+      summary: Bootstrap the first admin user (one-shot).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '200':
+          description: Admin created and logged in
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Log in with username + password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Credentials'
+      responses:
+        '200':
+          description: Logged in
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Revoke the current session.
+      security:
+        - sessionCookie: []
+      responses:
+        '204':
+          description: Logged out
+
+  /users:
+    get:
+      tags: [users]
+      operationId: listUsers
+      summary: List users (admin).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [users]
+      operationId: createUser
+      summary: Provision a user (admin).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /users/{userId}:
+    delete:
+      tags: [users]
+      operationId: deleteUser
+      summary: Delete a user (admin).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /models:
+    get:
+      tags: [models]
+      operationId: listModels
+      summary: Merged model list across all configured upstreams.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Model'
+
+  /upstreams:
+    get:
+      tags: [upstreams]
+      operationId: listUpstreamHealth
+      summary: List redacted LLM upstream health snapshots (admin).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UpstreamHealth'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /admin/readiness:
+    get:
+      tags: [admin]
+      operationId: getAdminReadiness
+      summary: Get the redacted operational readiness snapshot (admin).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminReadiness'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /chats:
+    get:
+      tags: [chats]
+      operationId: listChats
+      summary: List the caller's chats, paginated.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: archived
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Select archived chats instead of active chats.
+        - name: search
+          in: query
+          schema:
+            type: string
+            maxLength: 256
+          description: Case-insensitive literal title search.
+        - name: projectId
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Limit the list to one caller-owned project.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [chats]
+      operationId: createChat
+      summary: Create a chat and stream the first assistant turn (SSE).
+      description: >
+        Streams Anthropic-style SSE. The new chat id is carried in the
+        message_start event's stream_id. Advisory chat_status events report
+        connecting, waiting_first_token, streaming, running_tool, or retrying;
+        clients must treat them as ephemeral progress metadata rather than
+        durable assistant content. If a real stream stops after useful output,
+        GET /chats/{chatId}/messages returns that assistant checkpoint with
+        incomplete=true; it is not included in later model context.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /chats/empty:
+    post:
+      tags: [chats]
+      operationId: getOrCreateEmptyChat
+      summary: >
+        Get the caller's reusable "empty chat" (no messages yet), creating one
+        if none exists.
+      description: >
+        At most one empty chat is kept per user: repeated calls before any
+        message is sent all resolve to the SAME chat id, so a client's
+        "New chat" action never piles up unused rows. Once the chat's first
+        message is sent (POST /chats/{chatId}), it stops being empty and a
+        later call creates/returns a different chat.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+
+  /chats/{chatId}:
+    get:
+      tags: [chats]
+      operationId: getChat
+      summary: Get a chat's metadata (settings, model, title) — no messages.
+      description: >
+        Returns chat metadata only. Fetch messages via
+        GET /api/v1/chats/{chatId}/messages.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [chats]
+      operationId: continueChat
+      summary: Continue a chat and stream the next assistant turn (SSE).
+      description: >
+        Streams Anthropic-style SSE plus advisory chat_status progress events.
+        A status is emitted only after its corresponding provider or tool
+        lifecycle transition; it carries no prompt, tool, or provider payload.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContinueChatRequest'
+      responses:
+        '200':
+          description: SSE stream
+          content:
+            text/event-stream:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [chats]
+      operationId: renameChat
+      summary: Rename a chat.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameChatRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSummary'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [chats]
+      operationId: deleteChat
+      summary: Soft-delete one caller-owned chat.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/messages:
+    get:
+      tags: [chats]
+      operationId: listChatMessages
+      summary: List a chat's messages, oldest-first, paginated.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/settings:
+    patch:
+      tags: [chats]
+      operationId: updateChatSettings
+      summary: Update a chat's model-generation settings.
+      description: >
+        Full replacement of the chat's settings object: a field omitted from the
+        body clears that setting (back to the provider default; history returns
+        to its 100000-token default).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatSettings'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSettings'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/context-preview:
+    post:
+      tags: [chats]
+      operationId: previewChatContext
+      summary: Preview the exact context selected for an unsent chat message.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PromptContextPreviewRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptContextPreview'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/mcp-servers:
+    get:
+      tags: [chats]
+      operationId: listChatMCPServers
+      summary: List the MCP servers with each one's per-chat enablement + status.
+      description: >
+        The MCP servers as this chat sees them: identity, live global connection
+        status, and whether each is enabled for this chat. Ownership-checked, so
+        a chat's owner sees it without admin access.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ChatMCPServer'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/mcp-servers/{serverId}:
+    patch:
+      tags: [chats]
+      operationId: updateChatMCPServer
+      summary: Enable or disable one MCP server for this chat.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMCPServerUpdate'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMCPServer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/archive:
+    put:
+      tags: [chats]
+      operationId: archiveChat
+      summary: Archive one caller-owned chat.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [chats]
+      operationId: unarchiveChat
+      summary: Restore one caller-owned chat from the archive.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/pin:
+    put:
+      tags: [chats]
+      operationId: pinChat
+      summary: Pin one caller-owned chat.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    delete:
+      tags: [chats]
+      operationId: unpinChat
+      summary: Remove a caller-owned chat pin.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /chats/{chatId}/project:
+    put:
+      tags: [chats]
+      operationId: assignChatProject
+      summary: Assign one caller-owned chat to a caller-owned project.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectAssignmentRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+    delete:
+      tags: [chats]
+      operationId: clearChatProject
+      summary: Remove a caller-owned chat's project assignment.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: chatId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatSummary'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /projects:
+    get:
+      tags: [projects]
+      operationId: listProjects
+      summary: List the caller's named chat projects.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Project'
+    post:
+      tags: [projects]
+      operationId: createProject
+      summary: Create a named chat project.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProjectRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /projects/{projectId}:
+    patch:
+      tags: [projects]
+      operationId: renameProject
+      summary: Rename one caller-owned project.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameProjectRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Project'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+    delete:
+      tags: [projects]
+      operationId: deleteProject
+      summary: Delete a project and unassign its chats.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /mcp/servers:
+    get:
+      tags: [mcp]
+      operationId: listMCPServers
+      summary: List configured MCP servers (admin).
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MCPServer'
+    post:
+      tags: [mcp]
+      operationId: createMCPServer
+      summary: Add an MCP server (admin).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMCPServerRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /mcp/servers/{serverId}:
+    delete:
+      tags: [mcp]
+      operationId: deleteMCPServer
+      summary: Remove an MCP server (admin).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '204':
+          description: Deleted
+        '404':
+          $ref: '#/components/responses/NotFound'
+    patch:
+      tags: [mcp]
+      operationId: updateMCPServer
+      summary: Edit an MCP server and reconnect (admin).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMCPServerRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServer'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /mcp/servers/{serverId}/reconnect:
+    post:
+      tags: [mcp]
+      operationId: reconnectMCPServer
+      summary: Reconnect an MCP server in the background (admin).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPServer'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /mcp/servers/{serverId}/tools:
+    get:
+      tags: [mcp]
+      operationId: listMCPServerTools
+      summary: List a connected MCP server's tools (admin).
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: serverId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MCPTool'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /mcp/import:
+    post:
+      tags: [mcp]
+      operationId: importMCP
+      summary: Import MCP servers from a Claude-style .mcp.json (admin).
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImportMCPRequest'
+      responses:
+        '200':
+          description: Imported
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPImportResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'

@@ -1,0 +1,48 @@
+# chatz dev container — the sandbox where project commands run (except lint).
+# This is a DEV/build image, not a prod image: it is never shipped, only used
+# via the $(DEV_RUN) macro (bind-mount workspace at /work, run as host UID:GID,
+# ephemeral --rm). Prod hardening (non-root USER, distroless, cap drops) applies
+# to the PROD Dockerfile + docker-compose, not here.
+#
+# Carries Go (build/test/generate/repogen/oapi), a C toolchain (the -race
+# detector needs cgo), and Node + pnpm (the web/ui-lib .mjs build AND the
+# SvelteKit static build that gets go:embed'ed).
+FROM golang:1.26.6-alpine@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df
+
+# pnpm + the python mcp SDK pinned per supply-chain discipline
+# (managing-dependencies.md). python3 + mcp are here ONLY for the MCP
+# integration tests, which launch a real Python MCP server (stdio +
+# streamable-HTTP) for chatz's Go MCP client to talk to.
+ARG PNPM_VERSION=10.15.0
+ARG MCP_VERSION=1.28.1
+
+RUN apk add --no-cache \
+	bash \
+	curl \
+	gcc \
+	git \
+	jq \
+	make \
+	musl-dev \
+	nodejs \
+	npm \
+	python3 \
+	py3-pip \
+	shellcheck \
+	shfmt \
+	&& npm install -g pnpm@${PNPM_VERSION} \
+	&& npm cache clean --force \
+	&& pip3 install --break-system-packages --no-cache-dir mcp==${MCP_VERSION}
+
+WORKDIR /work
+
+# HOME is set to /tmp by $(DEV_RUN) so GOPATH / GOCACHE / pnpm store all land in
+# a writable, throwaway location when running as the host UID:GID.
+ENV ENV=dev \
+	CGO_ENABLED=1 \
+	GOFLAGS=-mod=vendor \
+	LOG_LEVEL=info \
+	LOG_FORMAT=text \
+	LOG_ADD_SOURCE=true
+
+CMD ["make", "help"]

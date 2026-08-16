@@ -1,0 +1,16 @@
+Pipeline attrition is concentrated in the first two transitions: 36 opportunities leave before discovery completes, and another 35 before solution evaluation. The closed-lost review identifies no decision as the leading loss reason, while 14 open deals are currently stalled.
+
+```spec
+{"op":"add","path":"/root","value":"sales-showcase"}
+{"op":"add","path":"/elements/sales-showcase","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"lg"},"children":["sales-summary","sales-analysis","sales-table"]}}
+{"op":"add","path":"/elements/sales-summary","value":{"type":"Grid","props":{"id":"sales-summary","columns":3},"children":["sales-pipeline","sales-win-rate","sales-stalled"]}}
+{"op":"add","path":"/elements/sales-pipeline","value":{"type":"Sparkline","props":{"id":null,"label":"Open pipeline","value":"$1.28m","unit":null,"values":[0.94,1.02,1.08,1.17,1.22,1.28],"trend":"up"},"children":[]}}
+{"op":"add","path":"/elements/sales-win-rate","value":{"type":"Stat","props":{"id":null,"label":"QUALIFIED → WON","value":"19","unit":"%","delta":0},"children":[]}}
+{"op":"add","path":"/elements/sales-stalled","value":{"type":"Stat","props":{"id":null,"label":"STALLED DEALS","value":"14","unit":null,"delta":-4},"children":[]}}
+{"op":"add","path":"/elements/sales-analysis","value":{"type":"Grid","props":{"id":"sales-analysis","columns":2},"children":["sales-funnel","sales-source"]}}
+{"op":"add","path":"/elements/sales-funnel","value":{"type":"FunnelChart","props":{"id":null,"title":"PIPELINE CONVERSION","stages":[{"label":"Qualified","value":128},{"label":"Discovery complete","value":92},{"label":"Solution evaluated","value":57},{"label":"Proposal sent","value":39},{"label":"Won","value":24}],"height":320},"children":[]}}
+{"op":"add","path":"/elements/sales-source","value":{"type":"BarChart","props":{"id":null,"title":"PIPELINE BY SOURCE","categories":["Partner","Inbound","Outbound","Expansion"],"series":[{"name":"Qualified","values":[38,34,27,29]},{"name":"Won","values":[9,7,3,5]}],"stacked":false,"orientation":"vertical","height":320},"children":[]}}
+{"op":"add","path":"/elements/sales-table","value":{"type":"Table","props":{"id":null,"columns":["Opportunity","Stage","Signal","Recommended move"],"rows":[["Northstar renewal","solution evaluated","no activity in 8 days","book technical review"],["Harbor expansion","discovery complete","champion engaged","send mutual plan"],["Summit rollout","proposal sent","legal review open","confirm decision date"],["Cedar pilot","solution evaluated","usage questions rising","bring solutions engineer"]]},"children":[]}}
+```
+
+There are 14 stalled deals overall. This view highlights Northstar and Cedar in solution evaluation: book Northstar's technical review and bring in a solutions engineer for Cedar. With no decision as the leading loss reason, review whether mutual plans and decision dates are established early enough.

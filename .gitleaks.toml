@@ -1,0 +1,36 @@
+title = "chatz secret scanning"
+
+[extend]
+useDefault = true
+
+# gitleaks' `dir` mode walks the working tree and does NOT honour .gitignore,
+# so every gitignored directory has to be named again here. Two reasons this
+# matters beyond noise: `.env` holds the maintainer's REAL local credentials
+# and would fail every release, and `.pnpm-store` is ~290MB of package cache
+# that carries other projects' test fixtures — scanning it took longer than
+# the entire rest of the tree combined.
+#
+# Nothing listed here is tracked by git. The committed Go vendor tree is
+# intentionally scanned: it is compiled into the release binary.
+#
+# internal/pkg/webassets/dist is deliberately NOT listed even though it is a
+# build artifact: it is COMMITTED (go:embed needs it), and a compiled frontend
+# bundle is a classic place for a key to end up. It gets scanned.
+#
+# Verify with `git check-ignore <path>` and `git ls-files --error-unmatch
+# <path>` before adding a line; an entry for a committed path silences a real
+# leak permanently.
+[[allowlists]]
+description = "Gitignored local state, caches, vendored deps, and build output"
+paths = [
+  '''(^|/)\.env$''',
+  '''(^|/)\.pnpm-store(?:/|$)''',
+  '''(^|/)node_modules(?:/|$)''',
+  '''(^|/)web/dist(?:/|$)''',
+  '''(^|/)\.research_files(?:/|$)''',
+  '''(^|/)\.agent_notes(?:/|$)''',
+  '''(^|/)\.anustimes(?:/|$)''',
+  '''(^|/)\.brutal_reviews(?:/|$)''',
+  '''(^|/)\.plan-and-delegate(?:/|$)''',
+  '''(^|/)\.telemetry(?:/|$)''',
+]
