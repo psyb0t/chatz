@@ -1,0 +1,16 @@
+The onboarding_v2 variant won, and it's statistically significant. Conversion rose from 22.4% to 27.1% — a 21% relative lift at p=0.008 across 48,200 sessions. Just as important, activation got faster: median time-to-activate dropped from 11 minutes on control to 7 on the variant.
+
+```spec
+{"op":"add","path":"/root","value":"exp-showcase"}
+{"op":"add","path":"/elements/exp-showcase","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"lg"},"children":["exp-summary","exp-analysis","exp-correlation"]}}
+{"op":"add","path":"/elements/exp-summary","value":{"type":"Grid","props":{"id":"exp-summary","columns":3},"children":["exp-conv","exp-sig","exp-sample"]}}
+{"op":"add","path":"/elements/exp-conv","value":{"type":"Stat","props":{"id":null,"label":"VARIANT CONVERSION","value":"27.1","unit":"%","delta":21},"children":[]}}
+{"op":"add","path":"/elements/exp-sig","value":{"type":"Stat","props":{"id":null,"label":"SIGNIFICANCE (p)","value":"0.008","unit":null,"delta":null},"children":[]}}
+{"op":"add","path":"/elements/exp-sample","value":{"type":"Stat","props":{"id":null,"label":"SAMPLE","value":"48.2k","unit":"sessions","delta":null},"children":[]}}
+{"op":"add","path":"/elements/exp-analysis","value":{"type":"Grid","props":{"id":"exp-analysis","columns":2},"children":["exp-hist","exp-box"]}}
+{"op":"add","path":"/elements/exp-hist","value":{"type":"Histogram","props":{"id":null,"title":"SESSION DURATION (minutes)","xLabel":"Minutes","yLabel":"Sessions","bins":[{"label":"0-2","value":640},{"label":"2-5","value":1820},{"label":"5-10","value":2470},{"label":"10-20","value":1310},{"label":"20-40","value":420},{"label":"40+","value":130}],"height":300},"children":[]}}
+{"op":"add","path":"/elements/exp-box","value":{"type":"BoxPlot","props":{"id":null,"title":"TIME TO ACTIVATE","yLabel":"Minutes","groups":[{"label":"Control","min":2,"q1":6,"median":11,"q3":19,"max":34},{"label":"Variant","min":1,"q1":4,"median":7,"q3":12,"max":26}],"height":300},"children":[]}}
+{"op":"add","path":"/elements/exp-correlation","value":{"type":"ScatterPlot","props":{"id":null,"title":"SESSION LENGTH vs CONVERSION","xLabel":"Session minutes","yLabel":"Conversion %","height":320,"series":[{"name":"Cohorts","points":[{"x":3,"y":12,"label":"short"},{"x":6,"y":24,"label":"medium"},{"x":9,"y":33,"label":"medium"},{"x":14,"y":41,"label":"long"},{"x":22,"y":38,"label":"long"},{"x":35,"y":29,"label":"long"}]}]},"children":[]}}
+```
+
+One caution before rolling this out to 100%: conversion peaks around the 12–15 minute mark and then declines — the 35-minute cohort converts at only 29%. So the win is about getting users activated faster, not about keeping them in onboarding longer. Ship the variant, and don't add steps that stretch the session past ~15 minutes.

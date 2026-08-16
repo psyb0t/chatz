@@ -1,0 +1,16 @@
+The production platform is under moderate, healthy load. CPU saturation sits at 78% cluster-wide — checkout-api is the hottest path at 86% and is already autoscaling. The one thing worth acting on: ap-south p95 latency has climbed to 318ms over the last hour, well above every other region.
+
+```spec
+{"op":"add","path":"/root","value":"infra-showcase"}
+{"op":"add","path":"/elements/infra-showcase","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"lg"},"children":["infra-summary","infra-trends","infra-services"]}}
+{"op":"add","path":"/elements/infra-summary","value":{"type":"Grid","props":{"id":"infra-summary","columns":3},"children":["infra-cpu","infra-mem","infra-rps"]}}
+{"op":"add","path":"/elements/infra-cpu","value":{"type":"Gauge","props":{"id":null,"label":"CPU SATURATION","value":78,"min":0,"max":100,"unit":"%","warn":75,"crit":90},"children":[]}}
+{"op":"add","path":"/elements/infra-mem","value":{"type":"Gauge","props":{"id":null,"label":"MEMORY SATURATION","value":71,"min":0,"max":100,"unit":"%","warn":80,"crit":92},"children":[]}}
+{"op":"add","path":"/elements/infra-rps","value":{"type":"Stat","props":{"id":null,"label":"THROUGHPUT","value":"41.2k","unit":"req/s","delta":8},"children":[]}}
+{"op":"add","path":"/elements/infra-trends","value":{"type":"Grid","props":{"id":"infra-trends","columns":2},"children":["infra-throughput","infra-latency"]}}
+{"op":"add","path":"/elements/infra-throughput","value":{"type":"AreaChart","props":{"id":null,"title":"THROUGHPUT (thousands req/s)","xLabel":"Recent intervals","yLabel":"kreq/s","height":300,"series":[{"name":"Gateway","points":[{"x":"T-5","y":34.1},{"x":"T-4","y":36.4},{"x":"T-3","y":35.2},{"x":"T-2","y":39.8},{"x":"Now","y":41.2}]},{"name":"Workers","points":[{"x":"T-5","y":12.3},{"x":"T-4","y":13.1},{"x":"T-3","y":12.8},{"x":"T-2","y":14.6},{"x":"Now","y":15.9}]}]},"children":[]}}
+{"op":"add","path":"/elements/infra-latency","value":{"type":"Heatmap","props":{"id":null,"title":"P95 LATENCY BY REGION (ms)","xLabels":["T-5","T-4","T-3","T-2","Now"],"yLabels":["us-east","us-west","eu-west","ap-south"],"values":[[180,176,182,190,188],[196,205,210,231,244],[210,214,208,219,222],[268,279,291,305,318]],"height":300},"children":[]}}
+{"op":"add","path":"/elements/infra-services","value":{"type":"Table","props":{"id":null,"columns":["Service","CPU %","Signal","Recommended action"],"rows":[["checkout-api","86","hot path, autoscaling","add 2 replicas"],["search-indexer","74","batch backlog","throttle reindex"],["media-transcoder","69","queue draining","observe"],["gateway","61","steady","observe"]]},"children":[]}}
+```
+
+The immediate move is to shift ap-south read traffic to the eu-west replica — that region's p95 is 318ms versus ~190ms elsewhere. Add two replicas to checkout-api to give the hot path headroom before the next traffic window. Everything else is inside its normal band.

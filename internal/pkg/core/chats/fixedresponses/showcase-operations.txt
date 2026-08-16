@@ -1,0 +1,25 @@
+I checked the last five minutes of service health and platform events. The platform is processing normally overall, with the worker retry queue as the only watch item.
+
+```spec
+{"op":"add","path":"/root","value":"ops-showcase"}
+{"op":"add","path":"/elements/ops-showcase","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"lg"},"children":["ops-summary","ops-queue-health","ops-trends","ops-services","ops-log"]}}
+{"op":"add","path":"/elements/ops-summary","value":{"type":"Grid","props":{"id":"ops-summary","columns":3},"children":["ops-requests","ops-errors","ops-latency"]}}
+{"op":"add","path":"/elements/ops-requests","value":{"type":"Stat","props":{"id":null,"label":"REQUESTS","value":"18.4k","unit":"/ min","delta":6},"children":[]}}
+{"op":"add","path":"/elements/ops-errors","value":{"type":"Stat","props":{"id":null,"label":"ERROR RATE","value":"0.7","unit":"%","delta":-1},"children":[]}}
+{"op":"add","path":"/elements/ops-latency","value":{"type":"Stat","props":{"id":null,"label":"P95 LATENCY","value":"284","unit":"ms","delta":12},"children":[]}}
+{"op":"add","path":"/elements/ops-queue-health","value":{"type":"Card","props":{"id":null,"title":"WORKER QUEUE WATCH","description":"The only current platform health signal that needs follow-up."},"children":["ops-queue-content"]}}
+{"op":"add","path":"/elements/ops-queue-content","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"sm"},"children":["ops-queue-title","ops-queue-text","ops-queue-details","ops-queue-callout","ops-queue-progress","ops-queue-badge"]}}
+{"op":"add","path":"/elements/ops-queue-title","value":{"type":"Heading","props":{"id":null,"level":3,"content":"Delayed-job inspection recommended"},"children":[]}}
+{"op":"add","path":"/elements/ops-queue-text","value":{"type":"Text","props":{"id":null,"content":"The worker has 14 queued retries while all other production services remain healthy."},"children":[]}}
+{"op":"add","path":"/elements/ops-queue-details","value":{"type":"KeyValue","props":{"id":null,"items":[{"label":"Worker retry queue","value":"14 jobs"},{"label":"Review threshold","value":"20 jobs"},{"label":"Recommended action","value":"Inspect delayed-job cohort"}]},"children":[]}}
+{"op":"add","path":"/elements/ops-queue-callout","value":{"type":"Callout","props":{"id":null,"variant":"warn","title":"Next action","text":"Inspect the delayed-job cohort before the retry queue reaches its 20-job review threshold."},"children":[]}}
+{"op":"add","path":"/elements/ops-queue-progress","value":{"type":"Progress","props":{"id":null,"label":"Retry queue threshold","value":14,"max":20,"warn":10,"crit":18},"children":[]}}
+{"op":"add","path":"/elements/ops-queue-badge","value":{"type":"Badge","props":{"id":null,"label":"WATCH","variant":"warn"},"children":[]}}
+{"op":"add","path":"/elements/ops-trends","value":{"type":"Grid","props":{"id":"ops-trends","columns":2},"children":["ops-volume-chart","ops-errors-chart"]}}
+{"op":"add","path":"/elements/ops-volume-chart","value":{"type":"TimeSeriesChart","props":{"id":null,"title":"REQUEST VOLUME","xLabel":"Recent intervals","yLabel":"Thousands of requests / min","height":300,"series":[{"name":"Gateway","points":[{"x":"T-5","y":9.1},{"x":"T-4","y":9.8},{"x":"T-3","y":9.5},{"x":"T-2","y":10.2},{"x":"Now","y":10.6}]},{"name":"Workers","points":[{"x":"T-5","y":5.2},{"x":"T-4","y":5.8},{"x":"T-3","y":5.5},{"x":"T-2","y":6.9},{"x":"Now","y":7.8}]}]},"children":[]}}
+{"op":"add","path":"/elements/ops-errors-chart","value":{"type":"BarChart","props":{"id":null,"title":"RETRIES BY SERVICE","categories":["Gateway","API","Worker","Indexer"],"series":[{"name":"Retries","values":[3,7,14,4]}],"stacked":false,"orientation":"vertical","height":300},"children":[]}}
+{"op":"add","path":"/elements/ops-services","value":{"type":"Table","props":{"id":null,"columns":["Service","Status","Signal","Next action"],"rows":[["gateway","healthy","steady throughput","observe"],["api","healthy","p95 within target","observe"],["worker","watch","retry queue elevated","inspect delayed jobs"],["indexer","healthy","caught up","observe"]]},"children":[]}}
+{"op":"add","path":"/elements/ops-log","value":{"type":"LogViewer","props":{"id":null,"title":"RECENT PLATFORM EVENTS","entries":[{"time":"T-00:03","level":"info","source":"gateway","message":"traffic window opened"},{"time":"T-00:02","level":"warn","source":"worker","message":"retry queue above normal band"},{"time":"T-00:01","level":"info","source":"scheduler","message":"rebalanced delayed jobs"},{"time":"Now","level":"info","source":"api","message":"health checks remain green"}],"wrap":true,"maxHeight":280},"children":[]}}
+```
+
+The worker retry queue is the only watch item. I would inspect the delayed-job cohort first; the platform is currently handling 18.4k requests per minute.

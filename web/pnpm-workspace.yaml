@@ -1,0 +1,21 @@
+# pnpm 10 moved `overrides` out of package.json and into this file. They were
+# still declared in package.json, where pnpm 11 silently ignores them — the CVE
+# pins below had stopped applying and js-yaml/cookie were resolving back to
+# their vulnerable versions with no warning of any kind.
+minimumReleaseAge: 10080
+
+# CVE remediation only — version-scoped so the vulnerable range moves to its
+# nearest patched release without dragging unrelated majors or other consumers'
+# copies along with it.
+overrides:
+  postcss@<8.5.18: ^8.5.18
+  js-yaml@<4.3.0: ^4.3.0
+  cookie@<0.7.0: ^0.7.0
+
+# pnpm 10 stopped running dependency install scripts unless they are approved
+# here, and pnpm 11 spells it `allowBuilds` (a map) rather than the earlier
+# `onlyBuiltDependencies` (a list). esbuild's postinstall fetches its platform
+# binary, so the web build cannot run without it. This restores what pnpm 9 did
+# by default rather than granting anything new.
+allowBuilds:
+  esbuild: true

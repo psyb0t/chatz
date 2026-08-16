@@ -1,0 +1,83 @@
+.vscode
+.log
+__pycache__
+coverage.out
+coverage.html
+coverage.txt
+coverage_filtered.txt
+# Anchored to the repo root. A bare `build` matches at ANY depth, which
+# silently excluded vendor/github.com/moby/moby/api/types/build/ from git —
+# the tree built locally and failed in CI, which checks out what git has.
+/build
+CLAUDE.md
+.env
+.env.local
+.env.*
+!.env.example
+research_files
+.research_files
+.testing
+.backup
+scripts/.post-update-temp
+git-update.sh
+.telemetry/
+
+# Codex / agent scratch — never commit
+AGENTS.md
+CODEX.local.md
+.agent_notes/
+.agent_knowledge/
+PLAN.md
+implplan.md
+NOTES.md
+TODO.md
+WIP.md
+
+# Editor / IDE
+.idea/
+.editorconfig
+.envrc
+.tool-versions
+.python-version
+.nvmrc
+pyrightconfig.json
+
+# Web frontend (SvelteKit static SPA under ./web)
+web/node_modules/
+web/.svelte-kit/
+web/build/
+web/e2e/out/
+.pnpm-store/
+
+# go:embed SPA dir — only dist/index.html (placeholder) is committed; the real
+# build synced by `make web-embed` (index.html + _app/ + *.html) is generated.
+internal/pkg/webassets/dist/_app/
+internal/pkg/webassets/dist/*.html
+!internal/pkg/webassets/dist/index.html
+
+# Per-run test-plan scratch (never committed)
+.testing/
+.prompts/
+
+# App file log sink (internal/pkg/logging.AddFileSink) — truncated every boot,
+# bind-mounted into the container by docker-compose.yml for host-side access.
+chatz.log
+.plan-and-delegate/
+.secaudit/
+.anustimes/
+.brutal_reviews/
+.make-video/
+.browser-record/
+.diag/
+gigplan.md
+gigplan-playbook.md
+llmclientplan.md
+improve.md
+improve.html
+
+# LAST, so it beats every pattern above. vendor/ is upstream source copied
+# verbatim by the dependency refresh; every rule in this file names an artifact
+# of THIS repo and none of them should reach into it. A bare `build` pattern
+# once excluded vendor/github.com/moby/moby/api/types/build/, which builds fine
+# locally (the files are on disk) and fails in CI, which only has what git has.
+!vendor/**

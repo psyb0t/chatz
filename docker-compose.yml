@@ -1,0 +1,149 @@
+# Local Chatz deployment: Postgres + Chatz by default. When `.env` selects
+# SQLite, `make run` starts only Chatz and its persistent `/data` volume.
+# Hardened per hardening-containers.md (cap_drop, no-new-privileges, resource
+# limits, healthchecks, internal DB network, loopback-bound ports).
+#
+# NOTE: image tags below should be @sha256-pinned before any prod use; kept as
+# tags here for the local dev stack. The chatz service builds the prod image,
+# which embeds the SvelteKit static build — buildable once web/ is in place.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    init: true
+    environment:
+      POSTGRES_USER: ${CHATZ_DB_USERNAME:-chatz}
+      POSTGRES_PASSWORD: ${CHATZ_DB_PASSWORD:-chatz}
+      POSTGRES_DB: ${CHATZ_DB_NAME:-chatz}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    ports:
+      - "127.0.0.1:${CHATZ_DB_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${CHATZ_DB_USERNAME:-chatz}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    cap_drop: [ALL]
+    # The postgres:16-alpine entrypoint chowns the data dir + su's to the
+    # postgres user on first init, which needs these caps back. Scoped to the
+    # minimum (no NET_*, no SYS_*). Without them the container never becomes
+    # healthy and the chatz service's depends_on blocks forever.
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "5"}
+    deploy:
+      resources:
+        limits: {memory: 512M, cpus: "1.0", pids: 256}
+
+  chatz:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        APP_VERSION: ${CHATZ_APP_VERSION:-dev}
+        GIT_COMMIT: ${GIT_COMMIT:-}
+    # `run` starts the HTTP server + embedded SPA. Without it the binary's
+    # default CMD is `--help`, which prints usage and exits (container would
+    # never come up). The e2e suite builds this same app image via
+    # testcontainers (see tests/testinfra/e2e.go).
+    command: ["run"]
+    # CHATZ_UPSTREAMS names credential variables dynamically through
+    # apiKeyEnv. Compose interpolation does not inject those names into the
+    # container, so forward the gitignored operator config as its env file.
+    env_file:
+      - path: .env
+        required: false
+    restart: unless-stopped
+    init: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # Single-file bind mount: chatz.log truncates+reopens on every boot
+    # (os.O_TRUNC) so it's a diagnostic tail, not an accumulating archive —
+    # matching that with a bind mount (rather than a named volume) is what
+    # makes it directly greppable/attachable from the host. A bind mount is
+    # its own mount point and stays writable even though read_only: true
+    # below makes the rest of the container fs read-only (same mechanism
+    # that lets postgres's pgdata volume take writes).
+    volumes:
+      # SQLite uses this persistent named volume while the image filesystem
+      # stays read-only. It remains unused in the default Postgres mode.
+      - chatzdata:/data
+      # create_host_path=false prevents Compose from silently turning a missing
+      # single-file source into a directory. make run creates the file first.
+      - type: bind
+        source: ./chatz.log
+        target: /app/chatz.log
+        bind:
+          create_host_path: false
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+      LOG_ADD_SOURCE: ${LOG_ADD_SOURCE:-true}
+      CHATZ_HTTP_LISTENADDRESS: ":8080"
+      CHATZ_METRICS_LISTENADDRESS: ${CHATZ_METRICS_LISTENADDRESS:-:9091}
+      CHATZ_PROFILING_LISTENADDRESS: ${CHATZ_PROFILING_LISTENADDRESS:-:6060}
+      CHATZ_DB_HOSTNAME: postgres
+      CHATZ_DB_PORT: "5432"
+      CHATZ_DB_USERNAME: ${CHATZ_DB_USERNAME:-chatz}
+      CHATZ_DB_PASSWORD: ${CHATZ_DB_PASSWORD:-chatz}
+      CHATZ_DB_NAME: ${CHATZ_DB_NAME:-chatz}
+      CHATZ_DB_ISSSL: ${CHATZ_DB_ISSSL:-false}
+      CHATZ_DB_DRIVER: ${CHATZ_DB_DRIVER:-postgres}
+      CHATZ_DB_SQLITE_PATH: ${CHATZ_DB_SQLITE_PATH:-/data/chatz.sqlite}
+      CHATZ_DB_SQLITE_BUSY_TIMEOUT: ${CHATZ_DB_SQLITE_BUSY_TIMEOUT:-5s}
+      # Optional. Empty is fine for first run: the app boots with no LLM config,
+      # the SPA loads, /setup creates the admin, and the chat list works
+      # (models list is just empty). Fill these in for real chat.
+      CHATZ_SESSION_SECRET: ${CHATZ_SESSION_SECRET:-}
+      CHATZ_SECRETS_KEY: ${CHATZ_SECRETS_KEY:-}
+      CHATZ_AUTH_PASSWORDLESS: ${CHATZ_AUTH_PASSWORDLESS:-false}
+      CHATZ_SHOWCASE_MODE: ${CHATZ_SHOWCASE_MODE:-false}
+      CHATZ_BACKUP_STATUS_PATH: ${CHATZ_BACKUP_STATUS_PATH:-/data/chatz-backup-status.json}
+      CHATZ_BACKUP_MAX_AGE: ${CHATZ_BACKUP_MAX_AGE:-24h}
+      CHATZ_UPSTREAMS: ${CHATZ_UPSTREAMS:-}
+      CHATZ_DEFAULT_MODEL: ${CHATZ_DEFAULT_MODEL:-}
+      CHATZ_UPSTREAM_CONNECT_TIMEOUT: ${CHATZ_UPSTREAM_CONNECT_TIMEOUT:-10s}
+      CHATZ_UPSTREAM_FIRST_TOKEN_TIMEOUT: ${CHATZ_UPSTREAM_FIRST_TOKEN_TIMEOUT:-45s}
+      CHATZ_UPSTREAM_TURN_TIMEOUT: ${CHATZ_UPSTREAM_TURN_TIMEOUT:-5m}
+      CHATZ_UPSTREAM_CONCURRENCY: ${CHATZ_UPSTREAM_CONCURRENCY:-8}
+      GIT_COMMIT: ${GIT_COMMIT:-}
+    networks: [front, internal]
+    ports:
+      - "127.0.0.1:${CHATZ_HTTP_PORT:-8080}:8080"
+    healthcheck:
+      # busybox wget (present in the alpine runtime) hits the embedded /healthz.
+      # The binary has no `health` subcommand — the readiness signal is HTTP.
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    logging:
+      driver: json-file
+      options: {max-size: "10m", max-file: "5"}
+    deploy:
+      resources:
+        limits: {memory: 512M, cpus: "1.0", pids: 256}
+
+networks:
+  front:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true
+
+volumes:
+  pgdata: {}
+  chatzdata: {}

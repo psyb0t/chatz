@@ -1,0 +1,4 @@
+# The scripts/make/*.sh scripts source helpers via ${SCRIPT_DIR}-relative paths
+# resolved at runtime; shellcheck can't follow them statically (SC1091, info
+# only — not a real defect). Everything else stays enforced.
+disable=SC1091

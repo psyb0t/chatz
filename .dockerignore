@@ -1,0 +1,33 @@
+# Build context hygiene + secret/scratch leak prevention.
+# NOTE: vendor/ is intentionally NOT excluded — the build uses -mod=vendor.
+.git
+.github
+# `*.md` does not cross a `/`, so this is root-level only, and the whole root
+# docs/ tree goes with it. Markdown deeper in the tree stays: packages here
+# go:embed resource files, and a blanket **/*.md would break that silently.
+*.md
+docs/
+# Agent skill / plugin manifests. Repo distribution material — published from
+# the repo itself, never built into or read by the binary.
+.agents
+.env
+.env.*
+!.env.example
+*.log
+*.out
+coverage.*
+.telemetry/
+.research_files
+.testing
+# `make backup` writes whole-project tarballs here; they accumulate per update.
+.backup
+.vscode
+.idea
+build/
+node_modules
+web/node_modules
+web/ui-lib/node_modules
+.prompts/
+.plan-and-delegate/
+.make-video
+.browser-record

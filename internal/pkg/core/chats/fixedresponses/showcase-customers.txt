@@ -1,0 +1,17 @@
+I found seven at-risk accounts that need proactive attention. The risk mix is four with falling activity, two with support friction, and one with renewal timing, so this is a varied portfolio rather than one hard failure.
+
+```spec
+{"op":"add","path":"/root","value":"customers-showcase"}
+{"op":"add","path":"/elements/customers-showcase","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"lg"},"children":["customers-summary","customers-analysis","customers-priority","customers-timeline"]}}
+{"op":"add","path":"/elements/customers-summary","value":{"type":"Grid","props":{"id":"customers-summary","columns":3},"children":["customers-risk","customers-adoption","customers-tickets"]}}
+{"op":"add","path":"/elements/customers-risk","value":{"type":"Stat","props":{"id":null,"label":"AT-RISK ACCOUNTS","value":"7","unit":null,"delta":-2},"children":[]}}
+{"op":"add","path":"/elements/customers-adoption","value":{"type":"Gauge","props":{"id":null,"label":"Portfolio adoption","value":74,"min":0,"max":100,"unit":"%","warn":70,"crit":50},"children":[]}}
+{"op":"add","path":"/elements/customers-tickets","value":{"type":"Sparkline","props":{"id":null,"label":"Open support threads","value":"17","unit":null,"values":[31,29,27,25,23,17],"trend":"down"},"children":[]}}
+{"op":"add","path":"/elements/customers-analysis","value":{"type":"Grid","props":{"id":"customers-analysis","columns":2},"children":["customers-activity","customers-reasons"]}}
+{"op":"add","path":"/elements/customers-activity","value":{"type":"AreaChart","props":{"id":null,"title":"ENGAGEMENT TREND","xLabel":"Recent weeks","yLabel":"Active teams","height":300,"series":[{"name":"Healthy cohort","points":[{"x":"W-4","y":82},{"x":"W-3","y":85},{"x":"W-2","y":87},{"x":"W-1","y":89}]},{"name":"At-risk cohort","points":[{"x":"W-4","y":24},{"x":"W-3","y":21},{"x":"W-2","y":18},{"x":"W-1","y":15}]}]},"children":[]}}
+{"op":"add","path":"/elements/customers-reasons","value":{"type":"DonutChart","props":{"id":null,"title":"RISK SIGNAL MIX","centerLabel":"7 accounts","slices":[{"label":"Falling activity","value":4},{"label":"Support friction","value":2},{"label":"Renewal timing","value":1}],"height":300},"children":[]}}
+{"op":"add","path":"/elements/customers-priority","value":{"type":"Table","props":{"id":null,"columns":["Account","Risk signal","Owner","Recommended outreach"],"rows":[["Atlas team","activity down; open issue","success lead","schedule adoption review"],["Juniper group","renewal approaching","account lead","confirm outcomes and timeline"],["River workspace","support friction","support lead","send resolution recap"]]},"children":[]}}
+{"op":"add","path":"/elements/customers-timeline","value":{"type":"Timeline","props":{"id":null,"items":[{"time":"T-5d","label":"Activity decline detected","detail":"Atlas team fell below its usual usage band"},{"time":"T-2d","label":"Support thread reopened","detail":"River workspace requested implementation help"},{"time":"Today","label":"Outreach queue prepared","detail":"Three owners have a clear next action"}]},"children":[]}}
+```
+
+Contact Atlas first to address falling activity and its open issue, then Juniper to confirm renewal outcomes and timeline, followed by River with a resolution recap for its support friction.
