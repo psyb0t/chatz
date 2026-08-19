@@ -10,6 +10,7 @@ tool (
 	golang.org/x/tools/cmd/goimports
 	golang.org/x/tools/gopls/internal/analysis/modernize/cmd/modernize
 	golang.org/x/vuln/cmd/govulncheck
+	mvdan.cc/gofumpt
 )
 
 require (

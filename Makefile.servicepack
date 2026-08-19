@@ -11,10 +11,12 @@ UID := $(shell id -u)
 GID := $(shell id -g)
 DOCKER_SOCK := /var/run/docker.sock
 DOCKER_GID := $(shell stat -c '%g' $(DOCKER_SOCK) 2>/dev/null || echo 0)
+DEV_RUN_DIND_EXTRA_ARGS ?=
 
 DEV_RUN := docker run --rm --init \
 	--user $(UID):$(GID) \
 	-e HOME=/tmp \
+	-e GOPATH=/tmp/go \
 	-e GOCACHE=/tmp/go-cache \
 	-e GOMODCACHE=/tmp/go-mod-cache \
 	-e PKG \
@@ -26,13 +28,17 @@ DEV_RUN := docker run --rm --init \
 
 # Testcontainers talks to the host daemon. Keep the workspace at its host path
 # so bind mounts requested by a sibling test container resolve correctly.
-DEV_RUN_DIND := docker run --rm --init \
+DEV_RUN_DIND = docker run --rm --init \
 	--user $(UID):$(GID) \
 	--group-add $(DOCKER_GID) \
 	-e HOME=/tmp \
+	-e GOPATH=/tmp/go \
 	-e GOCACHE=/tmp/go-cache \
 	-e GOMODCACHE=/tmp/go-mod-cache \
 	-e MIN_TEST_COVERAGE \
+	-e TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE=$(DOCKER_SOCK) \
+	-e TESTCONTAINERS_RYUK_DISABLED=true \
+	$(DEV_RUN_DIND_EXTRA_ARGS) \
 	-v "$(CURDIR):$(CURDIR)" \
 	-v "$(DOCKER_SOCK):$(DOCKER_SOCK)" \
 	-w "$(CURDIR)" \
@@ -79,7 +85,7 @@ pkg-add: dev-image ## Add a module: make pkg-add PKG=module@version
 	@$(DEV_RUN) bash -ceu '\
 		[[ -n "$$PKG" ]] || { echo "PKG is required" >&2; exit 1; }; \
 		bash scripts/check-go-age.sh "$$PKG"; \
-		GOFLAGS= go get "$$PKG"; \
+		GOFLAGS=-mod=mod go get "$$PKG"; \
 		go mod tidy; \
 		go mod vendor'
 
@@ -87,18 +93,18 @@ pkg-update: export PKG := $(PKG)
 pkg-update: dev-image ## Update one module: make pkg-update PKG=module
 	@$(DEV_RUN) bash -ceu '\
 		[[ -n "$$PKG" ]] || { echo "PKG is required" >&2; exit 1; }; \
-		version="$$(GOFLAGS= go list -m -f "{{.Version}}" "$$PKG@latest")"; \
+		version="$$(GOFLAGS=-mod=mod go list -m -f "{{.Version}}" "$$PKG@latest")"; \
 		bash scripts/check-go-age.sh "$$PKG@$$version"; \
-		GOFLAGS= go get "$$PKG@$$version"; \
+		GOFLAGS=-mod=mod go get "$$PKG@$$version"; \
 		go mod tidy; \
 		go mod vendor'
 
 pkg-upgrade: dev-image ## Upgrade every direct module after the age gate
 	@$(DEV_RUN) bash -ceu '\
 		while IFS= read -r module; do \
-			version="$$(GOFLAGS= go list -m -f "{{.Version}}" "$$module@latest")"; \
+			version="$$(GOFLAGS=-mod=mod go list -m -f "{{.Version}}" "$$module@latest")"; \
 			bash scripts/check-go-age.sh "$$module@$$version"; \
-			GOFLAGS= go get "$$module@$$version"; \
+			GOFLAGS=-mod=mod go get "$$module@$$version"; \
 		done < <(go list -m -f "{{if not .Indirect}}{{.Path}}{{end}}" all | sed "/^$$/d"); \
 		go mod tidy; \
 		go mod vendor'
@@ -121,7 +127,7 @@ pkg-add-tool: dev-image ## Add a Go tool: make pkg-add-tool MODULE=module@versio
 		version="$${MODULE##*@}"; \
 		[[ "$$module" != "$$MODULE" && -n "$$version" ]] || { echo "MODULE must be module@version" >&2; exit 1; }; \
 		bash scripts/check-go-age.sh "$$module@$$version"; \
-		GOFLAGS= go get "$$MODULE"; \
+		GOFLAGS=-mod=mod go get "$$MODULE"; \
 		GOFLAGS= go mod edit -tool="$$TOOL"; \
 		go mod tidy; \
 		go mod vendor'
@@ -151,7 +157,8 @@ test: ## Run all tests
 	@$(MAKE) dev-image
 	@$(call run_dind_script,test.sh)
 
-test-unit: ## Run the framework's unit test suite
+test-unit: dev-image ## Run the framework's unit test suite
+	@$(DEV_RUN) go test -race ./...
 
 test-integration: dev-image ## Run integration tests without cached results
 	@$(DEV_RUN_DIND) go test -race -count=1 -timeout=600s ./...

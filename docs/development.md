@@ -8,8 +8,8 @@ The Makefile has two execution shapes:
 
 - ordinary build, lint, formatting, dependency, and vulnerability work runs
   in the development container with the repository mounted at `/work`;
-- test targets mount the Docker socket as well, because integration tests can
-  use Testcontainers to start real infrastructure.
+- `make test-unit` uses the ordinary socketless container; full, integration,
+  and coverage targets mount the Docker socket for Testcontainers.
 
 The exact scripts and override lookup live in the
 [framework Make-script deep dive](../scripts/make/servicepack/README.md).
@@ -20,7 +20,7 @@ The exact scripts and override lookup live in the
 | --- | --- | --- |
 | `make dev-image` | Docker build | Build the development image used by normal tooling. |
 | `make test` | Docker + socket | Race-enabled `go test ./...`. |
-| `make test-unit` | Docker + socket | Alias of `make test`; it does not select a narrower package set. |
+| `make test-unit` | Docker | Race-enabled `go test ./...` without Docker-socket access. |
 | `make test-integration` | Docker + socket | Uncached, race-enabled test run with a ten-minute timeout. |
 | `make test-coverage` | Docker + socket | Race-enabled coverage check; default floor is `MIN_TEST_COVERAGE=90`. |
 | `make lint` | Docker | `shfmt`, ShellCheck, `go fix` diff check, and golangci-lint. |
@@ -41,13 +41,22 @@ toolchains two chances to disagree.
 `make test` is the standard full suite. It enables Go's race detector and has
 Docker available for Testcontainers-backed tests. `make test-integration` uses
 the same package pattern but disables the Go test cache and applies a
-ten-minute timeout. Use it when checking changes to real-infrastructure tests.
+ten-minute timeout—use it when checking changes to real-infrastructure tests.
+Use `make test-unit` for the same race-enabled package walk without exposing
+the Docker socket; Testcontainers-backed cases cannot start infrastructure in
+that target.
 
-`make test-coverage` also runs the race detector. It calculates framework
-coverage after excluding `cmd/`, the complete `internal/pkg/services/` tree,
-and generated service-manager mocks. That keeps the template's quality gate on
-the reusable framework while leaving a downstream project free to establish
-coverage policy for its own services. Override the threshold deliberately:
+`make test-coverage` also runs the race detector. It instruments every module
+package (`-coverpkg=<module>/...`) and runs `-tags=integration`, so a test under
+`tests/` credits coverage to the production package it drives, and **services are
+covered** — a service-heavy project does not need to override the script to gate
+its own code. A service that runs out-of-process in a real container is covered
+too: the script exports `SERVICEPACK_COVDATA_DIR`, an integration test mounts it
+into that container as `GOCOVERDIR`, and the native covdata is merged into the
+total. Only what is not hand-written code under test is excluded from the floor:
+`cmd/` mains, the `tests/` harness, generated `*.gen.go`, the service-manager
+mocks, and the framework's own `example-*` / `hello-world` demo services.
+Override the threshold deliberately:
 
 ```bash
 make test-coverage MIN_TEST_COVERAGE=95
@@ -62,13 +71,16 @@ working around the integration tests.
 
 `make build` uses the pinned Go build image, installs the static-build
 requirements inside that temporary container, and writes `build/<module-tail>`
-back with your host UID/GID. It injects two values with linker flags:
+back with your host UID/GID. It injects three values with linker flags:
 
-- `main.appName`: the final segment of the module path; it sets the binary
+- `main.appName` — the final segment of the module path; it sets the binary
   name and root Cobra command name;
-- `main.buildCommit`: the checked-out `HEAD` commit when available.
+- `main.buildCommit` — the checked-out `HEAD` commit when available.
+- `main.buildVersion` — the exact Git tag at `HEAD`, or `dev` for an untagged
+  source build.
 
-`cmd/main.go` puts those into the global log scope as `binary` and `commit`.
+`cmd/main.go` puts those into the global log scope as `binary`, `commit`, and
+`version`.
 Build output is therefore traceable without hardcoding identity in service
 code. A source tree without a resolvable Git `HEAD` builds, but has no commit
 field to inject.
@@ -113,7 +125,7 @@ Likewise, project `Dockerfile`, `Dockerfile.dev`, `cmd/init.go`, and
 ## Before you hand off a change
 
 For a normal code change, run the narrowest useful target first, then the
-relevant full check, for example `make test`, `make lint`, and
+relevant full check—for example `make test`, `make lint`, and
 `make test-coverage` when a framework behavior changes. The repository's
 pre-commit hook calls `make lint && make test-coverage`, so it will repeat
 those checks during the project's normal commit flow.
