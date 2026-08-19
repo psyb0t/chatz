@@ -22,6 +22,9 @@ export const A11Y_SIDEBAR_OPEN = "Open sidebar";
 export const A11Y_SIDEBAR_CLOSE = "Close sidebar";
 
 // Sidebar admin nav labels (moved from the removed topbar).
+// Accessible name for the single sidebar admin entry (a gear icon). It opens
+// the /admin page, where Users/MCP/Readiness are tabs.
+export const NAV_ADMIN_SYSTEM = "System";
 export const NAV_ADMIN_USERS = "Users";
 export const NAV_ADMIN_MCP = "MCP";
 export const NAV_ADMIN_READINESS = "Readiness";

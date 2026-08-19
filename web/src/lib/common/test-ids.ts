@@ -28,6 +28,9 @@ export const TESTID_ADMIN_EMPTY = "admin-empty";
 export const TESTID_ADMIN_ERROR = "admin-error";
 
 // Admin nav + screens.
+// The single sidebar gear that opens /admin. The three names below now tag the
+// tabs inside the /admin layout rather than separate sidebar buttons.
+export const TESTID_NAV_ADMIN_SYSTEM = "admin-system";
 export const TESTID_NAV_ADMIN_USERS = "admin-users";
 export const TESTID_NAV_ADMIN_MCP = "admin-mcp";
 export const TESTID_NAV_ADMIN_READINESS = "admin-readiness";

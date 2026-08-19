@@ -24,7 +24,7 @@ const (
 	sidebarOpenSel     = "[data-testid=sidebar-open]"
 	sidebarBackdropSel = "[data-testid=sidebar-backdrop]"
 	sidebarToggleSel   = "[data-testid=sidebar-toggle]"
-	adminUsersSel      = "[data-testid=admin-users]"
+	adminSystemSel     = "[data-testid=admin-system]"
 	userCreateUserSel  = "[data-testid=user-create-username]"
 
 	sidebarOpenWaitSec = 10
@@ -172,7 +172,9 @@ func TestMobileDrawer(t *testing.T) {
 
 	require.NoError(t, client.Eval(ctx, clickJS(sidebarOpenSel)))
 	assertOpen(ctx, t, client)
-	require.NoError(t, client.Eval(ctx, clickJS(adminUsersSel)))
+	// The drawer's admin entry is the gear that opens /admin, which lands on
+	// the Users tab; navigating away must close the drawer.
+	require.NoError(t, client.Eval(ctx, clickJS(adminSystemSel)))
 	require.NoError(t, client.WaitForElement(
 		ctx, userCreateUserSel, stateVisible, adminNavWaitSec,
 	))

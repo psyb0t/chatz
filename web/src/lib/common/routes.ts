@@ -3,6 +3,7 @@
 export const ROUTE_HOME = "/";
 export const ROUTE_SETUP = "/setup";
 export const ROUTE_LOGIN = "/login";
+export const ROUTE_ADMIN = "/admin";
 export const ROUTE_ADMIN_USERS = "/admin/users";
 export const ROUTE_ADMIN_MCP = "/admin/mcp";
 export const ROUTE_ADMIN_READINESS = "/admin/readiness";

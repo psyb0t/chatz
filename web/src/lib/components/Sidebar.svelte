@@ -3,18 +3,12 @@
   import { goto } from "$app/navigation";
   import { auth } from "$lib/stores/auth.svelte";
   import { chats } from "$lib/stores/chats.svelte";
-  import { mcpServers } from "$lib/stores/mcpServers.svelte";
   import {
     theme,
     THEME_TOGGLE_LABEL,
     TESTID_THEME_TOGGLE,
   } from "$lib/stores/theme.svelte";
-  import {
-    ROUTE_ADMIN_USERS,
-    ROUTE_ADMIN_MCP,
-    ROUTE_ADMIN_READINESS,
-    chatRoute,
-  } from "$lib/common/routes";
+  import { ROUTE_ADMIN, chatRoute } from "$lib/common/routes";
   import Button from "$lib/components/ui/Button.svelte";
   import StateBlock from "$lib/components/ui/StateBlock.svelte";
   import { STATE_ERROR, STATE_LOADING } from "$lib/components/ui/variants";
@@ -28,9 +22,7 @@
     A11Y_SIDEBAR_COLLAPSE,
     A11Y_SIDEBAR_EXPAND,
     A11Y_SIDEBAR_CLOSE,
-    NAV_ADMIN_USERS,
-    NAV_ADMIN_MCP,
-    NAV_ADMIN_READINESS,
+    NAV_ADMIN_SYSTEM,
     A11Y_CHAT_RENAME,
     A11Y_CHAT_SEARCH,
     A11Y_CHAT_DELETE,
@@ -38,15 +30,12 @@
     LABEL_DELETE,
     LABEL_CHAT_EDIT,
     SIDEBAR_SEARCH_PLACEHOLDER,
-    mcpChip,
   } from "$lib/common/labels";
   import {
     TESTID_SIDEBAR_LOADING,
     TESTID_SIDEBAR_ERROR,
     TESTID_SIDEBAR_TOGGLE,
-    TESTID_NAV_ADMIN_USERS,
-    TESTID_NAV_ADMIN_MCP,
-    TESTID_NAV_ADMIN_READINESS,
+    TESTID_NAV_ADMIN_SYSTEM,
     TESTID_CHAT_RENAME,
     TESTID_CHAT_RENAME_INPUT,
     TESTID_CHAT_DELETE,
@@ -76,16 +65,8 @@
     }
   }
 
-  function toUsers(): void {
-    void goto(ROUTE_ADMIN_USERS);
-  }
-
-  function toMCP(): void {
-    void goto(ROUTE_ADMIN_MCP);
-  }
-
-  function toReadiness(): void {
-    void goto(ROUTE_ADMIN_READINESS);
+  function toSystem(): void {
+    void goto(ROUTE_ADMIN);
   }
 
   function toggleTheme(): void {
@@ -94,7 +75,6 @@
 
   const activeChatId = $derived(page.params.chatId ?? null);
   const isAdmin = $derived(auth.user?.isAdmin === true);
-  const mcpCount = $derived(mcpServers.enabledCount);
 
   // Inline chat rename: the pencil swaps a row's link for an input; Enter (or
   // blur) saves, Escape cancels.
@@ -355,25 +335,26 @@
       </div>
 
       <div class="sidebar__foot">
-        {#if isAdmin}
-          <nav class="sidebar__nav" aria-label="Admin">
-            <Button testid={TESTID_NAV_ADMIN_USERS} onclick={toUsers}>
-              {NAV_ADMIN_USERS}
-            </Button>
-            <Button testid={TESTID_NAV_ADMIN_MCP} onclick={toMCP}>
-              {mcpCount > 0
-                ? `${NAV_ADMIN_MCP} ${mcpChip(mcpCount)}`
-                : NAV_ADMIN_MCP}
-            </Button>
-            <Button testid={TESTID_NAV_ADMIN_READINESS} onclick={toReadiness}>
-              {NAV_ADMIN_READINESS}
-            </Button>
-          </nav>
-        {/if}
-
         <div class="sidebar__user" id="sidebar-user">
           <span class="sidebar__user-name">{auth.user?.username ?? ""}</span>
           <div class="sidebar__user-actions">
+            {#if isAdmin}
+              <!-- Users, MCP, and Readiness now live as tabs under /admin; this
+                   single gear opens that page instead of three text buttons. -->
+              <button
+                class="icon-btn sidebar__system"
+                type="button"
+                onclick={toSystem}
+                aria-label={NAV_ADMIN_SYSTEM}
+                data-testid={TESTID_NAV_ADMIN_SYSTEM}
+              >
+                <svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+                  <path
+                    d="M8 5.4a2.6 2.6 0 1 0 0 5.2 2.6 2.6 0 0 0 0-5.2Z M8 1.5l.9 1.7 1.9-.4.4 1.9 1.7.9-.9 1.7.9 1.7-1.7.9-.4 1.9-1.9-.4L8 14.5l-.9-1.7-1.9.4-.4-1.9-1.7-.9.9-1.7-.9-1.7 1.7-.9.4-1.9 1.9.4L8 1.5Z"
+                  />
+                </svg>
+              </button>
+            {/if}
             <button
               class="icon-btn"
               type="button"
@@ -760,14 +741,16 @@
     border-top: var(--border-width) solid var(--border);
   }
 
-  .sidebar__nav {
-    display: flex;
-    gap: var(--space-2);
-  }
-
-  .sidebar__nav :global(.btn) {
-    flex: 1;
-    font-size: var(--text-xs);
+  /* The admin gear renders an SVG, so it needs an explicit glyph size the way
+     the collapse toggle does; the icon-btn padding centers it. */
+  .sidebar__system svg {
+    width: 1.05rem;
+    height: 1.05rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.25;
+    stroke-linejoin: round;
+    stroke-linecap: round;
   }
 
   .sidebar__user {

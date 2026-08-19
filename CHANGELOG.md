@@ -5,6 +5,16 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-19
+
+### Changed
+
+- The sidebar's three admin links (Users, MCP, Readiness) collapse into one gear
+  icon labelled "System". It opens a new `/admin` page where those three are
+  tabs, so the sidebar stays compact and the admin screens share one chrome. The
+  existing routes (`/admin/users`, `/admin/mcp`, `/admin/readiness`) are
+  unchanged, so deep links still work; bare `/admin` lands on the Users tab.
+
 ## [0.3.0] - 2026-08-19
 
 ### Removed
@@ -1346,5 +1356,6 @@ Initial release of chatz (renamed from chatter): a self-hosted, single-binary st
 [1.1.1]: https://github.com/psyb0t/chatz/releases/tag/v1.1.1
 [1.1.0]: https://github.com/psyb0t/chatz/releases/tag/v1.1.0
 [1.0.0]: https://github.com/psyb0t/chatter/releases/tag/v1.0.0
+[0.4.0]: https://github.com/psyb0t/chatz/releases/tag/v0.4.0
 [0.3.0]: https://github.com/psyb0t/chatz/releases/tag/v0.3.0
 [0.2.0]: https://github.com/psyb0t/chatz/releases/tag/v0.2.0
