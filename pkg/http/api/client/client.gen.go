@@ -380,18 +380,13 @@ type ChatSettingsReasoningEffort string
 
 // ChatSummary defines model for ChatSummary.
 type ChatSummary struct {
-	// ArchivedAt Present when the chat is archived.
-	ArchivedAt *time.Time         `json:"archivedAt,omitempty"`
-	CreatedAt  time.Time          `json:"createdAt"`
-	Id         openapi_types.UUID `json:"id"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
 
 	// PinnedAt Present when the chat is pinned.
-	PinnedAt *time.Time `json:"pinnedAt,omitempty"`
-
-	// ProjectId Optional user-owned project containing this chat.
-	ProjectId *openapi_types.UUID `json:"projectId,omitempty"`
-	Title     string              `json:"title"`
-	UpdatedAt time.Time           `json:"updatedAt"`
+	PinnedAt  *time.Time `json:"pinnedAt,omitempty"`
+	Title     string     `json:"title"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
 // ContinueChatRequest defines model for ContinueChatRequest.
@@ -421,11 +416,6 @@ type CreateMCPServerRequest struct {
 
 // CreateMCPServerRequestTransport defines model for CreateMCPServerRequest.Transport.
 type CreateMCPServerRequestTransport string
-
-// CreateProjectRequest defines model for CreateProjectRequest.
-type CreateProjectRequest struct {
-	Name string `json:"name"`
-}
 
 // CreateUserRequest defines model for CreateUserRequest.
 type CreateUserRequest struct {
@@ -596,19 +586,6 @@ type Model struct {
 // ModelAvailability The model was advertised by its upstream during startup discovery.
 type ModelAvailability string
 
-// Project defines model for Project.
-type Project struct {
-	CreatedAt time.Time          `json:"createdAt"`
-	Id        openapi_types.UUID `json:"id"`
-	Name      string             `json:"name"`
-	UpdatedAt time.Time          `json:"updatedAt"`
-}
-
-// ProjectAssignmentRequest defines model for ProjectAssignmentRequest.
-type ProjectAssignmentRequest struct {
-	ProjectId openapi_types.UUID `json:"projectId"`
-}
-
 // PromptContextPreview The exact context selection the next turn would use, counted by the server tokenizer. availableTokens is zero when sticky instructions and the current message alone exceed the configured history budget.
 type PromptContextPreview struct {
 	AvailableTokens      int `json:"availableTokens"`
@@ -632,11 +609,6 @@ type PromptContextPreviewRequest struct {
 // RenameChatRequest defines model for RenameChatRequest.
 type RenameChatRequest struct {
 	Title string `json:"title"`
-}
-
-// RenameProjectRequest defines model for RenameProjectRequest.
-type RenameProjectRequest struct {
-	Name string `json:"name"`
 }
 
 // TokenPrice Price for one million tokens. Amount is a decimal string in the currency's smallest unit, avoiding floating-point loss in clients.
@@ -702,14 +674,8 @@ type ListChatsParams struct {
 	Limit  *int `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 
-	// Archived Select archived chats instead of active chats.
-	Archived *bool `form:"archived,omitempty" json:"archived,omitempty"`
-
 	// Search Case-insensitive literal title search.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
-
-	// ProjectId Limit the list to one caller-owned project.
-	ProjectId *openapi_types.UUID `form:"projectId,omitempty" json:"projectId,omitempty"`
 }
 
 // ListChatMessagesParams defines parameters for ListChatMessages.
@@ -739,9 +705,6 @@ type PreviewChatContextJSONRequestBody = PromptContextPreviewRequest
 // UpdateChatMCPServerJSONRequestBody defines body for UpdateChatMCPServer for application/json ContentType.
 type UpdateChatMCPServerJSONRequestBody = ChatMCPServerUpdate
 
-// AssignChatProjectJSONRequestBody defines body for AssignChatProject for application/json ContentType.
-type AssignChatProjectJSONRequestBody = ProjectAssignmentRequest
-
 // UpdateChatSettingsJSONRequestBody defines body for UpdateChatSettings for application/json ContentType.
 type UpdateChatSettingsJSONRequestBody = ChatSettings
 
@@ -753,12 +716,6 @@ type CreateMCPServerJSONRequestBody = CreateMCPServerRequest
 
 // UpdateMCPServerJSONRequestBody defines body for UpdateMCPServer for application/json ContentType.
 type UpdateMCPServerJSONRequestBody = UpdateMCPServerRequest
-
-// CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
-type CreateProjectJSONRequestBody = CreateProjectRequest
-
-// RenameProjectJSONRequestBody defines body for RenameProject for application/json ContentType.
-type RenameProjectJSONRequestBody = RenameProjectRequest
 
 // CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
 type CreateUserJSONRequestBody = CreateUserRequest
@@ -954,16 +911,6 @@ type ClientInterface interface {
 	// Corresponds with POST /chats/{chatId} (the `ContinueChat` operationId).
 	ContinueChat(ctx context.Context, chatId openapi_types.UUID, body ContinueChatJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UnarchiveChat Restore one caller-owned chat from the archive.
-	//
-	// Corresponds with DELETE /chats/{chatId}/archive (the `UnarchiveChat` operationId).
-	UnarchiveChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ArchiveChat Archive one caller-owned chat.
-	//
-	// Corresponds with PUT /chats/{chatId}/archive (the `ArchiveChat` operationId).
-	ArchiveChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// PreviewChatContextWithBody Preview the exact context selected for an unsent chat message.
 	//
 	// Takes any type of body and a specified content type.
@@ -1013,25 +960,6 @@ type ClientInterface interface {
 	//
 	// Corresponds with PUT /chats/{chatId}/pin (the `PinChat` operationId).
 	PinChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ClearChatProject Remove a caller-owned chat's project assignment.
-	//
-	// Corresponds with DELETE /chats/{chatId}/project (the `ClearChatProject` operationId).
-	ClearChatProject(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// AssignChatProjectWithBody Assign one caller-owned chat to a caller-owned project.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-	AssignChatProjectWithBody(ctx context.Context, chatId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// AssignChatProject Assign one caller-owned chat to a caller-owned project.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-	AssignChatProject(ctx context.Context, chatId openapi_types.UUID, body AssignChatProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// UpdateChatSettingsWithBody Update a chat's model-generation settings.
 	//
@@ -1122,44 +1050,6 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /models (the `ListModels` operationId).
 	ListModels(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// ListProjects List the caller's named chat projects.
-	//
-	// Corresponds with GET /projects (the `ListProjects` operationId).
-	ListProjects(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateProjectWithBody Create a named chat project.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with POST /projects (the `CreateProject` operationId).
-	CreateProjectWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// CreateProject Create a named chat project.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with POST /projects (the `CreateProject` operationId).
-	CreateProject(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// DeleteProject Delete a project and unassign its chats.
-	//
-	// Corresponds with DELETE /projects/{projectId} (the `DeleteProject` operationId).
-	DeleteProject(ctx context.Context, projectId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RenameProjectWithBody Rename one caller-owned project.
-	//
-	// Takes any type of body and a specified content type.
-	//
-	// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-	RenameProjectWithBody(ctx context.Context, projectId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// RenameProject Rename one caller-owned project.
-	//
-	// Takes a body of the `application/json` content type.
-	//
-	// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-	RenameProject(ctx context.Context, projectId openapi_types.UUID, body RenameProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ListUpstreamHealth List redacted LLM upstream health snapshots (admin).
 	//
@@ -1478,36 +1368,6 @@ func (c *Client) ContinueChat(ctx context.Context, chatId openapi_types.UUID, bo
 	return c.Client.Do(req)
 }
 
-// UnarchiveChat Restore one caller-owned chat from the archive.
-//
-// Corresponds with DELETE /chats/{chatId}/archive (the `UnarchiveChat` operationId).
-func (c *Client) UnarchiveChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUnarchiveChatRequest(c.Server, chatId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// ArchiveChat Archive one caller-owned chat.
-//
-// Corresponds with PUT /chats/{chatId}/archive (the `ArchiveChat` operationId).
-func (c *Client) ArchiveChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewArchiveChatRequest(c.Server, chatId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
 // PreviewChatContextWithBody Preview the exact context selected for an unsent chat message.
 //
 // Takes any type of body and a specified content type.
@@ -1628,55 +1488,6 @@ func (c *Client) UnpinChat(ctx context.Context, chatId openapi_types.UUID, reqEd
 // Corresponds with PUT /chats/{chatId}/pin (the `PinChat` operationId).
 func (c *Client) PinChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPinChatRequest(c.Server, chatId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// ClearChatProject Remove a caller-owned chat's project assignment.
-//
-// Corresponds with DELETE /chats/{chatId}/project (the `ClearChatProject` operationId).
-func (c *Client) ClearChatProject(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewClearChatProjectRequest(c.Server, chatId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// AssignChatProjectWithBody Assign one caller-owned chat to a caller-owned project.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-func (c *Client) AssignChatProjectWithBody(ctx context.Context, chatId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAssignChatProjectRequestWithBody(c.Server, chatId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// AssignChatProject Assign one caller-owned chat to a caller-owned project.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-func (c *Client) AssignChatProject(ctx context.Context, chatId openapi_types.UUID, body AssignChatProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewAssignChatProjectRequest(c.Server, chatId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1907,104 +1718,6 @@ func (c *Client) ListMCPServerTools(ctx context.Context, serverId openapi_types.
 // Corresponds with GET /models (the `ListModels` operationId).
 func (c *Client) ListModels(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListModelsRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// ListProjects List the caller's named chat projects.
-//
-// Corresponds with GET /projects (the `ListProjects` operationId).
-func (c *Client) ListProjects(ctx context.Context, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewListProjectsRequest(c.Server)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// CreateProjectWithBody Create a named chat project.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with POST /projects (the `CreateProject` operationId).
-func (c *Client) CreateProjectWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateProjectRequestWithBody(c.Server, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// CreateProject Create a named chat project.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with POST /projects (the `CreateProject` operationId).
-func (c *Client) CreateProject(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewCreateProjectRequest(c.Server, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// DeleteProject Delete a project and unassign its chats.
-//
-// Corresponds with DELETE /projects/{projectId} (the `DeleteProject` operationId).
-func (c *Client) DeleteProject(ctx context.Context, projectId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewDeleteProjectRequest(c.Server, projectId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// RenameProjectWithBody Rename one caller-owned project.
-//
-// Takes any type of body and a specified content type.
-//
-// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-func (c *Client) RenameProjectWithBody(ctx context.Context, projectId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRenameProjectRequestWithBody(c.Server, projectId, contentType, body)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// RenameProject Rename one caller-owned project.
-//
-// Takes a body of the `application/json` content type.
-//
-// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-func (c *Client) RenameProject(ctx context.Context, projectId openapi_types.UUID, body RenameProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewRenameProjectRequest(c.Server, projectId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2307,33 +2020,9 @@ func NewListChatsRequest(server string, params *ListChatsParams) (*http.Request,
 
 		}
 
-		if params.Archived != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "archived", *params.Archived, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
 		if params.Search != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "search", *params.Search, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
-				return nil, err
-			} else {
-				for _, qp := range strings.Split(queryFrag, "&") {
-					rawQueryFragments = append(rawQueryFragments, qp)
-				}
-			}
-
-		}
-
-		if params.ProjectId != nil {
-
-			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "projectId", *params.ProjectId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: "uuid"}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -2582,74 +2271,6 @@ func NewContinueChatRequestWithBody(server string, chatId openapi_types.UUID, co
 	}
 
 	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewUnarchiveChatRequest constructs an http.Request for the UnarchiveChat method
-func NewUnarchiveChatRequest(server string, chatId openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "chatId", chatId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/chats/%s/archive", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewArchiveChatRequest constructs an http.Request for the ArchiveChat method
-func NewArchiveChatRequest(server string, chatId openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "chatId", chatId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/chats/%s/archive", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
 
 	return req, nil
 }
@@ -2926,87 +2547,6 @@ func NewPinChatRequest(server string, chatId openapi_types.UUID) (*http.Request,
 	if err != nil {
 		return nil, err
 	}
-
-	return req, nil
-}
-
-// NewClearChatProjectRequest constructs an http.Request for the ClearChatProject method
-func NewClearChatProjectRequest(server string, chatId openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "chatId", chatId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/chats/%s/project", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewAssignChatProjectRequest calls the generic AssignChatProject builder with application/json body
-func NewAssignChatProjectRequest(server string, chatId openapi_types.UUID, body AssignChatProjectJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewAssignChatProjectRequestWithBody(server, chatId, "application/json", bodyReader)
-}
-
-// NewAssignChatProjectRequestWithBody constructs an http.Request for the AssignChatProject method, with any body, and a specified content type
-func NewAssignChatProjectRequestWithBody(server string, chatId openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "chatId", chatId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/chats/%s/project", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -3368,154 +2908,6 @@ func NewListModelsRequest(server string) (*http.Request, error) {
 	return req, nil
 }
 
-// NewListProjectsRequest constructs an http.Request for the ListProjects method
-func NewListProjectsRequest(server string) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewCreateProjectRequest calls the generic CreateProject builder with application/json body
-func NewCreateProjectRequest(server string, body CreateProjectJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewCreateProjectRequestWithBody(server, "application/json", bodyReader)
-}
-
-// NewCreateProjectRequestWithBody constructs an http.Request for the CreateProject method, with any body, and a specified content type
-func NewCreateProjectRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects")
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
-// NewDeleteProjectRequest constructs an http.Request for the DeleteProject method
-func NewDeleteProjectRequest(server string, projectId openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "projectId", projectId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewRenameProjectRequest calls the generic RenameProject builder with application/json body
-func NewRenameProjectRequest(server string, projectId openapi_types.UUID, body RenameProjectJSONRequestBody) (*http.Request, error) {
-	var bodyReader io.Reader
-	buf, err := json.Marshal(body)
-	if err != nil {
-		return nil, err
-	}
-	bodyReader = bytes.NewReader(buf)
-	return NewRenameProjectRequestWithBody(server, projectId, "application/json", bodyReader)
-}
-
-// NewRenameProjectRequestWithBody constructs an http.Request for the RenameProject method, with any body, and a specified content type
-func NewRenameProjectRequestWithBody(server string, projectId openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "projectId", projectId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/projects/%s", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPatch, queryURL.String(), body)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Add("Content-Type", contentType)
-
-	return req, nil
-}
-
 // NewListUpstreamHealthRequest constructs an http.Request for the ListUpstreamHealth method
 func NewListUpstreamHealthRequest(server string) (*http.Request, error) {
 	var err error
@@ -3819,20 +3211,6 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with POST /chats/{chatId} (the `ContinueChat` operationId).
 	ContinueChatWithResponse(ctx context.Context, chatId openapi_types.UUID, body ContinueChatJSONRequestBody, reqEditors ...RequestEditorFn) (*ContinueChatResponse, error)
 
-	// UnarchiveChatWithResponse Restore one caller-owned chat from the archive.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /chats/{chatId}/archive (the `UnarchiveChat` operationId).
-	UnarchiveChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*UnarchiveChatResponse, error)
-
-	// ArchiveChatWithResponse Archive one caller-owned chat.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /chats/{chatId}/archive (the `ArchiveChat` operationId).
-	ArchiveChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*ArchiveChatResponse, error)
-
 	// PreviewChatContextWithBodyWithResponse Preview the exact context selected for an unsent chat message.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -3890,27 +3268,6 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PUT /chats/{chatId}/pin (the `PinChat` operationId).
 	PinChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*PinChatResponse, error)
-
-	// ClearChatProjectWithResponse Remove a caller-owned chat's project assignment.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /chats/{chatId}/project (the `ClearChatProject` operationId).
-	ClearChatProjectWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*ClearChatProjectResponse, error)
-
-	// AssignChatProjectWithBodyWithResponse Assign one caller-owned chat to a caller-owned project.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-	AssignChatProjectWithBodyWithResponse(ctx context.Context, chatId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AssignChatProjectResponse, error)
-
-	// AssignChatProjectWithResponse Assign one caller-owned chat to a caller-owned project.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-	AssignChatProjectWithResponse(ctx context.Context, chatId openapi_types.UUID, body AssignChatProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*AssignChatProjectResponse, error)
 
 	// UpdateChatSettingsWithBodyWithResponse Update a chat's model-generation settings.
 	//
@@ -4013,48 +3370,6 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /models (the `ListModels` operationId).
 	ListModelsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListModelsResponse, error)
-
-	// ListProjectsWithResponse List the caller's named chat projects.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with GET /projects (the `ListProjects` operationId).
-	ListProjectsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProjectsResponse, error)
-
-	// CreateProjectWithBodyWithResponse Create a named chat project.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /projects (the `CreateProject` operationId).
-	CreateProjectWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateProjectResponse, error)
-
-	// CreateProjectWithResponse Create a named chat project.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with POST /projects (the `CreateProject` operationId).
-	CreateProjectWithResponse(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateProjectResponse, error)
-
-	// DeleteProjectWithResponse Delete a project and unassign its chats.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /projects/{projectId} (the `DeleteProject` operationId).
-	DeleteProjectWithResponse(ctx context.Context, projectId openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteProjectResponse, error)
-
-	// RenameProjectWithBodyWithResponse Rename one caller-owned project.
-	//
-	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-	RenameProjectWithBodyWithResponse(ctx context.Context, projectId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RenameProjectResponse, error)
-
-	// RenameProjectWithResponse Rename one caller-owned project.
-	//
-	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-	RenameProjectWithResponse(ctx context.Context, projectId openapi_types.UUID, body RenameProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*RenameProjectResponse, error)
 
 	// ListUpstreamHealthWithResponse List redacted LLM upstream health snapshots (admin).
 	//
@@ -4668,109 +3983,6 @@ func (r ContinueChatResponse) ContentType() string {
 	return ""
 }
 
-type UnarchiveChatResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *ChatSummary
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UnarchiveChatResponse) GetJSON200() *ChatSummary {
-	return r.JSON200
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UnarchiveChatResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetBody returns the raw response body bytes
-func (r UnarchiveChatResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UnarchiveChatResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UnarchiveChatResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UnarchiveChatResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type ArchiveChatResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *ChatSummary
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *BadRequest
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ArchiveChatResponse) GetJSON200() *ChatSummary {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r ArchiveChatResponse) GetJSON400() *BadRequest {
-	return r.JSON400
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r ArchiveChatResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetBody returns the raw response body bytes
-func (r ArchiveChatResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ArchiveChatResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ArchiveChatResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ArchiveChatResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 type PreviewChatContextResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -5074,109 +4286,6 @@ func (r PinChatResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r PinChatResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type ClearChatProjectResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *ChatSummary
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ClearChatProjectResponse) GetJSON200() *ChatSummary {
-	return r.JSON200
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r ClearChatProjectResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetBody returns the raw response body bytes
-func (r ClearChatProjectResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ClearChatProjectResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ClearChatProjectResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ClearChatProjectResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type AssignChatProjectResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *ChatSummary
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *BadRequest
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r AssignChatProjectResponse) GetJSON200() *ChatSummary {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r AssignChatProjectResponse) GetJSON400() *BadRequest {
-	return r.JSON400
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r AssignChatProjectResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetBody returns the raw response body bytes
-func (r AssignChatProjectResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r AssignChatProjectResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r AssignChatProjectResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r AssignChatProjectResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -5656,205 +4765,6 @@ func (r ListModelsResponse) ContentType() string {
 	return ""
 }
 
-type ListProjectsResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]Project
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r ListProjectsResponse) GetJSON200() *[]Project {
-	return r.JSON200
-}
-
-// GetBody returns the raw response body bytes
-func (r ListProjectsResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r ListProjectsResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r ListProjectsResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r ListProjectsResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type CreateProjectResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON201 the response for an HTTP 201 `application/json` response
-	JSON201 *Project
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *BadRequest
-	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *Conflict
-}
-
-// GetJSON201 returns the response for an HTTP 201 `application/json` response
-func (r CreateProjectResponse) GetJSON201() *Project {
-	return r.JSON201
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r CreateProjectResponse) GetJSON400() *BadRequest {
-	return r.JSON400
-}
-
-// GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r CreateProjectResponse) GetJSON409() *Conflict {
-	return r.JSON409
-}
-
-// GetBody returns the raw response body bytes
-func (r CreateProjectResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r CreateProjectResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r CreateProjectResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r CreateProjectResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type DeleteProjectResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r DeleteProjectResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetBody returns the raw response body bytes
-func (r DeleteProjectResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r DeleteProjectResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r DeleteProjectResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r DeleteProjectResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type RenameProjectResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *Project
-	// JSON400 the response for an HTTP 400 `application/json` response
-	JSON400 *BadRequest
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-	// JSON409 the response for an HTTP 409 `application/json` response
-	JSON409 *Conflict
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r RenameProjectResponse) GetJSON200() *Project {
-	return r.JSON200
-}
-
-// GetJSON400 returns the response for an HTTP 400 `application/json` response
-func (r RenameProjectResponse) GetJSON400() *BadRequest {
-	return r.JSON400
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r RenameProjectResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetJSON409 returns the response for an HTTP 409 `application/json` response
-func (r RenameProjectResponse) GetJSON409() *Conflict {
-	return r.JSON409
-}
-
-// GetBody returns the raw response body bytes
-func (r RenameProjectResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r RenameProjectResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r RenameProjectResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r RenameProjectResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
 type ListUpstreamHealthResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -6280,32 +5190,6 @@ func (c *ClientWithResponses) ContinueChatWithResponse(ctx context.Context, chat
 	return ParseContinueChatResponse(rsp)
 }
 
-// UnarchiveChatWithResponse Restore one caller-owned chat from the archive.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /chats/{chatId}/archive (the `UnarchiveChat` operationId).
-func (c *ClientWithResponses) UnarchiveChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*UnarchiveChatResponse, error) {
-	rsp, err := c.UnarchiveChat(ctx, chatId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUnarchiveChatResponse(rsp)
-}
-
-// ArchiveChatWithResponse Archive one caller-owned chat.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /chats/{chatId}/archive (the `ArchiveChat` operationId).
-func (c *ClientWithResponses) ArchiveChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*ArchiveChatResponse, error) {
-	rsp, err := c.ArchiveChat(ctx, chatId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseArchiveChatResponse(rsp)
-}
-
 // PreviewChatContextWithBodyWithResponse Preview the exact context selected for an unsent chat message.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
@@ -6410,45 +5294,6 @@ func (c *ClientWithResponses) PinChatWithResponse(ctx context.Context, chatId op
 		return nil, err
 	}
 	return ParsePinChatResponse(rsp)
-}
-
-// ClearChatProjectWithResponse Remove a caller-owned chat's project assignment.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /chats/{chatId}/project (the `ClearChatProject` operationId).
-func (c *ClientWithResponses) ClearChatProjectWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*ClearChatProjectResponse, error) {
-	rsp, err := c.ClearChatProject(ctx, chatId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseClearChatProjectResponse(rsp)
-}
-
-// AssignChatProjectWithBodyWithResponse Assign one caller-owned chat to a caller-owned project.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-func (c *ClientWithResponses) AssignChatProjectWithBodyWithResponse(ctx context.Context, chatId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*AssignChatProjectResponse, error) {
-	rsp, err := c.AssignChatProjectWithBody(ctx, chatId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAssignChatProjectResponse(rsp)
-}
-
-// AssignChatProjectWithResponse Assign one caller-owned chat to a caller-owned project.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /chats/{chatId}/project (the `AssignChatProject` operationId).
-func (c *ClientWithResponses) AssignChatProjectWithResponse(ctx context.Context, chatId openapi_types.UUID, body AssignChatProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*AssignChatProjectResponse, error) {
-	rsp, err := c.AssignChatProject(ctx, chatId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseAssignChatProjectResponse(rsp)
 }
 
 // UpdateChatSettingsWithBodyWithResponse Update a chat's model-generation settings.
@@ -6635,84 +5480,6 @@ func (c *ClientWithResponses) ListModelsWithResponse(ctx context.Context, reqEdi
 		return nil, err
 	}
 	return ParseListModelsResponse(rsp)
-}
-
-// ListProjectsWithResponse List the caller's named chat projects.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with GET /projects (the `ListProjects` operationId).
-func (c *ClientWithResponses) ListProjectsWithResponse(ctx context.Context, reqEditors ...RequestEditorFn) (*ListProjectsResponse, error) {
-	rsp, err := c.ListProjects(ctx, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseListProjectsResponse(rsp)
-}
-
-// CreateProjectWithBodyWithResponse Create a named chat project.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /projects (the `CreateProject` operationId).
-func (c *ClientWithResponses) CreateProjectWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateProjectResponse, error) {
-	rsp, err := c.CreateProjectWithBody(ctx, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateProjectResponse(rsp)
-}
-
-// CreateProjectWithResponse Create a named chat project.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with POST /projects (the `CreateProject` operationId).
-func (c *ClientWithResponses) CreateProjectWithResponse(ctx context.Context, body CreateProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateProjectResponse, error) {
-	rsp, err := c.CreateProject(ctx, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseCreateProjectResponse(rsp)
-}
-
-// DeleteProjectWithResponse Delete a project and unassign its chats.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /projects/{projectId} (the `DeleteProject` operationId).
-func (c *ClientWithResponses) DeleteProjectWithResponse(ctx context.Context, projectId openapi_types.UUID, reqEditors ...RequestEditorFn) (*DeleteProjectResponse, error) {
-	rsp, err := c.DeleteProject(ctx, projectId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseDeleteProjectResponse(rsp)
-}
-
-// RenameProjectWithBodyWithResponse Rename one caller-owned project.
-//
-// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-func (c *ClientWithResponses) RenameProjectWithBodyWithResponse(ctx context.Context, projectId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*RenameProjectResponse, error) {
-	rsp, err := c.RenameProjectWithBody(ctx, projectId, contentType, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRenameProjectResponse(rsp)
-}
-
-// RenameProjectWithResponse Rename one caller-owned project.
-//
-// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PATCH /projects/{projectId} (the `RenameProject` operationId).
-func (c *ClientWithResponses) RenameProjectWithResponse(ctx context.Context, projectId openapi_types.UUID, body RenameProjectJSONRequestBody, reqEditors ...RequestEditorFn) (*RenameProjectResponse, error) {
-	rsp, err := c.RenameProject(ctx, projectId, body, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseRenameProjectResponse(rsp)
 }
 
 // ListUpstreamHealthWithResponse List redacted LLM upstream health snapshots (admin).
@@ -7194,79 +5961,6 @@ func ParseContinueChatResponse(rsp *http.Response) (*ContinueChatResponse, error
 	return response, nil
 }
 
-// ParseUnarchiveChatResponse parses an HTTP response from a UnarchiveChatWithResponse call
-func ParseUnarchiveChatResponse(rsp *http.Response) (*UnarchiveChatResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UnarchiveChatResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ChatSummary
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseArchiveChatResponse parses an HTTP response from a ArchiveChatWithResponse call
-func ParseArchiveChatResponse(rsp *http.Response) (*ArchiveChatResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ArchiveChatResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ChatSummary
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
 // ParsePreviewChatContextResponse parses an HTTP response from a PreviewChatContextWithResponse call
 func ParsePreviewChatContextResponse(rsp *http.Response) (*PreviewChatContextResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -7473,79 +6167,6 @@ func ParsePinChatResponse(rsp *http.Response) (*PinChatResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseClearChatProjectResponse parses an HTTP response from a ClearChatProjectWithResponse call
-func ParseClearChatProjectResponse(rsp *http.Response) (*ClearChatProjectResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ClearChatProjectResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ChatSummary
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseAssignChatProjectResponse parses an HTTP response from a AssignChatProjectWithResponse call
-func ParseAssignChatProjectResponse(rsp *http.Response) (*AssignChatProjectResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &AssignChatProjectResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ChatSummary
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFound
@@ -7879,148 +6500,6 @@ func ParseListModelsResponse(rsp *http.Response) (*ListModelsResponse, error) {
 			return nil, err
 		}
 		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseListProjectsResponse parses an HTTP response from a ListProjectsWithResponse call
-func ParseListProjectsResponse(rsp *http.Response) (*ListProjectsResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &ListProjectsResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []Project
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseCreateProjectResponse parses an HTTP response from a CreateProjectWithResponse call
-func ParseCreateProjectResponse(rsp *http.Response) (*CreateProjectResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &CreateProjectResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
-		var dest Project
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON201 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest Conflict
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON409 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseDeleteProjectResponse parses an HTTP response from a DeleteProjectWithResponse call
-func ParseDeleteProjectResponse(rsp *http.Response) (*DeleteProjectResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &DeleteProjectResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case rsp.StatusCode == 204:
-		break // No content-type
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseRenameProjectResponse parses an HTTP response from a RenameProjectWithResponse call
-func ParseRenameProjectResponse(rsp *http.Response) (*RenameProjectResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &RenameProjectResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest Project
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
-		var dest BadRequest
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
-		var dest Conflict
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON409 = &dest
 
 	}
 

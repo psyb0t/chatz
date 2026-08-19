@@ -13,47 +13,21 @@ import (
 
 const (
 	chatWorkflowSearchText      = "production"
-	chatWorkflowProjectName     = "Operations"
 	chatWorkflowSettleMS        = 1500
 	chatWorkflowSearchWaitMS    = 800
 	chatWorkflowActionWaitSec   = 15
 	chatWorkflowResponseWaitSec = 120
 
-	chatWorkflowSearchSel          = "[data-testid=chat-search]"
-	chatWorkflowProjectCreateInput = "[data-testid=chat-project-create-input]"
-	chatWorkflowProjectCreate      = "[data-testid=chat-project-create]"
-	chatWorkflowProjectAssignment  = "[data-testid=chat-project-assignment]"
-	chatWorkflowPin                = "[data-testid=chat-pin]"
-	chatWorkflowArchive            = "[data-testid=chat-archive]"
-	chatWorkflowDelete             = "[data-testid=chat-delete]"
-	chatWorkflowScreenshot         = "chat_workflow.png"
+	chatWorkflowSearchSel  = "[data-testid=chat-search]"
+	chatWorkflowPin        = "[data-testid=chat-pin]"
+	chatWorkflowDelete     = "[data-testid=chat-delete]"
+	chatWorkflowScreenshot = "chat_workflow.png"
 )
-
-const chatWorkflowAssignProjectJS = `(() => {
-	const select = document.querySelector(
-		'[data-testid=chat-project-assignment]',
-	);
-	const option = [...select.options].find(
-		(item) => item.textContent.trim() === 'Operations',
-	);
-	if (!option) {
-		throw new Error('Operations project option was not rendered');
-	}
-	select.value = option.value;
-	select.dispatchEvent(new Event('change', {bubbles: true}));
-})()`
-
-const chatWorkflowArchiveViewJS = `document
-	.querySelectorAll('[data-testid=chat-archive-toggle] button')[1]
-	.click()`
 
 const chatWorkflowProbeJS = `JSON.stringify({
 	chatCount: document
-		.querySelectorAll('[data-testid=chat-project-assignment]')
+		.querySelectorAll('[data-testid=chat-pin]')
 		.length,
-	projectNames: [...document
-		.querySelectorAll('[data-testid=chat-project-filter] option')]
-		.map((option) => option.textContent.trim()),
 	pinned: document
 		.querySelector('[data-testid=chat-pin]')
 		?.textContent.trim(),
@@ -65,16 +39,14 @@ const chatWorkflowProbeJS = `JSON.stringify({
 })`
 
 type chatWorkflowProbe struct {
-	ChatCount            int      `json:"chatCount"`
-	ProjectNames         []string `json:"projectNames"`
-	Pinned               string   `json:"pinned"`
-	Empty                bool     `json:"empty"`
-	NoHorizontalOverflow bool     `json:"noHorizontalOverflow"`
+	ChatCount            int    `json:"chatCount"`
+	Pinned               string `json:"pinned"`
+	Empty                bool   `json:"empty"`
+	NoHorizontalOverflow bool   `json:"noHorizontalOverflow"`
 }
 
-// TestChatWorkflow drives the sidebar flow a user relies on for retaining and
-// organizing a completed conversation: create a project, assign and pin the
-// chat, search it, archive it, then delete it from the archive.
+// TestChatWorkflow drives the sidebar flow a user relies on for retaining a
+// completed conversation: pin the chat, search for it, then delete it.
 func TestChatWorkflow(t *testing.T) {
 	t.Parallel()
 
@@ -99,22 +71,12 @@ func TestChatWorkflow(t *testing.T) {
 		chatWorkflowResponseWaitSec,
 	))
 
-	require.NoError(t, client.Fill(
-		ctx,
-		chatWorkflowProjectCreateInput,
-		chatWorkflowProjectName,
-	))
-	require.NoError(t, client.Eval(ctx, clickJS(chatWorkflowProjectCreate)))
-	require.NoError(t, client.Eval(ctx, settleJS(chatWorkflowSettleMS)))
-	require.NoError(t, client.Eval(ctx, chatWorkflowAssignProjectJS))
-	require.NoError(t, client.Eval(ctx, settleJS(chatWorkflowSettleMS)))
 	require.NoError(t, client.Eval(ctx, clickJS(chatWorkflowPin)))
 	require.NoError(t, client.Eval(ctx, settleJS(chatWorkflowSettleMS)))
 
 	var active chatWorkflowProbe
 	require.NoError(t, client.EvalJSON(ctx, chatWorkflowProbeJS, &active))
 	assert.Equal(t, 1, active.ChatCount)
-	assert.Contains(t, active.ProjectNames, chatWorkflowProjectName)
 	assert.Equal(t, "Unpin", active.Pinned)
 	assert.False(t, active.Empty)
 	assert.True(t, active.NoHorizontalOverflow)
@@ -131,19 +93,6 @@ func TestChatWorkflow(t *testing.T) {
 	assert.Equal(t, 1, searched.ChatCount)
 	assert.True(t, searched.NoHorizontalOverflow)
 
-	require.NoError(t, client.Eval(ctx, clickJS(chatWorkflowArchive)))
-	require.NoError(t, client.Eval(ctx, settleJS(chatWorkflowSettleMS)))
-
-	var archivedFromActive chatWorkflowProbe
-	require.NoError(t, client.EvalJSON(
-		ctx,
-		chatWorkflowProbeJS,
-		&archivedFromActive,
-	))
-	assert.Equal(t, 0, archivedFromActive.ChatCount)
-	assert.True(t, archivedFromActive.Empty)
-
-	require.NoError(t, client.Eval(ctx, chatWorkflowArchiveViewJS))
 	require.NoError(t, client.WaitForElement(
 		ctx,
 		chatWorkflowDelete,

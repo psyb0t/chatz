@@ -385,18 +385,13 @@ type ChatSettingsReasoningEffort string
 
 // ChatSummary defines model for ChatSummary.
 type ChatSummary struct {
-	// ArchivedAt Present when the chat is archived.
-	ArchivedAt *time.Time         `json:"archivedAt,omitempty"`
-	CreatedAt  time.Time          `json:"createdAt"`
-	Id         openapi_types.UUID `json:"id"`
+	CreatedAt time.Time          `json:"createdAt"`
+	Id        openapi_types.UUID `json:"id"`
 
 	// PinnedAt Present when the chat is pinned.
-	PinnedAt *time.Time `json:"pinnedAt,omitempty"`
-
-	// ProjectId Optional user-owned project containing this chat.
-	ProjectId *openapi_types.UUID `json:"projectId,omitempty"`
-	Title     string              `json:"title"`
-	UpdatedAt time.Time           `json:"updatedAt"`
+	PinnedAt  *time.Time `json:"pinnedAt,omitempty"`
+	Title     string     `json:"title"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 }
 
 // ContinueChatRequest defines model for ContinueChatRequest.
@@ -426,11 +421,6 @@ type CreateMCPServerRequest struct {
 
 // CreateMCPServerRequestTransport defines model for CreateMCPServerRequest.Transport.
 type CreateMCPServerRequestTransport string
-
-// CreateProjectRequest defines model for CreateProjectRequest.
-type CreateProjectRequest struct {
-	Name string `json:"name"`
-}
 
 // CreateUserRequest defines model for CreateUserRequest.
 type CreateUserRequest struct {
@@ -601,19 +591,6 @@ type Model struct {
 // ModelAvailability The model was advertised by its upstream during startup discovery.
 type ModelAvailability string
 
-// Project defines model for Project.
-type Project struct {
-	CreatedAt time.Time          `json:"createdAt"`
-	Id        openapi_types.UUID `json:"id"`
-	Name      string             `json:"name"`
-	UpdatedAt time.Time          `json:"updatedAt"`
-}
-
-// ProjectAssignmentRequest defines model for ProjectAssignmentRequest.
-type ProjectAssignmentRequest struct {
-	ProjectId openapi_types.UUID `json:"projectId"`
-}
-
 // PromptContextPreview The exact context selection the next turn would use, counted by the server tokenizer. availableTokens is zero when sticky instructions and the current message alone exceed the configured history budget.
 type PromptContextPreview struct {
 	AvailableTokens      int `json:"availableTokens"`
@@ -637,11 +614,6 @@ type PromptContextPreviewRequest struct {
 // RenameChatRequest defines model for RenameChatRequest.
 type RenameChatRequest struct {
 	Title string `json:"title"`
-}
-
-// RenameProjectRequest defines model for RenameProjectRequest.
-type RenameProjectRequest struct {
-	Name string `json:"name"`
 }
 
 // TokenPrice Price for one million tokens. Amount is a decimal string in the currency's smallest unit, avoiding floating-point loss in clients.
@@ -707,14 +679,8 @@ type ListChatsParams struct {
 	Limit  *int `form:"limit,omitempty" json:"limit,omitempty"`
 	Offset *int `form:"offset,omitempty" json:"offset,omitempty"`
 
-	// Archived Select archived chats instead of active chats.
-	Archived *bool `form:"archived,omitempty" json:"archived,omitempty"`
-
 	// Search Case-insensitive literal title search.
 	Search *string `form:"search,omitempty" json:"search,omitempty"`
-
-	// ProjectId Limit the list to one caller-owned project.
-	ProjectId *openapi_types.UUID `form:"projectId,omitempty" json:"projectId,omitempty"`
 }
 
 // ListChatMessagesParams defines parameters for ListChatMessages.
@@ -744,9 +710,6 @@ type PreviewChatContextJSONRequestBody = PromptContextPreviewRequest
 // UpdateChatMCPServerJSONRequestBody defines body for UpdateChatMCPServer for application/json ContentType.
 type UpdateChatMCPServerJSONRequestBody = ChatMCPServerUpdate
 
-// AssignChatProjectJSONRequestBody defines body for AssignChatProject for application/json ContentType.
-type AssignChatProjectJSONRequestBody = ProjectAssignmentRequest
-
 // UpdateChatSettingsJSONRequestBody defines body for UpdateChatSettings for application/json ContentType.
 type UpdateChatSettingsJSONRequestBody = ChatSettings
 
@@ -758,12 +721,6 @@ type CreateMCPServerJSONRequestBody = CreateMCPServerRequest
 
 // UpdateMCPServerJSONRequestBody defines body for UpdateMCPServer for application/json ContentType.
 type UpdateMCPServerJSONRequestBody = UpdateMCPServerRequest
-
-// CreateProjectJSONRequestBody defines body for CreateProject for application/json ContentType.
-type CreateProjectJSONRequestBody = CreateProjectRequest
-
-// RenameProjectJSONRequestBody defines body for RenameProject for application/json ContentType.
-type RenameProjectJSONRequestBody = RenameProjectRequest
 
 // CreateUserJSONRequestBody defines body for CreateUser for application/json ContentType.
 type CreateUserJSONRequestBody = CreateUserRequest
@@ -806,12 +763,6 @@ type ServerInterface interface {
 	// ContinueChat Continue a chat and stream the next assistant turn (SSE).
 	// (POST /chats/{chatId})
 	ContinueChat(ctx echo.Context, chatId openapi_types.UUID) error
-	// UnarchiveChat Restore one caller-owned chat from the archive.
-	// (DELETE /chats/{chatId}/archive)
-	UnarchiveChat(ctx echo.Context, chatId openapi_types.UUID) error
-	// ArchiveChat Archive one caller-owned chat.
-	// (PUT /chats/{chatId}/archive)
-	ArchiveChat(ctx echo.Context, chatId openapi_types.UUID) error
 	// PreviewChatContext Preview the exact context selected for an unsent chat message.
 	// (POST /chats/{chatId}/context-preview)
 	PreviewChatContext(ctx echo.Context, chatId openapi_types.UUID) error
@@ -830,12 +781,6 @@ type ServerInterface interface {
 	// PinChat Pin one caller-owned chat.
 	// (PUT /chats/{chatId}/pin)
 	PinChat(ctx echo.Context, chatId openapi_types.UUID) error
-	// ClearChatProject Remove a caller-owned chat's project assignment.
-	// (DELETE /chats/{chatId}/project)
-	ClearChatProject(ctx echo.Context, chatId openapi_types.UUID) error
-	// AssignChatProject Assign one caller-owned chat to a caller-owned project.
-	// (PUT /chats/{chatId}/project)
-	AssignChatProject(ctx echo.Context, chatId openapi_types.UUID) error
 	// UpdateChatSettings Update a chat's model-generation settings.
 	// (PATCH /chats/{chatId}/settings)
 	UpdateChatSettings(ctx echo.Context, chatId openapi_types.UUID) error
@@ -866,18 +811,6 @@ type ServerInterface interface {
 	// ListModels Merged model list across all configured upstreams.
 	// (GET /models)
 	ListModels(ctx echo.Context) error
-	// ListProjects List the caller's named chat projects.
-	// (GET /projects)
-	ListProjects(ctx echo.Context) error
-	// CreateProject Create a named chat project.
-	// (POST /projects)
-	CreateProject(ctx echo.Context) error
-	// DeleteProject Delete a project and unassign its chats.
-	// (DELETE /projects/{projectId})
-	DeleteProject(ctx echo.Context, projectId openapi_types.UUID) error
-	// RenameProject Rename one caller-owned project.
-	// (PATCH /projects/{projectId})
-	RenameProject(ctx echo.Context, projectId openapi_types.UUID) error
 	// ListUpstreamHealth List redacted LLM upstream health snapshots (admin).
 	// (GET /upstreams)
 	ListUpstreamHealth(ctx echo.Context) error
@@ -962,25 +895,11 @@ func (w *ServerInterfaceWrapper) ListChats(ctx echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter offset: %s", err))
 	}
 
-	// ------------- Optional query parameter "archived" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "archived", ctx.QueryParams(), &params.Archived, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter archived: %s", err))
-	}
-
 	// ------------- Optional query parameter "search" -------------
 
 	err = runtime.BindQueryParameterWithOptions("form", true, false, "search", ctx.QueryParams(), &params.Search, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter search: %s", err))
-	}
-
-	// ------------- Optional query parameter "projectId" -------------
-
-	err = runtime.BindQueryParameterWithOptions("form", true, false, "projectId", ctx.QueryParams(), &params.ProjectId, runtime.BindQueryParameterOptions{Type: "string", Format: "uuid"})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter projectId: %s", err))
 	}
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1067,38 +986,6 @@ func (w *ServerInterfaceWrapper) ContinueChat(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.ContinueChat(ctx, chatId)
-	return err
-}
-
-// UnarchiveChat converts echo context to params.
-func (w *ServerInterfaceWrapper) UnarchiveChat(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "chatId" -------------
-	var chatId openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "chatId", ctx.Param("chatId"), &chatId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter chatId: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.UnarchiveChat(ctx, chatId)
-	return err
-}
-
-// ArchiveChat converts echo context to params.
-func (w *ServerInterfaceWrapper) ArchiveChat(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "chatId" -------------
-	var chatId openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "chatId", ctx.Param("chatId"), &chatId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter chatId: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.ArchiveChat(ctx, chatId)
 	return err
 }
 
@@ -1219,38 +1106,6 @@ func (w *ServerInterfaceWrapper) PinChat(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.PinChat(ctx, chatId)
-	return err
-}
-
-// ClearChatProject converts echo context to params.
-func (w *ServerInterfaceWrapper) ClearChatProject(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "chatId" -------------
-	var chatId openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "chatId", ctx.Param("chatId"), &chatId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter chatId: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.ClearChatProject(ctx, chatId)
-	return err
-}
-
-// AssignChatProject converts echo context to params.
-func (w *ServerInterfaceWrapper) AssignChatProject(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "chatId" -------------
-	var chatId openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "chatId", ctx.Param("chatId"), &chatId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter chatId: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.AssignChatProject(ctx, chatId)
 	return err
 }
 
@@ -1379,56 +1234,6 @@ func (w *ServerInterfaceWrapper) ListModels(ctx echo.Context) error {
 	return err
 }
 
-// ListProjects converts echo context to params.
-func (w *ServerInterfaceWrapper) ListProjects(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.ListProjects(ctx)
-	return err
-}
-
-// CreateProject converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateProject(ctx echo.Context) error {
-	var err error
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.CreateProject(ctx)
-	return err
-}
-
-// DeleteProject converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteProject(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "projectId" -------------
-	var projectId openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "projectId", ctx.Param("projectId"), &projectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter projectId: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.DeleteProject(ctx, projectId)
-	return err
-}
-
-// RenameProject converts echo context to params.
-func (w *ServerInterfaceWrapper) RenameProject(ctx echo.Context) error {
-	var err error
-	// ------------- Path parameter "projectId" -------------
-	var projectId openapi_types.UUID
-
-	err = runtime.BindStyledParameterWithOptions("simple", "projectId", ctx.Param("projectId"), &projectId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: ctx.Request().URL.RawPath == ""})
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter projectId: %s", err))
-	}
-
-	// Invoke the callback with all the unmarshaled arguments
-	err = w.Handler.RenameProject(ctx, projectId)
-	return err
-}
-
 // ListUpstreamHealth converts echo context to params.
 func (w *ServerInterfaceWrapper) ListUpstreamHealth(ctx echo.Context) error {
 	var err error
@@ -1542,16 +1347,8 @@ func RegisterHandlersWithOptions(router EchoRouter, si ServerInterface, options 
 	router.POST(options.BaseURL+"/chats/:chatId/context-preview", wrapper.PreviewChatContext, options.OperationMiddlewares["previewChatContext"]...)
 	router.GET(options.BaseURL+"/chats/:chatId/mcp-servers", wrapper.ListChatMCPServers, options.OperationMiddlewares["listChatMCPServers"]...)
 	router.PATCH(options.BaseURL+"/chats/:chatId/mcp-servers/:serverId", wrapper.UpdateChatMCPServer, options.OperationMiddlewares["updateChatMCPServer"]...)
-	router.DELETE(options.BaseURL+"/chats/:chatId/archive", wrapper.UnarchiveChat, options.OperationMiddlewares["unarchiveChat"]...)
-	router.PUT(options.BaseURL+"/chats/:chatId/archive", wrapper.ArchiveChat, options.OperationMiddlewares["archiveChat"]...)
 	router.DELETE(options.BaseURL+"/chats/:chatId/pin", wrapper.UnpinChat, options.OperationMiddlewares["unpinChat"]...)
 	router.PUT(options.BaseURL+"/chats/:chatId/pin", wrapper.PinChat, options.OperationMiddlewares["pinChat"]...)
-	router.DELETE(options.BaseURL+"/chats/:chatId/project", wrapper.ClearChatProject, options.OperationMiddlewares["clearChatProject"]...)
-	router.PUT(options.BaseURL+"/chats/:chatId/project", wrapper.AssignChatProject, options.OperationMiddlewares["assignChatProject"]...)
-	router.GET(options.BaseURL+"/projects", wrapper.ListProjects, options.OperationMiddlewares["listProjects"]...)
-	router.POST(options.BaseURL+"/projects", wrapper.CreateProject, options.OperationMiddlewares["createProject"]...)
-	router.DELETE(options.BaseURL+"/projects/:projectId", wrapper.DeleteProject, options.OperationMiddlewares["deleteProject"]...)
-	router.PATCH(options.BaseURL+"/projects/:projectId", wrapper.RenameProject, options.OperationMiddlewares["renameProject"]...)
 	router.GET(options.BaseURL+"/mcp/servers", wrapper.ListMCPServers, options.OperationMiddlewares["listMCPServers"]...)
 	router.POST(options.BaseURL+"/mcp/servers", wrapper.CreateMCPServer, options.OperationMiddlewares["createMCPServer"]...)
 	router.DELETE(options.BaseURL+"/mcp/servers/:serverId", wrapper.DeleteMCPServer, options.OperationMiddlewares["deleteMCPServer"]...)
@@ -2090,92 +1887,6 @@ func (response ContinueChat404JSONResponse) VisitContinueChatResponse(w http.Res
 	return err
 }
 
-type UnarchiveChatRequestObject struct {
-	ChatId openapi_types.UUID `json:"chatId"`
-}
-
-type UnarchiveChatResponseObject interface {
-	VisitUnarchiveChatResponse(w http.ResponseWriter) error
-}
-
-type UnarchiveChat200JSONResponse ChatSummary
-
-func (response UnarchiveChat200JSONResponse) VisitUnarchiveChatResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type UnarchiveChat404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response UnarchiveChat404JSONResponse) VisitUnarchiveChatResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ArchiveChatRequestObject struct {
-	ChatId openapi_types.UUID `json:"chatId"`
-}
-
-type ArchiveChatResponseObject interface {
-	VisitArchiveChatResponse(w http.ResponseWriter) error
-}
-
-type ArchiveChat200JSONResponse ChatSummary
-
-func (response ArchiveChat200JSONResponse) VisitArchiveChatResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ArchiveChat400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response ArchiveChat400JSONResponse) VisitArchiveChatResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ArchiveChat404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response ArchiveChat404JSONResponse) VisitArchiveChatResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type PreviewChatContextRequestObject struct {
 	ChatId openapi_types.UUID `json:"chatId"`
 	Body   *PreviewChatContextJSONRequestBody
@@ -2427,93 +2138,6 @@ func (response PinChat200JSONResponse) VisitPinChatResponse(w http.ResponseWrite
 type PinChat404JSONResponse struct{ NotFoundJSONResponse }
 
 func (response PinChat404JSONResponse) VisitPinChatResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ClearChatProjectRequestObject struct {
-	ChatId openapi_types.UUID `json:"chatId"`
-}
-
-type ClearChatProjectResponseObject interface {
-	VisitClearChatProjectResponse(w http.ResponseWriter) error
-}
-
-type ClearChatProject200JSONResponse ChatSummary
-
-func (response ClearChatProject200JSONResponse) VisitClearChatProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type ClearChatProject404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response ClearChatProject404JSONResponse) VisitClearChatProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type AssignChatProjectRequestObject struct {
-	ChatId openapi_types.UUID `json:"chatId"`
-	Body   *AssignChatProjectJSONRequestBody
-}
-
-type AssignChatProjectResponseObject interface {
-	VisitAssignChatProjectResponse(w http.ResponseWriter) error
-}
-
-type AssignChatProject200JSONResponse ChatSummary
-
-func (response AssignChatProject200JSONResponse) VisitAssignChatProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type AssignChatProject400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response AssignChatProject400JSONResponse) VisitAssignChatProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type AssignChatProject404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response AssignChatProject404JSONResponse) VisitAssignChatProjectResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response); err != nil {
@@ -2878,172 +2502,6 @@ func (response ListModels200JSONResponse) VisitListModelsResponse(w http.Respons
 	return err
 }
 
-type ListProjectsRequestObject struct {
-}
-
-type ListProjectsResponseObject interface {
-	VisitListProjectsResponse(w http.ResponseWriter) error
-}
-
-type ListProjects200JSONResponse []Project
-
-func (response ListProjects200JSONResponse) VisitListProjectsResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateProjectRequestObject struct {
-	Body *CreateProjectJSONRequestBody
-}
-
-type CreateProjectResponseObject interface {
-	VisitCreateProjectResponse(w http.ResponseWriter) error
-}
-
-type CreateProject201JSONResponse Project
-
-func (response CreateProject201JSONResponse) VisitCreateProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(201)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateProject400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response CreateProject400JSONResponse) VisitCreateProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type CreateProject409JSONResponse struct{ ConflictJSONResponse }
-
-func (response CreateProject409JSONResponse) VisitCreateProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type DeleteProjectRequestObject struct {
-	ProjectId openapi_types.UUID `json:"projectId"`
-}
-
-type DeleteProjectResponseObject interface {
-	VisitDeleteProjectResponse(w http.ResponseWriter) error
-}
-
-type DeleteProject204Response struct {
-}
-
-func (response DeleteProject204Response) VisitDeleteProjectResponse(w http.ResponseWriter) error {
-	w.WriteHeader(204)
-	return nil
-}
-
-type DeleteProject404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response DeleteProject404JSONResponse) VisitDeleteProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type RenameProjectRequestObject struct {
-	ProjectId openapi_types.UUID `json:"projectId"`
-	Body      *RenameProjectJSONRequestBody
-}
-
-type RenameProjectResponseObject interface {
-	VisitRenameProjectResponse(w http.ResponseWriter) error
-}
-
-type RenameProject200JSONResponse Project
-
-func (response RenameProject200JSONResponse) VisitRenameProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(200)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type RenameProject400JSONResponse struct{ BadRequestJSONResponse }
-
-func (response RenameProject400JSONResponse) VisitRenameProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(400)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type RenameProject404JSONResponse struct{ NotFoundJSONResponse }
-
-func (response RenameProject404JSONResponse) VisitRenameProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(404)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
-type RenameProject409JSONResponse struct{ ConflictJSONResponse }
-
-func (response RenameProject409JSONResponse) VisitRenameProjectResponse(w http.ResponseWriter) error {
-
-	var buf bytes.Buffer
-	if err := json.NewEncoder(&buf).Encode(response); err != nil {
-		return err
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(409)
-	_, err := buf.WriteTo(w)
-	return err
-}
-
 type ListUpstreamHealthRequestObject struct {
 }
 
@@ -3232,12 +2690,6 @@ type StrictServerInterface interface {
 	// ContinueChat Continue a chat and stream the next assistant turn (SSE).
 	// (POST /chats/{chatId})
 	ContinueChat(ctx context.Context, request ContinueChatRequestObject) (ContinueChatResponseObject, error)
-	// UnarchiveChat Restore one caller-owned chat from the archive.
-	// (DELETE /chats/{chatId}/archive)
-	UnarchiveChat(ctx context.Context, request UnarchiveChatRequestObject) (UnarchiveChatResponseObject, error)
-	// ArchiveChat Archive one caller-owned chat.
-	// (PUT /chats/{chatId}/archive)
-	ArchiveChat(ctx context.Context, request ArchiveChatRequestObject) (ArchiveChatResponseObject, error)
 	// PreviewChatContext Preview the exact context selected for an unsent chat message.
 	// (POST /chats/{chatId}/context-preview)
 	PreviewChatContext(ctx context.Context, request PreviewChatContextRequestObject) (PreviewChatContextResponseObject, error)
@@ -3256,12 +2708,6 @@ type StrictServerInterface interface {
 	// PinChat Pin one caller-owned chat.
 	// (PUT /chats/{chatId}/pin)
 	PinChat(ctx context.Context, request PinChatRequestObject) (PinChatResponseObject, error)
-	// ClearChatProject Remove a caller-owned chat's project assignment.
-	// (DELETE /chats/{chatId}/project)
-	ClearChatProject(ctx context.Context, request ClearChatProjectRequestObject) (ClearChatProjectResponseObject, error)
-	// AssignChatProject Assign one caller-owned chat to a caller-owned project.
-	// (PUT /chats/{chatId}/project)
-	AssignChatProject(ctx context.Context, request AssignChatProjectRequestObject) (AssignChatProjectResponseObject, error)
 	// UpdateChatSettings Update a chat's model-generation settings.
 	// (PATCH /chats/{chatId}/settings)
 	UpdateChatSettings(ctx context.Context, request UpdateChatSettingsRequestObject) (UpdateChatSettingsResponseObject, error)
@@ -3292,18 +2738,6 @@ type StrictServerInterface interface {
 	// ListModels Merged model list across all configured upstreams.
 	// (GET /models)
 	ListModels(ctx context.Context, request ListModelsRequestObject) (ListModelsResponseObject, error)
-	// ListProjects List the caller's named chat projects.
-	// (GET /projects)
-	ListProjects(ctx context.Context, request ListProjectsRequestObject) (ListProjectsResponseObject, error)
-	// CreateProject Create a named chat project.
-	// (POST /projects)
-	CreateProject(ctx context.Context, request CreateProjectRequestObject) (CreateProjectResponseObject, error)
-	// DeleteProject Delete a project and unassign its chats.
-	// (DELETE /projects/{projectId})
-	DeleteProject(ctx context.Context, request DeleteProjectRequestObject) (DeleteProjectResponseObject, error)
-	// RenameProject Rename one caller-owned project.
-	// (PATCH /projects/{projectId})
-	RenameProject(ctx context.Context, request RenameProjectRequestObject) (RenameProjectResponseObject, error)
 	// ListUpstreamHealth List redacted LLM upstream health snapshots (admin).
 	// (GET /upstreams)
 	ListUpstreamHealth(ctx context.Context, request ListUpstreamHealthRequestObject) (ListUpstreamHealthResponseObject, error)
@@ -3696,56 +3130,6 @@ func (sh *strictHandler) ContinueChat(ctx echo.Context, chatId openapi_types.UUI
 	return nil
 }
 
-// UnarchiveChat operation middleware
-func (sh *strictHandler) UnarchiveChat(ctx echo.Context, chatId openapi_types.UUID) error {
-	var request UnarchiveChatRequestObject
-
-	request.ChatId = chatId
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.UnarchiveChat(ctx.Request().Context(), request.(UnarchiveChatRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "UnarchiveChat")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(UnarchiveChatResponseObject); ok {
-		return validResponse.VisitUnarchiveChatResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// ArchiveChat operation middleware
-func (sh *strictHandler) ArchiveChat(ctx echo.Context, chatId openapi_types.UUID) error {
-	var request ArchiveChatRequestObject
-
-	request.ChatId = chatId
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ArchiveChat(ctx.Request().Context(), request.(ArchiveChatRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ArchiveChat")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(ArchiveChatResponseObject); ok {
-		return validResponse.VisitArchiveChatResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
 // PreviewChatContext operation middleware
 func (sh *strictHandler) PreviewChatContext(ctx echo.Context, chatId openapi_types.UUID) error {
 	var request PreviewChatContextRequestObject
@@ -3924,72 +3308,6 @@ func (sh *strictHandler) PinChat(ctx echo.Context, chatId openapi_types.UUID) er
 		return err
 	} else if validResponse, ok := response.(PinChatResponseObject); ok {
 		return validResponse.VisitPinChatResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// ClearChatProject operation middleware
-func (sh *strictHandler) ClearChatProject(ctx echo.Context, chatId openapi_types.UUID) error {
-	var request ClearChatProjectRequestObject
-
-	request.ChatId = chatId
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ClearChatProject(ctx.Request().Context(), request.(ClearChatProjectRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ClearChatProject")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(ClearChatProjectResponseObject); ok {
-		return validResponse.VisitClearChatProjectResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// AssignChatProject operation middleware
-func (sh *strictHandler) AssignChatProject(ctx echo.Context, chatId openapi_types.UUID) error {
-	var request AssignChatProjectRequestObject
-
-	request.ChatId = chatId
-
-	var body AssignChatProjectJSONRequestBody
-	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
-		// Bind only the request body, so that path and query parameters
-		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
-	} else {
-		// A custom binder is installed on the Echo instance; defer to it
-		// entirely, since echo.Binder does not expose body-only binding.
-		err = ctx.Bind(&body)
-	}
-	if err != nil {
-		return err
-	}
-	request.Body = &body
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.AssignChatProject(ctx.Request().Context(), request.(AssignChatProjectRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "AssignChatProject")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(AssignChatProjectResponseObject); ok {
-		return validResponse.VisitAssignChatProjectResponse(ctx.Response())
 	} else if response != nil {
 		return fmt.Errorf("unexpected response type: %T", response)
 	}
@@ -4300,134 +3618,6 @@ func (sh *strictHandler) ListModels(ctx echo.Context) error {
 	return nil
 }
 
-// ListProjects operation middleware
-func (sh *strictHandler) ListProjects(ctx echo.Context) error {
-	var request ListProjectsRequestObject
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.ListProjects(ctx.Request().Context(), request.(ListProjectsRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "ListProjects")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(ListProjectsResponseObject); ok {
-		return validResponse.VisitListProjectsResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// CreateProject operation middleware
-func (sh *strictHandler) CreateProject(ctx echo.Context) error {
-	var request CreateProjectRequestObject
-
-	var body CreateProjectJSONRequestBody
-	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
-		// Bind only the request body, so that path and query parameters
-		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
-	} else {
-		// A custom binder is installed on the Echo instance; defer to it
-		// entirely, since echo.Binder does not expose body-only binding.
-		err = ctx.Bind(&body)
-	}
-	if err != nil {
-		return err
-	}
-	request.Body = &body
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.CreateProject(ctx.Request().Context(), request.(CreateProjectRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "CreateProject")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(CreateProjectResponseObject); ok {
-		return validResponse.VisitCreateProjectResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// DeleteProject operation middleware
-func (sh *strictHandler) DeleteProject(ctx echo.Context, projectId openapi_types.UUID) error {
-	var request DeleteProjectRequestObject
-
-	request.ProjectId = projectId
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.DeleteProject(ctx.Request().Context(), request.(DeleteProjectRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "DeleteProject")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(DeleteProjectResponseObject); ok {
-		return validResponse.VisitDeleteProjectResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
-// RenameProject operation middleware
-func (sh *strictHandler) RenameProject(ctx echo.Context, projectId openapi_types.UUID) error {
-	var request RenameProjectRequestObject
-
-	request.ProjectId = projectId
-
-	var body RenameProjectJSONRequestBody
-	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
-		// Bind only the request body, so that path and query parameters
-		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
-	} else {
-		// A custom binder is installed on the Echo instance; defer to it
-		// entirely, since echo.Binder does not expose body-only binding.
-		err = ctx.Bind(&body)
-	}
-	if err != nil {
-		return err
-	}
-	request.Body = &body
-
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
-		return sh.ssi.RenameProject(ctx.Request().Context(), request.(RenameProjectRequestObject))
-	}
-	for _, middleware := range sh.middlewares {
-		handler = middleware(handler, "RenameProject")
-	}
-
-	response, err := handler(ctx, request)
-
-	if err != nil {
-		return err
-	} else if validResponse, ok := response.(RenameProjectResponseObject); ok {
-		return validResponse.VisitRenameProjectResponse(ctx.Response())
-	} else if response != nil {
-		return fmt.Errorf("unexpected response type: %T", response)
-	}
-	return nil
-}
-
 // ListUpstreamHealth operation middleware
 func (sh *strictHandler) ListUpstreamHealth(ctx echo.Context) error {
 	var request ListUpstreamHealthRequestObject
@@ -4543,114 +3733,107 @@ func (sh *strictHandler) DeleteUser(ctx echo.Context, userId openapi_types.UUID)
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

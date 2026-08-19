@@ -365,6 +365,7 @@ func newUpstreamDriver(
 	switch upstream.Provider {
 	case config.UpstreamProviderOpenAI:
 		options := make([]openai.DriverOption, 0, driverOptionCapacity)
+
 		options = append(options, openai.WithoutEnvironmentDefaults())
 		if upstream.BaseURL != "" {
 			options = append(options, openai.WithBaseURL(upstream.BaseURL))
@@ -379,6 +380,7 @@ func newUpstreamDriver(
 		return openai.NewDriver(options...), nil
 	case config.UpstreamProviderAnthropic:
 		options := make([]anthropic.DriverOption, 0, driverOptionCapacity)
+
 		options = append(options, anthropic.WithoutEnvironmentDefaults())
 		if upstream.BaseURL != "" {
 			options = append(options, anthropic.WithBaseURL(upstream.BaseURL))

@@ -47,13 +47,7 @@ export const TESTID_SIDEBAR_BACKDROP = "sidebar-backdrop";
 export const TESTID_CHAT_RENAME = "chat-rename";
 export const TESTID_CHAT_RENAME_INPUT = "chat-rename-input";
 export const TESTID_CHAT_SEARCH = "chat-search";
-export const TESTID_CHAT_ARCHIVE_TOGGLE = "chat-archive-toggle";
-export const TESTID_CHAT_PROJECT_FILTER = "chat-project-filter";
-export const TESTID_CHAT_PROJECT_CREATE_INPUT = "chat-project-create-input";
-export const TESTID_CHAT_PROJECT_CREATE = "chat-project-create";
-export const TESTID_CHAT_PROJECT_ASSIGNMENT = "chat-project-assignment";
 export const TESTID_CHAT_PIN = "chat-pin";
-export const TESTID_CHAT_ARCHIVE = "chat-archive";
 export const TESTID_CHAT_DELETE = "chat-delete";
 
 // MCP admin: per-server actions.
@@ -102,3 +96,6 @@ export const TESTID_MCP_CREATE_ENV = "mcp-create-env";
 export const TESTID_MCP_DELETE = "mcp-delete";
 export const TESTID_MCP_IMPORT_SUBMIT = "mcp-import-submit";
 export const TESTID_MCP_IMPORT_CONTENT = "mcp-import-content";
+
+// Rendered in place of a generative-UI block whose spec failed validation.
+export const TESTID_SPEC_ERROR = "spec-error";

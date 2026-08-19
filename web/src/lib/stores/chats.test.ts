@@ -1,54 +1,40 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { Chat, ChatSummary, ChatList, Project } from "$lib/api/client";
+import type { Chat, ChatSummary, ChatList } from "$lib/api/client";
 // The vitest config aliases $app/navigation to this same mock module, so the
 // store's goto() calls land in this array. Imported by relative path (not the
 // $app alias) so svelte-check resolves the real SvelteKit types elsewhere.
 import { gotoCalls } from "../../test/app-mocks/navigation";
+// Same aliasing story as navigation: the store reads page.params.chatId to know
+// which chat is on screen, so these tests drive it through the mock. Aliased
+// because this file already has a local page() helper building a ChatList.
+import { page as routePage } from "../../test/app-mocks/state";
 
-// Mock the API client so the store exercises its load/touch/rename/
+// Mock the API client so the store exercises its load/touch/rename/pin/delete/
 // goToNewChat logic against controllable fakes — no network, no real
 // openapi-fetch. vi.mock is hoisted, so the spies are declared with
 // vi.hoisted to be in scope here.
 const {
-  archiveChatMock,
-  assignChatProjectMock,
-  clearChatProjectMock,
-  createProjectMock,
   deleteChatMock,
   getOrCreateEmptyChatMock,
   listChatsMock,
-  listProjectsMock,
   pinChatMock,
   renameChatMock,
-  unarchiveChatMock,
   unpinChatMock,
 } = vi.hoisted(() => ({
-  archiveChatMock: vi.fn(),
-  assignChatProjectMock: vi.fn(),
-  clearChatProjectMock: vi.fn(),
-  createProjectMock: vi.fn(),
   deleteChatMock: vi.fn(),
   getOrCreateEmptyChatMock: vi.fn(),
   listChatsMock: vi.fn(),
-  listProjectsMock: vi.fn(),
   pinChatMock: vi.fn(),
   renameChatMock: vi.fn(),
-  unarchiveChatMock: vi.fn(),
   unpinChatMock: vi.fn(),
 }));
 
 vi.mock("$lib/api/client", () => ({
-  archiveChat: archiveChatMock,
-  assignChatProject: assignChatProjectMock,
-  clearChatProject: clearChatProjectMock,
-  createProject: createProjectMock,
   deleteChat: deleteChatMock,
   getOrCreateEmptyChat: getOrCreateEmptyChatMock,
   listChats: listChatsMock,
-  listProjects: listProjectsMock,
   pinChat: pinChatMock,
   renameChat: renameChatMock,
-  unarchiveChat: unarchiveChatMock,
   unpinChat: unpinChatMock,
 }));
 
@@ -68,15 +54,6 @@ function page(items: ChatSummary[], total: number): ChatList {
   return { items, limit: 100, offset: 0, total };
 }
 
-function project(id: string, name: string): Project {
-  return {
-    id,
-    name,
-    createdAt: "2026-01-01T00:00:00Z",
-    updatedAt: "2026-01-01T00:00:00Z",
-  };
-}
-
 function deferred<T>(): {
   promise: Promise<T>;
   resolve: (value: T) => void;
@@ -91,27 +68,18 @@ function deferred<T>(): {
 
 describe("ChatsStore", () => {
   beforeEach(() => {
-    archiveChatMock.mockReset();
-    assignChatProjectMock.mockReset();
-    clearChatProjectMock.mockReset();
-    createProjectMock.mockReset();
     deleteChatMock.mockReset();
     listChatsMock.mockReset();
-    listProjectsMock.mockReset();
     pinChatMock.mockReset();
     renameChatMock.mockReset();
-    unarchiveChatMock.mockReset();
     unpinChatMock.mockReset();
     getOrCreateEmptyChatMock.mockReset();
     gotoCalls.length = 0;
+    routePage.params = {};
     chats.list = [];
     chats.loaded = false;
     chats.loading = false;
-    chats.projects = [];
-    chats.projectsLoaded = false;
-    chats.archived = false;
     chats.search = "";
-    chats.projectId = null;
     chats.error = null;
   });
 
@@ -125,9 +93,7 @@ describe("ChatsStore", () => {
     expect(listChatsMock).toHaveBeenCalledWith({
       limit: 100,
       offset: 0,
-      archived: false,
       search: undefined,
-      projectId: undefined,
     });
     expect(chats.loaded).toBe(true);
     expect(chats.list).toHaveLength(2);
@@ -157,6 +123,18 @@ describe("ChatsStore", () => {
     expect(chats.error).toBe("boom");
   });
 
+  it("setSearch passes the query through to the list request", async () => {
+    listChatsMock.mockResolvedValue(page([], 0));
+
+    await chats.setSearch("needle");
+
+    expect(listChatsMock).toHaveBeenLastCalledWith({
+      limit: 100,
+      offset: 0,
+      search: "needle",
+    });
+  });
+
   it("rename updates the matching entry in place", async () => {
     listChatsMock.mockResolvedValue(page([chatSummary("1", "old")], 1));
     await chats.load();
@@ -175,49 +153,6 @@ describe("ChatsStore", () => {
     expect(chats.list[0].updatedAt).toBe("2026-01-02T00:00:00Z");
   });
 
-  it("loads projects separately so project controls have caller-owned choices", async () => {
-    listProjectsMock.mockResolvedValue([
-      project("project-2", "Sales"),
-      project("project-1", "Operations"),
-    ]);
-
-    await chats.loadProjects();
-
-    expect(chats.projects.map((item) => item.id)).toEqual([
-      "project-2",
-      "project-1",
-    ]);
-    expect(chats.projectsLoaded).toBe(true);
-  });
-
-  it("changes the archive and project filters in the list request", async () => {
-    listChatsMock.mockResolvedValue(page([], 0));
-
-    await chats.showArchived(true);
-    await chats.setProject("project-1");
-
-    expect(listChatsMock).toHaveBeenLastCalledWith({
-      limit: 100,
-      offset: 0,
-      archived: true,
-      search: undefined,
-      projectId: "project-1",
-    });
-  });
-
-  it("removes an archived chat from the active view using the server summary", async () => {
-    chats.list = [chatSummary("1", "keep")];
-    archiveChatMock.mockResolvedValue({
-      ...chatSummary("1", "keep"),
-      archivedAt: "2026-01-02T00:00:00Z",
-    });
-
-    await chats.archive("1");
-
-    expect(archiveChatMock).toHaveBeenCalledWith("1");
-    expect(chats.list).toEqual([]);
-  });
-
   it("pins a chat above newer unpinned chats", async () => {
     chats.list = [
       { ...chatSummary("newer", "newer"), updatedAt: "2026-01-03T00:00:00Z" },
@@ -234,28 +169,19 @@ describe("ChatsStore", () => {
     expect(chats.list.map((item) => item.id)).toEqual(["older", "newer"]);
   });
 
-  it("updates a chat assignment and removes it when it no longer matches the project filter", async () => {
-    chats.projectId = "project-1";
-    chats.list = [{ ...chatSummary("1", "keep"), projectId: "project-1" }];
-    clearChatProjectMock.mockResolvedValue(chatSummary("1", "keep"));
+  it("unpin drops the chat back into activity order", async () => {
+    chats.list = [
+      { ...chatSummary("pinned", "pinned"), pinnedAt: "2026-01-04T00:00:00Z" },
+      { ...chatSummary("recent", "recent"), updatedAt: "2026-01-05T00:00:00Z" },
+    ];
+    unpinChatMock.mockResolvedValue({
+      ...chatSummary("pinned", "pinned"),
+      updatedAt: "2026-01-01T00:00:00Z",
+    });
 
-    await chats.setChatProject("1", null);
+    await chats.unpin("pinned");
 
-    expect(clearChatProjectMock).toHaveBeenCalledWith("1");
-    expect(chats.list).toEqual([]);
-  });
-
-  it("creates a project and keeps the selector alphabetized", async () => {
-    chats.projects = [project("project-2", "Sales")];
-    createProjectMock.mockResolvedValue(project("project-1", "Operations"));
-
-    await chats.createProject("Operations");
-
-    expect(createProjectMock).toHaveBeenCalledWith("Operations");
-    expect(chats.projects.map((item) => item.name)).toEqual([
-      "Operations",
-      "Sales",
-    ]);
+    expect(chats.list.map((item) => item.id)).toEqual(["recent", "pinned"]);
   });
 
   it("removes a deleted chat from the visible list", async () => {
@@ -268,7 +194,7 @@ describe("ChatsStore", () => {
     expect(chats.list.map((item) => item.id)).toEqual(["2"]);
   });
 
-  it("keeps the latest response when a prior filtered list returns late", async () => {
+  it("keeps the latest response when a prior list returns late", async () => {
     const active = deferred<ChatList>();
     const searched = deferred<ChatList>();
     listChatsMock.mockReturnValueOnce(active.promise);
@@ -310,6 +236,15 @@ describe("ChatsStore", () => {
     expect(chats.list[0].title).toBe("new title");
   });
 
+  it("touch drops a chat that no longer matches the active search", () => {
+    chats.search = "keep";
+    chats.list = [chatSummary("keep-me", "keep this one")];
+
+    chats.touch("other", "unrelated title");
+
+    expect(chats.list.map((c) => c.id)).toEqual(["keep-me"]);
+  });
+
   it("goToNewChat resolves the empty chat and navigates to it", async () => {
     getOrCreateEmptyChatMock.mockResolvedValue({
       id: "empty-1",
@@ -331,5 +266,33 @@ describe("ChatsStore", () => {
 
     expect(gotoCalls).toEqual([]);
     expect(chats.error).toBe("boom");
+  });
+
+  it("delete navigates away when the deleted chat is the one on screen", async () => {
+    routePage.params = { chatId: "doomed" };
+    chats.list = [chatSummary("doomed", "bye"), chatSummary("other", "stay")];
+    deleteChatMock.mockResolvedValue(undefined);
+    getOrCreateEmptyChatMock.mockResolvedValue({
+      id: "empty-1",
+      title: "",
+      model: "",
+    } satisfies Chat);
+
+    await chats.delete("doomed");
+
+    expect(chats.list.map((chat) => chat.id)).toEqual(["other"]);
+    expect(gotoCalls).toEqual(["/chat/empty-1"]);
+  });
+
+  it("delete stays put when a different chat is on screen", async () => {
+    routePage.params = { chatId: "other" };
+    chats.list = [chatSummary("doomed", "bye"), chatSummary("other", "stay")];
+    deleteChatMock.mockResolvedValue(undefined);
+
+    await chats.delete("doomed");
+
+    expect(chats.list.map((chat) => chat.id)).toEqual(["other"]);
+    expect(getOrCreateEmptyChatMock).not.toHaveBeenCalled();
+    expect(gotoCalls).toEqual([]);
   });
 });

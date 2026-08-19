@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: chatz API
-  version: 0.1.0
+  version: 0.2.0
   description: >
     Self-hosted AI chat API. Streaming chat with inline UI-spec rendering,
     MCP tool calling, model discovery across OpenAI-compatible upstreams, and
@@ -252,60 +252,10 @@ components:
         updatedAt:
           type: string
           format: date-time
-        projectId:
-          type: string
-          format: uuid
-          description: Optional user-owned project containing this chat.
-        archivedAt:
-          type: string
-          format: date-time
-          description: Present when the chat is archived.
         pinnedAt:
           type: string
           format: date-time
           description: Present when the chat is pinned.
-
-    Project:
-      type: object
-      required: [id, name, createdAt, updatedAt]
-      properties:
-        id:
-          type: string
-          format: uuid
-        name:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
-        updatedAt:
-          type: string
-          format: date-time
-
-    CreateProjectRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 80
-
-    RenameProjectRequest:
-      type: object
-      required: [name]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 80
-
-    ProjectAssignmentRequest:
-      type: object
-      required: [projectId]
-      properties:
-        projectId:
-          type: string
-          format: uuid
 
     MessageToolCall:
       type: object
@@ -972,24 +922,12 @@ paths:
             type: integer
             minimum: 0
             default: 0
-        - name: archived
-          in: query
-          schema:
-            type: boolean
-            default: false
-          description: Select archived chats instead of active chats.
         - name: search
           in: query
           schema:
             type: string
             maxLength: 256
           description: Case-insensitive literal title search.
-        - name: projectId
-          in: query
-          schema:
-            type: string
-            format: uuid
-          description: Limit the list to one caller-owned project.
       responses:
         '200':
           description: OK
@@ -1338,54 +1276,6 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /chats/{chatId}/archive:
-    put:
-      tags: [chats]
-      operationId: archiveChat
-      summary: Archive one caller-owned chat.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: chatId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatSummary'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-    delete:
-      tags: [chats]
-      operationId: unarchiveChat
-      summary: Restore one caller-owned chat from the archive.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: chatId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatSummary'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
   /chats/{chatId}/pin:
     put:
       tags: [chats]
@@ -1429,152 +1319,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ChatSummary'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /chats/{chatId}/project:
-    put:
-      tags: [chats]
-      operationId: assignChatProject
-      summary: Assign one caller-owned chat to a caller-owned project.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: chatId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ProjectAssignmentRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatSummary'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-    delete:
-      tags: [chats]
-      operationId: clearChatProject
-      summary: Remove a caller-owned chat's project assignment.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: chatId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatSummary'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /projects:
-    get:
-      tags: [projects]
-      operationId: listProjects
-      summary: List the caller's named chat projects.
-      security:
-        - sessionCookie: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Project'
-    post:
-      tags: [projects]
-      operationId: createProject
-      summary: Create a named chat project.
-      security:
-        - sessionCookie: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateProjectRequest'
-      responses:
-        '201':
-          description: Created
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '409':
-          $ref: '#/components/responses/Conflict'
-
-  /projects/{projectId}:
-    patch:
-      tags: [projects]
-      operationId: renameProject
-      summary: Rename one caller-owned project.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RenameProjectRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Project'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-        '409':
-          $ref: '#/components/responses/Conflict'
-    delete:
-      tags: [projects]
-      operationId: deleteProject
-      summary: Delete a project and unassign its chats.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '204':
-          description: Deleted
         '404':
           $ref: '#/components/responses/NotFound'
 

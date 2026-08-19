@@ -1,19 +1,13 @@
 import { goto } from "$app/navigation";
+import { page } from "$app/state";
 import {
-  archiveChat as apiArchiveChat,
-  assignChatProject as apiAssignChatProject,
-  clearChatProject as apiClearChatProject,
-  createProject as apiCreateProject,
   deleteChat as apiDeleteChat,
   listChats,
-  listProjects as apiListProjects,
   pinChat as apiPinChat,
   renameChat as apiRenameChat,
-  unarchiveChat as apiUnarchiveChat,
   unpinChat as apiUnpinChat,
   getOrCreateEmptyChat,
   type ChatSummary,
-  type Project,
 } from "$lib/api/client";
 import { chatRoute } from "$lib/common/routes";
 import { log } from "$lib/log";
@@ -48,13 +42,9 @@ function sortChats(items: ChatSummary[]): ChatSummary[] {
 // flips to authed (see the root layout).
 class ChatsStore {
   list = $state<ChatSummary[]>([]);
-  projects = $state<Project[]>([]);
   loaded = $state(false);
   loading = $state(false);
-  projectsLoaded = $state(false);
-  archived = $state(false);
   search = $state(EMPTY_SEARCH);
-  projectId = $state<string | null>(null);
   // error holds the last load failure's message so the sidebar can surface it
   // inline instead of only logging it; cleared on the next load attempt.
   error = $state<string | null>(null);
@@ -74,9 +64,7 @@ class ChatsStore {
       const page = await listChats({
         limit: SIDEBAR_CHATS_LIMIT,
         offset: 0,
-        archived: this.archived,
         search: this.search || undefined,
-        projectId: this.projectId ?? undefined,
       });
       if (loadGeneration === this.#loadGeneration) {
         this.list = sortChats(page.items);
@@ -94,48 +82,14 @@ class ChatsStore {
     }
   }
 
-  // loadProjects fetches the caller's project choices independently from the
-  // chat list, so a transient project request failure never hides chats.
-  async loadProjects(): Promise<void> {
-    try {
-      this.projects = await apiListProjects();
-      this.projectsLoaded = true;
-    } catch (err) {
-      this.error = err instanceof Error ? err.message : String(err);
-      log.error(EVENT_CHATS_ERROR, { message: this.error });
-    }
-  }
-
-  // showArchived switches between the active and archive list, preserving any
-  // current title search and project filter.
-  async showArchived(archived: boolean): Promise<void> {
-    if (this.archived === archived) {
-      return;
-    }
-
-    this.archived = archived;
-    await this.load();
-  }
-
-  // setSearch applies a literal title query to the current archive/project
-  // view. The server owns matching semantics and validates the query length.
+  // setSearch applies a literal title query. The server owns matching
+  // semantics and validates the query length.
   async setSearch(search: string): Promise<void> {
     if (this.search === search) {
       return;
     }
 
     this.search = search;
-    await this.load();
-  }
-
-  // setProject filters the current archive view to one caller-owned project,
-  // or clears that filter when projectId is null.
-  async setProject(projectId: string | null): Promise<void> {
-    if (this.projectId === projectId) {
-      return;
-    }
-
-    this.projectId = projectId;
     await this.load();
   }
 
@@ -203,14 +157,6 @@ class ChatsStore {
     }
   }
 
-  async archive(id: string): Promise<void> {
-    await this.applyChatMutation(() => apiArchiveChat(id));
-  }
-
-  async unarchive(id: string): Promise<void> {
-    await this.applyChatMutation(() => apiUnarchiveChat(id));
-  }
-
   async pin(id: string): Promise<void> {
     await this.applyChatMutation(() => apiPinChat(id));
   }
@@ -219,47 +165,26 @@ class ChatsStore {
     await this.applyChatMutation(() => apiUnpinChat(id));
   }
 
+  // delete soft-deletes the chat and drops it from the sidebar. When it is the
+  // chat currently on screen the router is moved off it too: the route param
+  // would otherwise still name a row the API no longer resolves, leaving a dead
+  // view in place that only fails on reload.
   async delete(id: string): Promise<void> {
     try {
       await apiDeleteChat(id);
       this.list = this.list.filter((chat) => chat.id !== id);
+
+      if (page.params.chatId !== id) {
+        return;
+      }
+
+      await this.goToNewChat();
     } catch (err) {
       this.captureError(err);
     }
-  }
-
-  async createProject(name: string): Promise<void> {
-    try {
-      const project = await apiCreateProject(name);
-      this.projects = [...this.projects, project].sort((left, right) =>
-        left.name.localeCompare(right.name),
-      );
-      this.projectsLoaded = true;
-    } catch (err) {
-      this.captureError(err);
-    }
-  }
-
-  async setChatProject(id: string, projectId: string | null): Promise<void> {
-    if (projectId === null) {
-      await this.applyChatMutation(() => apiClearChatProject(id));
-
-      return;
-    }
-
-    await this.applyChatMutation(() => apiAssignChatProject(id, projectId));
   }
 
   private matchesFilters(chat: ChatSummary): boolean {
-    const isArchived = chat.archivedAt !== undefined;
-    if (isArchived !== this.archived) {
-      return false;
-    }
-
-    if (this.projectId !== null && chat.projectId !== this.projectId) {
-      return false;
-    }
-
     return chat.title
       .toLocaleLowerCase()
       .includes(this.search.toLocaleLowerCase());

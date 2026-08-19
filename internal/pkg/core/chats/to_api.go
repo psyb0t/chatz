@@ -9,23 +9,11 @@ import (
 // ChatSummaryToAPI projects a stored chat row to the wire summary shape.
 func ChatSummaryToAPI(c *models.Chat) api.ChatSummary {
 	return api.ChatSummary{
-		Id:         c.ID,
-		Title:      c.Title,
-		CreatedAt:  c.CreatedAt,
-		UpdatedAt:  c.UpdatedAt,
-		ProjectId:  c.ProjectID,
-		ArchivedAt: c.ArchivedAt,
-		PinnedAt:   c.PinnedAt,
-	}
-}
-
-// ProjectToAPI projects a stored project to its API representation.
-func ProjectToAPI(project *models.Project) api.Project {
-	return api.Project{
-		Id:        project.ID,
-		Name:      project.Name,
-		CreatedAt: project.CreatedAt,
-		UpdatedAt: project.UpdatedAt,
+		Id:        c.ID,
+		Title:     c.Title,
+		CreatedAt: c.CreatedAt,
+		UpdatedAt: c.UpdatedAt,
+		PinnedAt:  c.PinnedAt,
 	}
 }
 

@@ -26,23 +26,18 @@ type ChatQuerier interface {
 	// LIMIT 1
 	FindEmptyChat(userID uuid.UUID) ([]*models.Chat, error)
 
-	// ListNonEmpty returns a filtered page of the user's chats that have at
-	// least one user message. Pinned chats sort first, then newest activity.
+	// ListNonEmpty returns a page of the user's chats that have at least one
+	// user message, optionally narrowed by a literal title search. Pinned chats
+	// sort first, then newest activity.
 	//
 	/*
 		SELECT c.*
 		FROM chats c
 		WHERE c.user_id = @userID
 		  AND c.deleted_at IS NULL
-		  {{if archived}}
-		  AND c.archived_at IS NOT NULL
-		  {{else}}
-		  AND c.archived_at IS NULL
-		  {{end}}
 		  {{if search != ""}}
 		  AND LOWER(c.title) LIKE LOWER(@search) ESCAPE '!'
 		  {{end}}
-		  {{if projectID != nil}} AND c.project_id = @projectID {{end}}
 		  AND EXISTS (
 		      SELECT 1 FROM messages m
 		      WHERE m.chat_id = c.id AND m.role = 'user'
@@ -55,9 +50,7 @@ type ChatQuerier interface {
 	*/
 	ListNonEmpty(
 		userID uuid.UUID,
-		archived bool,
 		search string,
-		projectID *uuid.UUID,
 		limit, offset int,
 	) ([]*models.Chat, error)
 
@@ -69,15 +62,9 @@ type ChatQuerier interface {
 		FROM chats c
 		WHERE c.user_id = @userID
 		  AND c.deleted_at IS NULL
-		  {{if archived}}
-		  AND c.archived_at IS NOT NULL
-		  {{else}}
-		  AND c.archived_at IS NULL
-		  {{end}}
 		  {{if search != ""}}
 		  AND LOWER(c.title) LIKE LOWER(@search) ESCAPE '!'
 		  {{end}}
-		  {{if projectID != nil}} AND c.project_id = @projectID {{end}}
 		  AND EXISTS (
 		      SELECT 1 FROM messages m
 		      WHERE m.chat_id = c.id AND m.role = 'user'
@@ -85,8 +72,6 @@ type ChatQuerier interface {
 	*/
 	CountNonEmpty(
 		userID uuid.UUID,
-		archived bool,
 		search string,
-		projectID *uuid.UUID,
 	) (int64, error)
 }

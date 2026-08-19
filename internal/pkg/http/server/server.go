@@ -321,7 +321,6 @@ func errorHandler(err error, c echo.Context) {
 // still rides on the encrypted hop.
 func sessionCookie(token string) *string {
 	c := &http.Cookie{
-		//nolint:lll // Secure intentionally omitted — TLS terminated at the proxy; see comment above
 		Name:     auth.CookieName,
 		Value:    token,
 		Path:     "/",

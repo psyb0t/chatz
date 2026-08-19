@@ -333,24 +333,6 @@ export interface paths {
         patch: operations["updateChatMCPServer"];
         trace?: never;
     };
-    "/chats/{chatId}/archive": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Archive one caller-owned chat. */
-        put: operations["archiveChat"];
-        post?: never;
-        /** Restore one caller-owned chat from the archive. */
-        delete: operations["unarchiveChat"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/chats/{chatId}/pin": {
         parameters: {
             query?: never;
@@ -367,60 +349,6 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
-        trace?: never;
-    };
-    "/chats/{chatId}/project": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Assign one caller-owned chat to a caller-owned project. */
-        put: operations["assignChatProject"];
-        post?: never;
-        /** Remove a caller-owned chat's project assignment. */
-        delete: operations["clearChatProject"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List the caller's named chat projects. */
-        get: operations["listProjects"];
-        put?: never;
-        /** Create a named chat project. */
-        post: operations["createProject"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/projects/{projectId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete a project and unassign its chats. */
-        delete: operations["deleteProject"];
-        options?: never;
-        head?: never;
-        /** Rename one caller-owned project. */
-        patch: operations["renameProject"];
         trace?: never;
     };
     "/mcp/servers": {
@@ -623,39 +551,10 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             /**
-             * Format: uuid
-             * @description Optional user-owned project containing this chat.
-             */
-            projectId?: string;
-            /**
-             * Format: date-time
-             * @description Present when the chat is archived.
-             */
-            archivedAt?: string;
-            /**
              * Format: date-time
              * @description Present when the chat is pinned.
              */
             pinnedAt?: string;
-        };
-        Project: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            /** Format: date-time */
-            createdAt: string;
-            /** Format: date-time */
-            updatedAt: string;
-        };
-        CreateProjectRequest: {
-            name: string;
-        };
-        RenameProjectRequest: {
-            name: string;
-        };
-        ProjectAssignmentRequest: {
-            /** Format: uuid */
-            projectId: string;
         };
         MessageToolCall: {
             id: string;
@@ -1152,12 +1051,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 offset?: number;
-                /** @description Select archived chats instead of active chats. */
-                archived?: boolean;
                 /** @description Case-insensitive literal title search. */
                 search?: string;
-                /** @description Limit the list to one caller-owned project. */
-                projectId?: string;
             };
             header?: never;
             path?: never;
@@ -1458,53 +1353,6 @@ export interface operations {
             404: components["responses"]["NotFound"];
         };
     };
-    archiveChat: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chatId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatSummary"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    unarchiveChat: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chatId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatSummary"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
     pinChat: {
         parameters: {
             query?: never;
@@ -1549,153 +1397,6 @@ export interface operations {
                 };
             };
             404: components["responses"]["NotFound"];
-        };
-    };
-    assignChatProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chatId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ProjectAssignmentRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatSummary"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    clearChatProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chatId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatSummary"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    listProjects: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"][];
-                };
-            };
-        };
-    };
-    createProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            409: components["responses"]["Conflict"];
-        };
-    };
-    deleteProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    renameProject: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                projectId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["RenameProjectRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Project"];
-                };
-            };
-            400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-            409: components["responses"]["Conflict"];
         };
     };
     listMCPServers: {

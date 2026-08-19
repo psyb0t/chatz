@@ -39,7 +39,6 @@ func main() {
 		models.MCPServer{},
 		models.MCPToolExecution{},
 		models.Message{},
-		models.Project{},
 		models.Session{},
 		models.User{},
 	)

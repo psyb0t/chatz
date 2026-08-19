@@ -52,6 +52,9 @@ const (
 	// fakeUpstreamFailFirstStreamEnv makes the fake upstream exhaust the retry
 	// stack for its first streamed turn. Test-fixture control only.
 	fakeUpstreamFailFirstStreamEnv = "CHATZ_E2E_FAIL_FIRST_STREAM"
+	// fakeUpstreamResponseTextEnv pins the fake upstream's assistant turn to an
+	// exact string — see E2EOptions.UpstreamResponseText.
+	fakeUpstreamResponseTextEnv = "CHATZ_E2E_RESPONSE_TEXT"
 
 	// The app image is a multi-stage prod build (SPA + Go binary); the first
 	// run pays the full build, later runs hit the layer cache (KeepImage).
@@ -96,6 +99,11 @@ type E2EOptions struct {
 	// FailFirstUpstreamStream asks the fake upstream to exhaust its retry stack
 	// for the first streamed turn, for browser recovery coverage.
 	FailFirstUpstreamStream bool
+	// UpstreamResponseText pins the fake upstream's assistant turn to this
+	// exact text, delivered in one chunk. Empty keeps its default
+	// partial/pause/completed script. Drives the browser with a payload the
+	// canned showcase responses cannot express — a malformed spec fence, say.
+	UpstreamResponseText string
 }
 
 // e2eNetwork is the slice of the (deprecated) testcontainers network type we
@@ -345,6 +353,7 @@ func (s *E2EStack) setupUpstream(
 					fakeUpstreamFailFirstStreamEnv: strconv.FormatBool(
 						opts.FailFirstUpstreamStream,
 					),
+					fakeUpstreamResponseTextEnv: opts.UpstreamResponseText,
 				},
 				ExposedPorts: []string{e2eUpstreamPort + "/tcp"},
 				WaitingFor: wait.ForHTTP("/v1/models").

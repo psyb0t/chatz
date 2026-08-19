@@ -81,9 +81,12 @@ func TestNewUpstreamDriver_IsolatesEnvironmentCredentials(t *testing.T) {
 			name:              "openai",
 			provider:          config.UpstreamProviderOpenAI,
 			credentialEnvName: "OPENAI_API_KEY",
-			credentialHeaders: []string{"Authorization", "X-Environment-Secret"},
-			response:          `{"data":[]}`,
-			requestPath:       "/models",
+			credentialHeaders: []string{
+				"Authorization",
+				"X-Environment-Secret",
+			},
+			response:    `{"data":[]}`,
+			requestPath: "/models",
 		},
 		{
 			name:              "anthropic",
@@ -97,7 +100,11 @@ func TestNewUpstreamDriver_IsolatesEnvironmentCredentials(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Setenv(testCase.credentialEnvName, "must-not-reach-keyless-upstream")
+			t.Setenv(
+				testCase.credentialEnvName,
+				"must-not-reach-keyless-upstream",
+			)
+
 			if testCase.provider == config.UpstreamProviderOpenAI {
 				t.Setenv(
 					"OPENAI_CUSTOM_HEADERS",
@@ -110,6 +117,7 @@ func TestNewUpstreamDriver_IsolatesEnvironmentCredentials(t *testing.T) {
 				request *http.Request,
 			) {
 				assert.Equal(t, testCase.requestPath, request.URL.Path)
+
 				for _, headerName := range testCase.credentialHeaders {
 					assert.Empty(t, request.Header.Get(headerName), headerName)
 				}

@@ -32,6 +32,9 @@
   let settingsOpen = $state(false);
   let contextPreview = $state<PromptContextPreview | null>(null);
   const CONTEXT_PREVIEW_DELAY_MS = 150;
+  // Plain (non-reactive): which chat `contextPreview` was computed for, so the
+  // meter is only blanked on a real chat switch. See the preview effect below.
+  let previewChatId: string | null = null;
   // Plain (non-reactive): only re-sync the picker when the loaded chat's model
   // actually changes, so the user can still change the picker afterwards.
   let lastSyncedModel: string | null = null;
@@ -87,11 +90,21 @@
   // The meter deliberately asks the backend after a short idle delay. Only the
   // backend has the durable transcript and the same tokenizer/selection path
   // the next streamed turn uses.
+  //
+  // The in-flight value is deliberately KEPT rather than cleared. The bar is
+  // gated on `contextPreview !== null`, so nulling it on every keystroke made
+  // the whole meter vanish while typing and reappear on idle. A slightly stale
+  // count is better than no count. It is only discarded when the chat changes,
+  // where the old numbers would be wrong rather than merely late.
   $effect(() => {
     const chatId = conversation.chatId;
     const message = draft;
     void conversation.streaming;
-    contextPreview = null;
+
+    if (chatId !== previewChatId) {
+      previewChatId = chatId;
+      contextPreview = null;
+    }
 
     if (chatId === null) {
       return;

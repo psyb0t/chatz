@@ -48,8 +48,11 @@ COPY --from=web /web/build ./internal/pkg/webassets/dist
 # Build binary with static linking. Target ./cmd (the app's main) specifically —
 # ./cmd/... would also match cmd/repogen (a second main pkg) and `-o <file>`
 # rejects building multiple packages into one output file.
+# `main.appName` / `main.buildCommit` are a SEPARATE pair from the buildinfo
+# vars above and need their own -X flags. appName otherwise keeps the framework
+# default, so the process reports `binary=servicepack` on every log line.
 RUN CGO_ENABLED=0 go build -a -mod=vendor \
-    -ldflags "-extldflags '-static' -X github.com/psyb0t/chatz/internal/pkg/buildinfo.Version=${APP_VERSION} -X github.com/psyb0t/chatz/internal/pkg/buildinfo.Commit=${GIT_COMMIT}" \
+    -ldflags "-extldflags '-static' -X github.com/psyb0t/chatz/internal/pkg/buildinfo.Version=${APP_VERSION} -X github.com/psyb0t/chatz/internal/pkg/buildinfo.Commit=${GIT_COMMIT} -X main.appName=chatz -X main.buildCommit=${GIT_COMMIT}" \
     -o ./build/app ./cmd
 
 # Final stage - minimal runtime image

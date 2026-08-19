@@ -102,8 +102,8 @@
 
   .message__interrupted {
     margin: 0;
-    color: var(--muted-ink);
-    font-size: var(--font-size-sm);
+    color: var(--muted);
+    font-size: var(--text-sm);
   }
 
   @keyframes blink {

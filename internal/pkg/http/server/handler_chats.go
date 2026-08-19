@@ -79,11 +79,7 @@ func (s *Server) ListChats(
 		return listChatsBadRequest("search is too long"), nil
 	}
 
-	options := chats.ListOptions{ProjectID: req.Params.ProjectId}
-	if req.Params.Archived != nil {
-		options.Archived = *req.Params.Archived
-	}
-
+	options := chats.ListOptions{}
 	if req.Params.Search != nil {
 		options.Search = *req.Params.Search
 	}
@@ -96,10 +92,6 @@ func (s *Server) ListChats(
 		offset,
 	)
 	if err != nil {
-		if errors.Is(err, commerr.ErrNotFound) {
-			return listChatsNotFound("project not found"), nil
-		}
-
 		return nil, ctxerrors.Wrap(err, "list chats")
 	}
 
@@ -114,14 +106,6 @@ func (s *Server) ListChats(
 		Offset: offset,
 		Total:  total,
 	}), nil
-}
-
-func listChatsNotFound(message string) api.ListChats404JSONResponse {
-	return api.ListChats404JSONResponse{
-		NotFoundJSONResponse: api.NotFoundJSONResponse(
-			envelope(aichteeteapee.ErrorCodeNotFound, message),
-		),
-	}
 }
 
 func listChatsBadRequest(message string) api.ListChats400JSONResponse {

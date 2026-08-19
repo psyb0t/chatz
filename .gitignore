@@ -5,6 +5,7 @@ coverage.out
 coverage.html
 coverage.txt
 coverage_filtered.txt
+coverage-percent.txt
 # Anchored to the repo root. A bare `build` matches at ANY depth, which
 # silently excluded vendor/github.com/moby/moby/api/types/build/ from git —
 # the tree built locally and failed in CI, which checks out what git has.
@@ -49,10 +50,11 @@ web/build/
 web/e2e/out/
 .pnpm-store/
 
-# go:embed SPA dir — only dist/index.html (placeholder) is committed; the real
-# build synced by `make web-embed` (index.html + _app/ + *.html) is generated.
-internal/pkg/webassets/dist/_app/
-internal/pkg/webassets/dist/*.html
+# go:embed SPA dir — only dist/index.html is committed (it keeps `go build`
+# green without a fresh web build); everything else is `make web-embed` output.
+# Ignoring the whole directory rather than naming _app/ and *.html means a newly
+# prerendered route dir (e.g. dist/admin/) can't start polluting git status.
+internal/pkg/webassets/dist/*
 !internal/pkg/webassets/dist/index.html
 
 # Per-run test-plan scratch (never committed)

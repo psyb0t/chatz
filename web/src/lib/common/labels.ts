@@ -59,12 +59,9 @@ export const MCP_TOOLS_NO_PARAMS = "No parameters.";
 export const MCP_TOOLS_REQUIRED = "required";
 export const A11Y_CHAT_RENAME = "Rename chat";
 export const A11Y_CHAT_SEARCH = "Search chats";
-export const A11Y_CHAT_PROJECT_FILTER = "Filter chats by project";
-export const A11Y_CHAT_PROJECT_ASSIGNMENT = "Assign chat to project";
 export const A11Y_CHAT_PIN = "Pin chat";
 export const A11Y_CHAT_UNPIN = "Unpin chat";
-export const A11Y_CHAT_ARCHIVE = "Archive chat";
-export const A11Y_CHAT_UNARCHIVE = "Restore chat";
+export const A11Y_CHAT_DELETE = "Delete chat";
 export const LABEL_SAVE = "Save";
 export const LABEL_CLOSE = "Close";
 
@@ -132,6 +129,22 @@ export function turnElapsed(seconds: number): string {
   return `${seconds}s elapsed`;
 }
 
+// Shown in place of a generative-UI block whose spec cannot be resolved. Such a
+// spec renders as nothing at all, so without this the failure is invisible and
+// reads as "the assistant chose not to draw anything".
+export const SPEC_INVALID_LABEL = "UI SPEC COULD NOT BE RENDERED";
+
+// specIssueLine renders one json-render validation issue for the reader. The
+// code is the library's machine-readable identifier (root_not_found,
+// missing_child, ...); elementKey is present only on the issues that name one.
+export function specIssueLine(code: string, elementKey?: string): string {
+  if (elementKey === undefined || elementKey === "") {
+    return code;
+  }
+
+  return `${code}: ${elementKey}`;
+}
+
 // Per-chat MCP server picker (composer).
 export const A11Y_CHAT_MCP = "MCP servers for this chat";
 export const CHAT_MCP_TITLE = "MCP Servers";
@@ -151,13 +164,6 @@ export const EMPTY_USERS = "NO USERS";
 export const EMPTY_MCP = "NO MCP SERVERS";
 export const EMPTY_CHATS = "NO CHATS YET";
 export const SIDEBAR_SEARCH_PLACEHOLDER = "Search chats…";
-export const SIDEBAR_ACTIVE_CHATS = "Active";
-export const SIDEBAR_ARCHIVED_CHATS = "Archived";
-export const SIDEBAR_ALL_PROJECTS = "All projects";
-export const SIDEBAR_NEW_PROJECT_PLACEHOLDER = "New project";
-export const SIDEBAR_NO_PROJECT = "No project";
 export const LABEL_PIN = "Pin";
 export const LABEL_UNPIN = "Unpin";
-export const LABEL_ARCHIVE = "Archive";
-export const LABEL_UNARCHIVE = "Restore";
 export const EMPTY_CONVERSATION = "Start a conversation.";

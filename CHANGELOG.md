@@ -5,6 +5,55 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-08-19
+
+### Added
+
+- `chatz migrate` applies pending database migrations and exits without starting
+  the HTTP server, for deploys that move the schema before the new binary takes
+  traffic. `make migrate` already invoked this subcommand, but nothing registered
+  it, so the target failed.
+
+### Removed
+
+- **Breaking.** Chat projects and chat archiving are gone. A chat is now kept or
+  deleted — nothing else. The sidebar exposes a single delete control revealed on
+  hover; pin and rename remain.
+  - **API.** Removed `GET/POST /projects`, `PATCH/DELETE /projects/{projectId}`,
+    `PUT/DELETE /chats/{chatId}/archive`, and `PUT/DELETE /chats/{chatId}/project`;
+    dropped the `archived` and `projectId` query parameters from `GET /chats` and
+    the `projectId` and `archivedAt` fields from `ChatSummary`. The only consumer
+    is the single-page app generated from this same spec, updated in this commit.
+  - **Schema.** Migration `0000018` drops `chats.project_id` and `chats.archived_at`
+    (and their indexes, rebuilding the pinned-order index without the
+    `archived_at IS NULL` predicate); migration `0000019` drops the `projects`
+    table. Both are reversible — the down migrations restore the columns, indexes,
+    and table structure, not the data.
+
+### Changed
+
+- Deleting the chat currently on screen navigates away from it. Previously the
+  route still named the deleted chat, leaving a dead view that failed on reload.
+- Container builds stamp the binary's own name and revision (`-X main.appName`,
+  `-X main.buildCommit`) alongside the existing `buildinfo` version and commit.
+  Log lines previously identified the process as `servicepack`.
+
+### Fixed
+
+- The embedded single-page app was a stale build carrying only 12 of the 26
+  generative-UI components, so an assistant reply containing a chart, gauge,
+  heatmap, treemap, sparkline, log viewer or network graph rendered as nothing at
+  all. The embedded bundle now matches the current frontend.
+- The context-usage meter under the composer no longer disappears while typing.
+  Its value is kept while a refresh is in flight and cleared only when the chat
+  changes.
+- Two CSS custom properties were referenced but never declared, so the rules
+  using them silently did nothing: the "Interrupted response" label renders muted
+  and small as intended, and the funnel chart's detail list gets its indent.
+- `make test-coverage` writes `coverage-percent.txt`, which the release pipeline
+  reads to render the coverage badge. Only the superseded framework script
+  produced it, so the badge had no source.
+
 ## [0.1.0] - 2026-08-16
 
 ### Changed
@@ -1267,4 +1316,4 @@ Initial release of chatz (renamed from chatter): a self-hosted, single-binary st
 [1.1.1]: https://github.com/psyb0t/chatz/releases/tag/v1.1.1
 [1.1.0]: https://github.com/psyb0t/chatz/releases/tag/v1.1.0
 [1.0.0]: https://github.com/psyb0t/chatter/releases/tag/v1.0.0
-[Unreleased]: https://github.com/psyb0t/chatz
+[0.2.0]: https://github.com/psyb0t/chatz/releases/tag/v0.2.0

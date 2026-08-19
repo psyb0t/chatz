@@ -67,6 +67,7 @@ func realLLM(t *testing.T) (*elelem.Client, elelem.Model) {
 	cfg := config.Config{UpstreamsJSON: os.Getenv("CHATZ_UPSTREAMS")}
 	upstreams, err := cfg.Upstreams()
 	require.NoError(t, err)
+
 	if len(upstreams) == 0 {
 		t.Skip("no upstreams configured — set CHATZ_UPSTREAMS (the same .env " +
 			"`make run` uses) to run the real-LLM tests")

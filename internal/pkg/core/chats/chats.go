@@ -35,42 +35,24 @@ func (s *Service) List(
 }
 
 // ListWithOptions returns the requested page of the user's non-empty chats.
-// A blank search has no filter. Active chats are the default; callers opt into
-// archive mode explicitly.
+// A blank search has no filter.
 func (s *Service) ListWithOptions(
 	ctx context.Context,
 	userID uuid.UUID,
 	options ListOptions,
 	limit, offset int,
 ) ([]*models.Chat, int, error) {
-	if options.ProjectID != nil {
-		if _, err := s.ownedProject(
-			ctx,
-			*options.ProjectID,
-			userID,
-		); err != nil {
-			return nil, 0, err
-		}
-	}
-
 	repo := s.query.Chat
 	search := chatSearchPattern(options.Search)
 
-	total, err := repo.WithContext(ctx).CountNonEmpty(
-		userID,
-		options.Archived,
-		search,
-		options.ProjectID,
-	)
+	total, err := repo.WithContext(ctx).CountNonEmpty(userID, search)
 	if err != nil {
 		return nil, 0, ctxerrors.Wrap(err, "count chats")
 	}
 
 	list, err := repo.WithContext(ctx).ListNonEmpty(
 		userID,
-		options.Archived,
 		search,
-		options.ProjectID,
 		limit,
 		offset,
 	)

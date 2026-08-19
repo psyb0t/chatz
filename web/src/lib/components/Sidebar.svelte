@@ -32,23 +32,13 @@
     NAV_ADMIN_MCP,
     NAV_ADMIN_READINESS,
     A11Y_CHAT_RENAME,
-    A11Y_CHAT_ARCHIVE,
-    A11Y_CHAT_PROJECT_ASSIGNMENT,
-    A11Y_CHAT_PROJECT_FILTER,
     A11Y_CHAT_PIN,
     A11Y_CHAT_SEARCH,
-    A11Y_CHAT_UNARCHIVE,
     A11Y_CHAT_UNPIN,
-    LABEL_ARCHIVE,
+    A11Y_CHAT_DELETE,
     LABEL_DELETE,
     LABEL_PIN,
-    LABEL_UNARCHIVE,
     LABEL_UNPIN,
-    SIDEBAR_ACTIVE_CHATS,
-    SIDEBAR_ALL_PROJECTS,
-    SIDEBAR_ARCHIVED_CHATS,
-    SIDEBAR_NEW_PROJECT_PLACEHOLDER,
-    SIDEBAR_NO_PROJECT,
     SIDEBAR_SEARCH_PLACEHOLDER,
     mcpChip,
   } from "$lib/common/labels";
@@ -61,14 +51,8 @@
     TESTID_NAV_ADMIN_READINESS,
     TESTID_CHAT_RENAME,
     TESTID_CHAT_RENAME_INPUT,
-    TESTID_CHAT_ARCHIVE,
-    TESTID_CHAT_ARCHIVE_TOGGLE,
     TESTID_CHAT_DELETE,
     TESTID_CHAT_PIN,
-    TESTID_CHAT_PROJECT_ASSIGNMENT,
-    TESTID_CHAT_PROJECT_CREATE,
-    TESTID_CHAT_PROJECT_CREATE_INPUT,
-    TESTID_CHAT_PROJECT_FILTER,
     TESTID_CHAT_SEARCH,
   } from "$lib/common/test-ids";
 
@@ -121,7 +105,6 @@
   let renamingId = $state<string | null>(null);
   let renameValue = $state("");
   let renameInputEl: HTMLInputElement | undefined = $state();
-  let newProjectName = $state("");
 
   function startRename(event: MouseEvent, id: string, title: string): void {
     event.preventDefault();
@@ -161,46 +144,6 @@
     void chats.setSearch(input.value);
   }
 
-  function onProjectFilterChange(event: Event): void {
-    const select = event.currentTarget as HTMLSelectElement;
-    void chats.setProject(
-      select.value === EMPTY_PROJECT_ID ? null : select.value,
-    );
-  }
-
-  function onChatProjectChange(event: Event, chatId: string): void {
-    const select = event.currentTarget as HTMLSelectElement;
-    void chats.setChatProject(
-      chatId,
-      select.value === EMPTY_PROJECT_ID ? null : select.value,
-    );
-  }
-
-  async function createProject(): Promise<void> {
-    const name = newProjectName.trim();
-    if (name === EMPTY_PROJECT_ID) {
-      return;
-    }
-
-    await chats.createProject(name);
-    newProjectName = EMPTY_PROJECT_ID;
-  }
-
-  function onNewProjectKeydown(event: KeyboardEvent): void {
-    if (event.key !== "Enter") {
-      return;
-    }
-
-    event.preventDefault();
-    void createProject();
-  }
-
-  function projectName(projectId: string | undefined): string {
-    return (
-      chats.projects.find((project) => project.id === projectId)?.name ??
-      SIDEBAR_NO_PROJECT
-    );
-  }
 </script>
 
 {#if collapsed}
@@ -271,50 +214,6 @@
             aria-label={A11Y_CHAT_SEARCH}
             data-testid={TESTID_CHAT_SEARCH}
           />
-          <div
-            class="sidebar__view-toggle"
-            data-testid={TESTID_CHAT_ARCHIVE_TOGGLE}
-          >
-            <button
-              class:sidebar__view-button--active={!chats.archived}
-              class="sidebar__view-button"
-              type="button"
-              onclick={() => chats.showArchived(false)}
-              >{SIDEBAR_ACTIVE_CHATS}</button
-            >
-            <button
-              class:sidebar__view-button--active={chats.archived}
-              class="sidebar__view-button"
-              type="button"
-              onclick={() => chats.showArchived(true)}
-              >{SIDEBAR_ARCHIVED_CHATS}</button
-            >
-          </div>
-          <select
-            class="sidebar__project-filter"
-            value={chats.projectId ?? EMPTY_PROJECT_ID}
-            onchange={onProjectFilterChange}
-            aria-label={A11Y_CHAT_PROJECT_FILTER}
-            data-testid={TESTID_CHAT_PROJECT_FILTER}
-          >
-            <option value={EMPTY_PROJECT_ID}>{SIDEBAR_ALL_PROJECTS}</option>
-            {#each chats.projects as project (project.id)}
-              <option value={project.id}>{project.name}</option>
-            {/each}
-          </select>
-          <div class="sidebar__project-create">
-            <input
-              bind:value={newProjectName}
-              onkeydown={onNewProjectKeydown}
-              placeholder={SIDEBAR_NEW_PROJECT_PLACEHOLDER}
-              data-testid={TESTID_CHAT_PROJECT_CREATE_INPUT}
-            />
-            <button
-              type="button"
-              onclick={createProject}
-              data-testid={TESTID_CHAT_PROJECT_CREATE}>+</button
-            >
-          </div>
         </div>
 
         {#if chats.loading && chats.list.length === 0}
@@ -359,11 +258,6 @@
                       aria-current={active ? "page" : undefined}
                     >
                       <span class="sidebar__item-name">{chat.title}</span>
-                      {#if chat.projectId !== undefined}
-                        <span class="sidebar__project-name"
-                          >{projectName(chat.projectId)}</span
-                        >
-                      {/if}
                     </a>
                   </div>
                   <div class="sidebar__actions">
@@ -392,39 +286,11 @@
                     <button
                       class="icon-btn"
                       type="button"
-                      onclick={() =>
-                        chat.archivedAt === undefined
-                          ? chats.archive(chat.id)
-                          : chats.unarchive(chat.id)}
-                      aria-label={chat.archivedAt === undefined
-                        ? A11Y_CHAT_ARCHIVE
-                        : A11Y_CHAT_UNARCHIVE}
-                      data-testid={TESTID_CHAT_ARCHIVE}
-                      >{chat.archivedAt === undefined
-                        ? LABEL_ARCHIVE
-                        : LABEL_UNARCHIVE}</button
-                    >
-                    <button
-                      class="icon-btn"
-                      type="button"
                       onclick={() => chats.delete(chat.id)}
+                      aria-label={A11Y_CHAT_DELETE}
                       data-testid={TESTID_CHAT_DELETE}>{LABEL_DELETE}</button
                     >
                   </div>
-                  <select
-                    class="sidebar__chat-project"
-                    value={chat.projectId ?? EMPTY_PROJECT_ID}
-                    onchange={(event) => onChatProjectChange(event, chat.id)}
-                    aria-label={A11Y_CHAT_PROJECT_ASSIGNMENT}
-                    data-testid={TESTID_CHAT_PROJECT_ASSIGNMENT}
-                  >
-                    <option value={EMPTY_PROJECT_ID}
-                      >{SIDEBAR_NO_PROJECT}</option
-                    >
-                    {#each chats.projects as project (project.id)}
-                      <option value={project.id}>{project.name}</option>
-                    {/each}
-                  </select>
                 {/if}
               </li>
             {/each}
@@ -715,24 +581,24 @@
     min-width: 0;
   }
 
+  /* The row's controls stay out of the way until the pointer is on the row.
+     focus-within keeps them reachable by keyboard, where there is no hover. */
   .sidebar__actions {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
     gap: 2px;
-    width: 100%;
-  }
-
-  /* Pencil reveals on row hover (or when it takes focus via keyboard). */
-  .sidebar__rename {
     flex-shrink: 0;
     opacity: 0;
-    font-size: var(--text-xs);
   }
 
-  .sidebar__row:hover .sidebar__rename,
-  .sidebar__rename:focus-visible {
+  .sidebar__row:hover .sidebar__actions,
+  .sidebar__row:focus-within .sidebar__actions {
     opacity: 1;
+  }
+
+  .sidebar__rename {
+    flex-shrink: 0;
+    font-size: var(--text-xs);
   }
 
   .sidebar__rename-input {
@@ -772,10 +638,7 @@
     gap: var(--space-2);
   }
 
-  .sidebar__search,
-  .sidebar__project-filter,
-  .sidebar__chat-project,
-  .sidebar__project-create input {
+  .sidebar__search {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
@@ -786,57 +649,6 @@
     font-family: var(--font-display);
     font-size: var(--text-xs);
     padding: var(--space-2);
-  }
-
-  .sidebar__view-toggle {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius);
-    overflow: hidden;
-  }
-
-  .sidebar__view-button {
-    border: 0;
-    border-radius: 0;
-    background: var(--bg);
-    color: var(--muted);
-    font-family: var(--font-display);
-    font-size: var(--text-xs);
-    padding: var(--space-2);
-  }
-
-  .sidebar__view-button--active {
-    background: var(--accent-soft);
-    color: var(--accent);
-  }
-
-  .sidebar__project-create {
-    display: flex;
-    gap: var(--space-1);
-  }
-
-  .sidebar__project-create button {
-    flex-shrink: 0;
-    padding: var(--space-1) var(--space-3);
-  }
-
-  .sidebar__project-name {
-    display: block;
-    color: var(--muted);
-    font-size: var(--text-xs);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .sidebar__chat-project {
-    display: none;
-  }
-
-  .sidebar__row:hover .sidebar__chat-project,
-  .sidebar__chat-project:focus {
-    display: block;
   }
 
   /* Bottom cluster: admin nav (Users/MCP) above the user + logout row. */

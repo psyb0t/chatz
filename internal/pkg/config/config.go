@@ -74,8 +74,9 @@ type Config struct {
 	UpstreamsJSON string `env:"CHATZ_UPSTREAMS"`
 
 	// ForceRealLLM makes upstream drivers talk to the real provider even under
-	// `go test`, where they otherwise resolve to the scripted double. The
-	// real-LLM suites (`make test-real`) set it; nothing else should.
+	// `go test`, where they otherwise resolve to the scripted double. Nothing
+	// in the repo sets it: the operator opts in from their own `.env`, which
+	// `make test-real` forwards into the container. Leave it false elsewhere.
 	ForceRealLLM bool `default:"false" env:"CHATZ_FORCE_REAL_LLM"`
 }
 

@@ -26,15 +26,20 @@ func TestConfig_Upstreams(t *testing.T) {
 			wantLen: 0,
 		},
 		{
-			name:          "single upstream",
-			json:          `[{"name":"ollama","provider":"openai","baseUrl":"http://x:11434/v1"}]`,
+			name: "single upstream",
+			json: `[
+  {"name":"ollama","provider":"openai","baseUrl":"http://x:11434/v1"}
+]`,
 			wantLen:       1,
 			wantFirstName: "ollama",
 			wantProvider:  UpstreamProviderOpenAI,
 		},
 		{
-			name:          "multiple upstreams merge",
-			json:          `[{"name":"ollama","provider":"openai"},{"name":"openai","provider":"openai"}]`,
+			name: "multiple upstreams merge",
+			json: `[
+  {"name":"ollama","provider":"openai"},
+  {"name":"openai","provider":"openai"}
+]`,
 			wantLen:       2,
 			wantFirstName: "ollama",
 			wantProvider:  UpstreamProviderOpenAI,
@@ -82,8 +87,11 @@ func TestConfig_Upstreams(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "duplicate names error",
-			json:    `[{"name":"same","provider":"openai"},{"name":"same","provider":"openai"}]`,
+			name: "duplicate names error",
+			json: `[
+  {"name":"same","provider":"openai"},
+  {"name":"same","provider":"openai"}
+]`,
 			wantErr: true,
 		},
 		{
@@ -92,8 +100,10 @@ func TestConfig_Upstreams(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "duplicate model metadata errors",
-			json:    `[{"name":"gateway","provider":"openai","models":[{"id":"a"},{"id":"a"}]}]`,
+			name: "duplicate model metadata errors",
+			json: `[
+  {"name":"gateway","provider":"openai","models":[{"id":"a"},{"id":"a"}]}
+]`,
 			wantErr: true,
 		},
 		{
@@ -152,6 +162,7 @@ func TestConfig_Upstreams(t *testing.T) {
 
 			require.NoError(t, err)
 			require.Len(t, got, tc.wantLen)
+
 			if tc.wantLen == 0 {
 				return
 			}
@@ -222,7 +233,11 @@ func TestConfig_Upstreams_APIKeyEnvironment(t *testing.T) {
 		{
 			name: "referenced key is missing",
 			json: `[
-  {"name":"gateway","provider":"openai","apiKeyEnv":"CHATZ_TEST_MISSING_UPSTREAM_KEY"}
+  {
+    "name":"gateway",
+    "provider":"openai",
+    "apiKeyEnv":"CHATZ_TEST_MISSING_UPSTREAM_KEY"
+  }
 ]`,
 			wantErr: true,
 		},

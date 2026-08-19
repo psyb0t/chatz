@@ -22,7 +22,6 @@ var (
 	MCPServer        *mCPServer
 	MCPToolExecution *mCPToolExecution
 	Message          *message
-	Project          *project
 	Session          *session
 	User             *user
 )
@@ -34,7 +33,6 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	MCPServer = &Q.MCPServer
 	MCPToolExecution = &Q.MCPToolExecution
 	Message = &Q.Message
-	Project = &Q.Project
 	Session = &Q.Session
 	User = &Q.User
 }
@@ -47,7 +45,6 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		MCPServer:        newMCPServer(db, opts...),
 		MCPToolExecution: newMCPToolExecution(db, opts...),
 		Message:          newMessage(db, opts...),
-		Project:          newProject(db, opts...),
 		Session:          newSession(db, opts...),
 		User:             newUser(db, opts...),
 	}
@@ -61,7 +58,6 @@ type Query struct {
 	MCPServer        mCPServer
 	MCPToolExecution mCPToolExecution
 	Message          message
-	Project          project
 	Session          session
 	User             user
 }
@@ -78,7 +74,6 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		MCPServer:        q.MCPServer.clone(db),
 		MCPToolExecution: q.MCPToolExecution.clone(db),
 		Message:          q.Message.clone(db),
-		Project:          q.Project.clone(db),
 		Session:          q.Session.clone(db),
 		User:             q.User.clone(db),
 	}
@@ -100,7 +95,6 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		MCPServer:        q.MCPServer.replaceDB(db),
 		MCPToolExecution: q.MCPToolExecution.replaceDB(db),
 		Message:          q.Message.replaceDB(db),
-		Project:          q.Project.replaceDB(db),
 		Session:          q.Session.replaceDB(db),
 		User:             q.User.replaceDB(db),
 	}
@@ -112,7 +106,6 @@ type queryCtx struct {
 	MCPServer        IMCPServerDo
 	MCPToolExecution IMCPToolExecutionDo
 	Message          IMessageDo
-	Project          IProjectDo
 	Session          ISessionDo
 	User             IUserDo
 }
@@ -124,7 +117,6 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		MCPServer:        q.MCPServer.WithContext(ctx),
 		MCPToolExecution: q.MCPToolExecution.WithContext(ctx),
 		Message:          q.Message.WithContext(ctx),
-		Project:          q.Project.WithContext(ctx),
 		Session:          q.Session.WithContext(ctx),
 		User:             q.User.WithContext(ctx),
 	}

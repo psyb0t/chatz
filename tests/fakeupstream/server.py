@@ -25,6 +25,11 @@ PARTIAL_RESPONSE = "Recovered partial answer."
 COMPLETED_RESPONSE = " The stream completed."
 STREAM_PAUSE_SECONDS = 5
 FAIL_FIRST_STREAM_ENV = "CHATZ_E2E_FAIL_FIRST_STREAM"
+# When set, the assistant turn is exactly this text and streams in one chunk
+# with no pause, instead of the partial/pause/completed script. Lets a test
+# drive the browser with a specific assistant payload — notably a malformed
+# ```spec block, which no canned showcase response can express.
+RESPONSE_TEXT_ENV = "CHATZ_E2E_RESPONSE_TEXT"
 FAILURE_DELAY_SECONDS = 1.5
 # The OpenAI SDK retries a transient 5xx twice before Elelem sees it; Elelem
 # then makes three provider attempts. Exhaust all nine requests of the first
@@ -137,13 +142,18 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Connection", "close")
         self.end_headers()
 
-        if not self._write_chunk(request, PARTIAL_RESPONSE, None):
-            return
+        scripted = os.getenv(RESPONSE_TEXT_ENV, "")
+        if scripted:
+            if not self._write_chunk(request, scripted, "stop"):
+                return
+        else:
+            if not self._write_chunk(request, PARTIAL_RESPONSE, None):
+                return
 
-        time.sleep(STREAM_PAUSE_SECONDS)
+            time.sleep(STREAM_PAUSE_SECONDS)
 
-        if not self._write_chunk(request, COMPLETED_RESPONSE, "stop"):
-            return
+            if not self._write_chunk(request, COMPLETED_RESPONSE, "stop"):
+                return
 
         try:
             self.wfile.write(b"data: [DONE]\n\n")

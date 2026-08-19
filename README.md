@@ -53,10 +53,9 @@ docker-compose you're scared to touch — just Go and a database you choose.
   never replayed to a later model request. The completed assistant/tool
   transcript atomically replaces that checkpoint.
 - **Chat organization that does not turn into a landfill.** Create an empty
-  chat before you have a prompt, group chats into named projects, pin the ones
-  you keep reaching for, archive and restore old ones, and search titles with
-  a literal case-insensitive filter. Deleting a chat is soft deletion; deleting
-  a project just unassigns its chats rather than taking them down with it.
+  chat before you have a prompt, pin the ones you keep reaching for, rename them,
+  and search titles with a literal case-insensitive filter. A single delete
+  control appears on row hover; deletion is soft deletion.
 - **Per-chat generation controls.** The composer settings panel controls
   temperature, top-p, reasoning effort, output tokens, and history tokens.
   Unset generation values use the provider default; unset history uses 100,000.
@@ -406,7 +405,7 @@ The browser uses the versioned JSON/SSE API at `/api/v1`; its checked-in
 [OpenAPI contract](api/api.yml) is the exact client-facing reference and drives
 both generated clients. It covers setup/login/logout, admin user provisioning,
 model and redacted upstream health, streamed chat creation and continuation,
-message/history settings and context preview, projects/archiving/pins/search,
+message/history settings and context preview, pins/rename/search,
 and MCP server import, lifecycle, and per-chat enablement. Normal user routes
 are ownership-checked; user and MCP administration require an admin session.
 `/healthz` stays unversioned for container health checks.

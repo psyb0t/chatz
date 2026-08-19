@@ -19,7 +19,6 @@ type ChatSettings = components["schemas"]["ChatSettings"];
 type PromptContextPreview = components["schemas"]["PromptContextPreview"];
 type Message = components["schemas"]["Message"];
 type MessageList = components["schemas"]["MessageList"];
-type Project = components["schemas"]["Project"];
 type CreateUserRequest = components["schemas"]["CreateUserRequest"];
 type MCPServer = components["schemas"]["MCPServer"];
 type CreateMCPServerRequest = components["schemas"]["CreateMCPServerRequest"];
@@ -42,7 +41,6 @@ const PATH_AUTH_LOGIN = "/api/v1/auth/login";
 const PATH_AUTH_LOGOUT = "/api/v1/auth/logout";
 const PATH_MODELS = "/api/v1/models";
 const PATH_CHATS = "/api/v1/chats";
-const PATH_PROJECTS = "/api/v1/projects";
 const PATH_USERS = "/api/v1/users";
 const PATH_MCP_SERVERS = "/api/v1/mcp/servers";
 const PATH_MCP_IMPORT = "/api/v1/mcp/import";
@@ -78,7 +76,6 @@ export type {
   PromptContextPreview,
   Message,
   MessageList,
-  Project,
   CreateUserRequest,
   MCPServer,
   CreateMCPServerRequest,
@@ -234,9 +231,7 @@ export async function listChats(
   params: {
     limit?: number;
     offset?: number;
-    archived?: boolean;
     search?: string;
-    projectId?: string;
   } = {},
 ): Promise<ChatList> {
   const limit = params.limit ?? DEFAULT_CHATS_LIMIT;
@@ -247,9 +242,7 @@ export async function listChats(
         query: {
           limit,
           offset,
-          archived: params.archived,
           search: params.search,
-          projectId: params.projectId,
         },
       },
     }),
@@ -355,31 +348,6 @@ export async function renameChat(
   return unwrap(METHOD_PATCH, path, result);
 }
 
-// archiveChat moves one chat out of the active list and returns its saved
-// summary, including its archive timestamp.
-export async function archiveChat(chatId: string): Promise<ChatSummary> {
-  const path = `${PATH_CHATS}/${chatId}/archive`;
-  const result = await instrument(METHOD_PUT, path, () =>
-    client.PUT("/chats/{chatId}/archive", {
-      params: { path: { chatId } },
-    }),
-  );
-
-  return unwrap(METHOD_PUT, path, result);
-}
-
-// unarchiveChat restores one chat to the active list.
-export async function unarchiveChat(chatId: string): Promise<ChatSummary> {
-  const path = `${PATH_CHATS}/${chatId}/archive`;
-  const result = await instrument(METHOD_DELETE, path, () =>
-    client.DELETE("/chats/{chatId}/archive", {
-      params: { path: { chatId } },
-    }),
-  );
-
-  return unwrap(METHOD_DELETE, path, result);
-}
-
 // pinChat pins one chat above ordinary recent conversations.
 export async function pinChat(chatId: string): Promise<ChatSummary> {
   const path = `${PATH_CHATS}/${chatId}/pin`;
@@ -392,7 +360,7 @@ export async function pinChat(chatId: string): Promise<ChatSummary> {
   return unwrap(METHOD_PUT, path, result);
 }
 
-// unpinChat removes a chat pin without changing its project or archive state.
+// unpinChat removes a chat pin.
 export async function unpinChat(chatId: string): Promise<ChatSummary> {
   const path = `${PATH_CHATS}/${chatId}/pin`;
   const result = await instrument(METHOD_DELETE, path, () =>
@@ -414,52 +382,6 @@ export async function deleteChat(chatId: string): Promise<void> {
   );
 
   throwIfNotOk(METHOD_DELETE, path, response);
-}
-
-// listProjects returns the caller's chat projects for sidebar grouping.
-export async function listProjects(): Promise<Project[]> {
-  const result = await instrument(METHOD_GET, PATH_PROJECTS, () =>
-    client.GET("/projects"),
-  );
-
-  return unwrap(METHOD_GET, PATH_PROJECTS, result);
-}
-
-// createProject creates a user-owned named chat project.
-export async function createProject(name: string): Promise<Project> {
-  const result = await instrument(METHOD_POST, PATH_PROJECTS, () =>
-    client.POST("/projects", { body: { name } }),
-  );
-
-  return unwrap(METHOD_POST, PATH_PROJECTS, result);
-}
-
-// assignChatProject places one chat in a caller-owned project.
-export async function assignChatProject(
-  chatId: string,
-  projectId: string,
-): Promise<ChatSummary> {
-  const path = `${PATH_CHATS}/${chatId}/project`;
-  const result = await instrument(METHOD_PUT, path, () =>
-    client.PUT("/chats/{chatId}/project", {
-      params: { path: { chatId } },
-      body: { projectId },
-    }),
-  );
-
-  return unwrap(METHOD_PUT, path, result);
-}
-
-// clearChatProject removes a chat from its current project.
-export async function clearChatProject(chatId: string): Promise<ChatSummary> {
-  const path = `${PATH_CHATS}/${chatId}/project`;
-  const result = await instrument(METHOD_DELETE, path, () =>
-    client.DELETE("/chats/{chatId}/project", {
-      params: { path: { chatId } },
-    }),
-  );
-
-  return unwrap(METHOD_DELETE, path, result);
 }
 
 // throwIfNotOk raises + logs an ApiError for a no-body (204) op whose status is

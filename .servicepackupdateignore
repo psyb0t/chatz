@@ -64,4 +64,11 @@ scripts/check-go-age.sh
 # framework only knows about gomod.
 .github/dependabot.yml
 
+# chatz's production image is not the framework's: it carries a web build stage
+# that compiles the SPA and copies it into the go:embed dir, it targets ./cmd
+# explicitly (./cmd/... would also match cmd/repogen), and its ldflags stamp
+# chatz's own buildinfo package plus the binary's identity. The framework's
+# baseline Dockerfile knows none of that and would overwrite all of it.
+Dockerfile
+
 # Note: internal/pkg/services/* is always excluded - your services are never touched

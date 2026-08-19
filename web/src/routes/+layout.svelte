@@ -168,10 +168,6 @@
       void chats.load();
     }
 
-    if (!chats.projectsLoaded) {
-      void chats.loadProjects();
-    }
-
     if (!models.loaded) {
       void models.load();
     }

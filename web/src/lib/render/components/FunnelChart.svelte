@@ -189,7 +189,7 @@
   .jr-funnel__details {
     display: none;
     margin: var(--space-3) 0 0;
-    padding-left: var(--space-5);
+    padding-left: var(--space-4);
     font-size: var(--text-xs);
   }
 

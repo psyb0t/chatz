@@ -19,9 +19,7 @@ type Chat struct {
 	Title   string
 	ModelID string
 
-	ProjectID  *uuid.UUID
-	ArchivedAt *time.Time
-	PinnedAt   *time.Time
+	PinnedAt *time.Time
 
 	Temperature      *float64
 	TopP             *float64

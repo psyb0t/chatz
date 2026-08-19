@@ -38,8 +38,6 @@ func newChat(db *gorm.DB, opts ...gen.DOOption) chat {
 	_chat.UserID = field.NewField(tableName, "user_id")
 	_chat.Title = field.NewString(tableName, "title")
 	_chat.ModelID = field.NewString(tableName, "model_id")
-	_chat.ProjectID = field.NewField(tableName, "project_id")
-	_chat.ArchivedAt = field.NewTime(tableName, "archived_at")
 	_chat.PinnedAt = field.NewTime(tableName, "pinned_at")
 	_chat.Temperature = field.NewFloat64(tableName, "temperature")
 	_chat.TopP = field.NewFloat64(tableName, "top_p")
@@ -64,8 +62,6 @@ type chat struct {
 	UserID               field.Field
 	Title                field.String
 	ModelID              field.String
-	ProjectID            field.Field
-	ArchivedAt           field.Time
 	PinnedAt             field.Time
 	Temperature          field.Float64
 	TopP                 field.Float64
@@ -96,8 +92,6 @@ func (c *chat) updateTableName(table string) *chat {
 	c.UserID = field.NewField(table, "user_id")
 	c.Title = field.NewString(table, "title")
 	c.ModelID = field.NewString(table, "model_id")
-	c.ProjectID = field.NewField(table, "project_id")
-	c.ArchivedAt = field.NewTime(table, "archived_at")
 	c.PinnedAt = field.NewTime(table, "pinned_at")
 	c.Temperature = field.NewFloat64(table, "temperature")
 	c.TopP = field.NewFloat64(table, "top_p")
@@ -121,7 +115,7 @@ func (c *chat) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (c *chat) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 16)
+	c.fieldMap = make(map[string]field.Expr, 14)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
@@ -129,8 +123,6 @@ func (c *chat) fillFieldMap() {
 	c.fieldMap["user_id"] = c.UserID
 	c.fieldMap["title"] = c.Title
 	c.fieldMap["model_id"] = c.ModelID
-	c.fieldMap["project_id"] = c.ProjectID
-	c.fieldMap["archived_at"] = c.ArchivedAt
 	c.fieldMap["pinned_at"] = c.PinnedAt
 	c.fieldMap["temperature"] = c.Temperature
 	c.fieldMap["top_p"] = c.TopP
@@ -215,8 +207,8 @@ type IChatDo interface {
 	schema.Tabler
 
 	FindEmptyChat(userID uuid.UUID) (result []*models.Chat, err error)
-	ListNonEmpty(userID uuid.UUID, archived bool, search string, projectID *uuid.UUID, limit int, offset int) (result []*models.Chat, err error)
-	CountNonEmpty(userID uuid.UUID, archived bool, search string, projectID *uuid.UUID) (result int64, err error)
+	ListNonEmpty(userID uuid.UUID, search string, limit int, offset int) (result []*models.Chat, err error)
+	CountNonEmpty(userID uuid.UUID, search string) (result int64, err error)
 }
 
 // FindEmptyChat returns the caller's oldest chat with zero user messages,
@@ -249,22 +241,17 @@ func (c chatDo) FindEmptyChat(userID uuid.UUID) (result []*models.Chat, err erro
 	return
 }
 
-// ListNonEmpty returns a filtered page of the user's chats that have at
-// least one user message. Pinned chats sort first, then newest activity.
+// ListNonEmpty returns a page of the user's chats that have at least one
+// user message, optionally narrowed by a literal title search. Pinned chats
+// sort first, then newest activity.
 //
 //	SELECT c.*
 //	FROM chats c
 //	WHERE c.user_id = @userID
 //	  AND c.deleted_at IS NULL
-//	  {{if archived}}
-//	  AND c.archived_at IS NOT NULL
-//	  {{else}}
-//	  AND c.archived_at IS NULL
-//	  {{end}}
 //	  {{if search != ""}}
 //	  AND LOWER(c.title) LIKE LOWER(@search) ESCAPE '!'
 //	  {{end}}
-//	  {{if projectID != nil}} AND c.project_id = @projectID {{end}}
 //	  AND EXISTS (
 //	      SELECT 1 FROM messages m
 //	      WHERE m.chat_id = c.id AND m.role = 'user'
@@ -274,24 +261,15 @@ func (c chatDo) FindEmptyChat(userID uuid.UUID) (result []*models.Chat, err erro
 //	         c.updated_at DESC
 //	{{if limit > 0}} LIMIT @limit {{end}}
 //	{{if offset > 0}} OFFSET @offset {{end}}
-func (c chatDo) ListNonEmpty(userID uuid.UUID, archived bool, search string, projectID *uuid.UUID, limit int, offset int) (result []*models.Chat, err error) {
+func (c chatDo) ListNonEmpty(userID uuid.UUID, search string, limit int, offset int) (result []*models.Chat, err error) {
 	var params []interface{}
 
 	var generateSQL strings.Builder
 	params = append(params, userID)
 	generateSQL.WriteString("SELECT c.* FROM chats c WHERE c.user_id = ? AND c.deleted_at IS NULL ")
-	if archived {
-		generateSQL.WriteString("AND c.archived_at IS NOT NULL ")
-	} else {
-		generateSQL.WriteString("AND c.archived_at IS NULL ")
-	}
 	if search != "" {
 		params = append(params, search)
 		generateSQL.WriteString("AND LOWER(c.title) LIKE LOWER(?) ESCAPE '!' ")
-	}
-	if projectID != nil {
-		params = append(params, projectID)
-		generateSQL.WriteString("AND c.project_id = ? ")
 	}
 	generateSQL.WriteString("AND EXISTS ( SELECT 1 FROM messages m WHERE m.chat_id = c.id AND m.role = 'user' ) ORDER BY CASE WHEN c.pinned_at IS NULL THEN 1 ELSE 0 END, c.pinned_at DESC, c.updated_at DESC ")
 	if limit > 0 {
@@ -317,37 +295,22 @@ func (c chatDo) ListNonEmpty(userID uuid.UUID, archived bool, search string, pro
 //	FROM chats c
 //	WHERE c.user_id = @userID
 //	  AND c.deleted_at IS NULL
-//	  {{if archived}}
-//	  AND c.archived_at IS NOT NULL
-//	  {{else}}
-//	  AND c.archived_at IS NULL
-//	  {{end}}
 //	  {{if search != ""}}
 //	  AND LOWER(c.title) LIKE LOWER(@search) ESCAPE '!'
 //	  {{end}}
-//	  {{if projectID != nil}} AND c.project_id = @projectID {{end}}
 //	  AND EXISTS (
 //	      SELECT 1 FROM messages m
 //	      WHERE m.chat_id = c.id AND m.role = 'user'
 //	  )
-func (c chatDo) CountNonEmpty(userID uuid.UUID, archived bool, search string, projectID *uuid.UUID) (result int64, err error) {
+func (c chatDo) CountNonEmpty(userID uuid.UUID, search string) (result int64, err error) {
 	var params []interface{}
 
 	var generateSQL strings.Builder
 	params = append(params, userID)
 	generateSQL.WriteString("SELECT COUNT(*) FROM chats c WHERE c.user_id = ? AND c.deleted_at IS NULL ")
-	if archived {
-		generateSQL.WriteString("AND c.archived_at IS NOT NULL ")
-	} else {
-		generateSQL.WriteString("AND c.archived_at IS NULL ")
-	}
 	if search != "" {
 		params = append(params, search)
 		generateSQL.WriteString("AND LOWER(c.title) LIKE LOWER(?) ESCAPE '!' ")
-	}
-	if projectID != nil {
-		params = append(params, projectID)
-		generateSQL.WriteString("AND c.project_id = ? ")
 	}
 	generateSQL.WriteString("AND EXISTS ( SELECT 1 FROM messages m WHERE m.chat_id = c.id AND m.role = 'user' ) ")
 

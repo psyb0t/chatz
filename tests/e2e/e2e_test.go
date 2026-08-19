@@ -94,9 +94,40 @@ func setupAdmin(
 	// Camoufox hangs on a click of this app's submit buttons; requestSubmit
 	// runs the identical Svelte onsubmit handler.
 	require.NoError(t, client.Eval(ctx, submitJS(setupSubmitSel)))
-	require.NoError(t, client.WaitForElement(
+
+	// Every driver funnels through here, so a silent failure at this step
+	// reports only "app-shell never appeared" and leaves no trace of WHY —
+	// the setup POST could have 500'd, or the app could be wedged. Dump the
+	// browser console and the app's own log before failing.
+	if err := client.WaitForElement(
 		ctx, appShellSel, stateVisible, setupWaitSec,
-	))
+	); err != nil {
+		logBrowserConsole(ctx, t, client)
+		logContainerOutput(ctx, t, "app", stack.App)
+
+		require.NoError(t, err)
+	}
+}
+
+// logBrowserConsole dumps whatever the page logged, so a failed step shows the
+// client-side error instead of only the missing selector.
+func logBrowserConsole(
+	ctx context.Context,
+	t *testing.T,
+	client *testinfra.BrowserClient,
+) {
+	t.Helper()
+
+	entries, err := client.ConsoleLog(ctx)
+	if err != nil {
+		t.Logf("browser console unavailable: %v", err)
+
+		return
+	}
+
+	for _, entry := range entries {
+		t.Logf("browser console: %s", entry.Text)
+	}
 }
 
 // consoleEvents collects the set of CHATZ_LOG structured event names emitted to
