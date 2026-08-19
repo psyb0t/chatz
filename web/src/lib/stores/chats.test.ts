@@ -9,7 +9,7 @@ import { gotoCalls } from "../../test/app-mocks/navigation";
 // because this file already has a local page() helper building a ChatList.
 import { page as routePage } from "../../test/app-mocks/state";
 
-// Mock the API client so the store exercises its load/touch/rename/pin/delete/
+// Mock the API client so the store exercises its load/touch/rename/delete/
 // goToNewChat logic against controllable fakes — no network, no real
 // openapi-fetch. vi.mock is hoisted, so the spies are declared with
 // vi.hoisted to be in scope here.
@@ -17,25 +17,19 @@ const {
   deleteChatMock,
   getOrCreateEmptyChatMock,
   listChatsMock,
-  pinChatMock,
   renameChatMock,
-  unpinChatMock,
 } = vi.hoisted(() => ({
   deleteChatMock: vi.fn(),
   getOrCreateEmptyChatMock: vi.fn(),
   listChatsMock: vi.fn(),
-  pinChatMock: vi.fn(),
   renameChatMock: vi.fn(),
-  unpinChatMock: vi.fn(),
 }));
 
 vi.mock("$lib/api/client", () => ({
   deleteChat: deleteChatMock,
   getOrCreateEmptyChat: getOrCreateEmptyChatMock,
   listChats: listChatsMock,
-  pinChat: pinChatMock,
   renameChat: renameChatMock,
-  unpinChat: unpinChatMock,
 }));
 
 // Import AFTER the mock is registered so the store binds to the fakes.
@@ -70,9 +64,7 @@ describe("ChatsStore", () => {
   beforeEach(() => {
     deleteChatMock.mockReset();
     listChatsMock.mockReset();
-    pinChatMock.mockReset();
     renameChatMock.mockReset();
-    unpinChatMock.mockReset();
     getOrCreateEmptyChatMock.mockReset();
     gotoCalls.length = 0;
     routePage.params = {};
@@ -153,35 +145,20 @@ describe("ChatsStore", () => {
     expect(chats.list[0].updatedAt).toBe("2026-01-02T00:00:00Z");
   });
 
-  it("pins a chat above newer unpinned chats", async () => {
+  it("keeps the list in newest-activity order after a rename re-inserts a chat", async () => {
     chats.list = [
       { ...chatSummary("newer", "newer"), updatedAt: "2026-01-03T00:00:00Z" },
       { ...chatSummary("older", "older"), updatedAt: "2026-01-02T00:00:00Z" },
     ];
-    pinChatMock.mockResolvedValue({
-      ...chatSummary("older", "older"),
-      updatedAt: "2026-01-02T00:00:00Z",
-      pinnedAt: "2026-01-04T00:00:00Z",
+    renameChatMock.mockResolvedValue({
+      ...chatSummary("older", "renamed"),
+      updatedAt: "2026-01-04T00:00:00Z",
     });
 
-    await chats.pin("older");
+    await chats.rename("older", "renamed");
 
+    // The renamed chat carries the newest updatedAt, so it sorts to the head.
     expect(chats.list.map((item) => item.id)).toEqual(["older", "newer"]);
-  });
-
-  it("unpin drops the chat back into activity order", async () => {
-    chats.list = [
-      { ...chatSummary("pinned", "pinned"), pinnedAt: "2026-01-04T00:00:00Z" },
-      { ...chatSummary("recent", "recent"), updatedAt: "2026-01-05T00:00:00Z" },
-    ];
-    unpinChatMock.mockResolvedValue({
-      ...chatSummary("pinned", "pinned"),
-      updatedAt: "2026-01-01T00:00:00Z",
-    });
-
-    await chats.unpin("pinned");
-
-    expect(chats.list.map((item) => item.id)).toEqual(["recent", "pinned"]);
   });
 
   it("removes a deleted chat from the visible list", async () => {

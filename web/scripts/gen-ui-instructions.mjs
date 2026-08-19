@@ -585,6 +585,7 @@ if (process.argv.includes("--list-components")) {
     catalog.prompt({
       mode,
       customRules: [
+        'The /root value MUST be the EXACT key of your top-level element under /elements — the outermost container that holds everything else. If your outermost element is /elements/dashboardStack, then /root MUST be "dashboardStack". NEVER copy the literal "main" (or any placeholder) from an example unless you actually define /elements/main. Before finishing, verify /root names a key that exists in /elements; a /root that points at no element makes the ENTIRE UI render as nothing.',
         "Each JSON patch line MUST be complete, valid, COMPACT JSON on a single physical line — no pretty-printing, no line breaks, no indentation inside a patch object. One patch = one line, always.",
         "Output child element patches BEFORE their parent (build bottom-up: leaf elements first, then the containers that list them in `children`) so nothing references a missing element mid-stream.",
         "Every component's props include `id`. ALWAYS set props.id to null — the element's identity is its key under /elements/<key> and the frontend stamps the real id from that map key. Do not invent ids, do not reuse keys across elements, do not omit the field.",

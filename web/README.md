@@ -10,7 +10,7 @@ The dev server proxies `/api` and `/healthz` to a locally-running Go backend,
 so bring the backend up first.
 
 ```bash
-# 1. run the backend (from the repo root) — listens on :8080 by default
+# 1. run the backend (from the repo root), listens on :8080 by default
 make run
 
 # 2. run the web dev server (proxies to the backend)
@@ -20,7 +20,7 @@ CHATZ_API_TARGET=http://localhost:9090 make web-dev
 ```
 
 `CHATZ_API_TARGET` defaults to `http://localhost:8080` (see `vite.config.ts`).
-The session cookie is HttpOnly and same-origin — the proxy makes the SPA and the
+The session cookie is HttpOnly and same-origin. The proxy makes the SPA and the
 API share an origin in dev, so the browser ships the cookie automatically.
 
 ## Model and context controls
@@ -95,7 +95,7 @@ names, generator, and generated prompt in lockstep; tests enforce that.
 ## Generate the API types
 
 The typed client is bound to types generated from `../api/api.yml`. Never edit
-`src/lib/api/schema.d.ts` by hand — regenerate it:
+`src/lib/api/schema.d.ts` by hand. Regenerate it:
 
 ```bash
 make web-gen-api   # → src/lib/api/schema.d.ts
@@ -106,7 +106,7 @@ make web-gen-api   # → src/lib/api/schema.d.ts
 ```bash
 make web-gen-api                    # regenerate types from api/api.yml
 make genui-prompt                   # regenerate backend prompt from the catalog
-make web-check                      # svelte-check, strict — 0 errors
+make web-check                      # svelte-check, strict: 0 errors
 make web-test                       # vitest renderer + stream unit tests
 make web-build                      # static build/ with index.html + _app/
 make web-format-check               # prettier, no modifications

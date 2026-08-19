@@ -11,5 +11,8 @@
     "strict": true,
     "moduleResolution": "bundler"
   },
-  "exclude": ["src/lib/render/catalog-lockstep.test.js"]
+  "exclude": [
+    "src/lib/render/catalog-lockstep.test.js",
+    "src/lib/render/showcase-render.test.ts"
+  ]
 }

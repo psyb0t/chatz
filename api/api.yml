@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: chatz API
-  version: 0.2.0
+  version: 0.3.0
   description: >
     Self-hosted AI chat API. Streaming chat with inline UI-spec rendering,
     MCP tool calling, model discovery across OpenAI-compatible upstreams, and
@@ -252,10 +252,6 @@ components:
         updatedAt:
           type: string
           format: date-time
-        pinnedAt:
-          type: string
-          format: date-time
-          description: Present when the chat is pinned.
 
     MessageToolCall:
       type: object
@@ -1273,52 +1269,6 @@ paths:
                 $ref: '#/components/schemas/ChatMCPServer'
         '400':
           $ref: '#/components/responses/BadRequest'
-        '404':
-          $ref: '#/components/responses/NotFound'
-
-  /chats/{chatId}/pin:
-    put:
-      tags: [chats]
-      operationId: pinChat
-      summary: Pin one caller-owned chat.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: chatId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatSummary'
-        '404':
-          $ref: '#/components/responses/NotFound'
-    delete:
-      tags: [chats]
-      operationId: unpinChat
-      summary: Remove a caller-owned chat pin.
-      security:
-        - sessionCookie: []
-      parameters:
-        - name: chatId
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ChatSummary'
         '404':
           $ref: '#/components/responses/NotFound'
 

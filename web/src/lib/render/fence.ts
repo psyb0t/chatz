@@ -44,6 +44,13 @@ import { SPEC_FENCE_CLOSE, SPEC_FENCE_OPEN } from "$lib/common/render";
 export const SEGMENT_TEXT = "text";
 export const SEGMENT_SPEC = "spec";
 
+// A physical line that begins a new RFC-6902 patch object (`{"op": ...`). Used
+// to detect a patch boundary: such a line appearing while another patch is
+// still mid-accumulation means the previous one was truncated. A pretty-printed
+// patch's continuation lines start with a key (`"path":`) or whitespace, never
+// `{"op"`, so this never misfires on legitimate multi-line JSON.
+const OP_PATCH_LINE = /^\{\s*"op"\s*:/;
+
 // A prose run of the message. `text` accumulates raw characters (newlines
 // preserved) as they stream.
 export interface TextSegment {
@@ -102,6 +109,10 @@ class PatchAccumulator {
   private inString = false;
   private escapeNext = false;
   private sawOpen = false;
+  // closers holds the matching close char for every `{`/`[` still open, in
+  // open order, so a truncated patch (a model that dropped its trailing braces
+  // on a long line) can be repaired by appending them in reverse. See repaired().
+  private closers: string[] = [];
 
   get buffer(): string {
     return this.text;
@@ -136,10 +147,31 @@ class PatchAccumulator {
       } else if (ch === "{" || ch === "[") {
         this.depth += 1;
         this.sawOpen = true;
+        this.closers.push(ch === "{" ? "}" : "]");
       } else if (ch === "}" || ch === "]") {
         this.depth -= 1;
+        this.closers.pop();
       }
     }
+  }
+
+  // repaired returns the accumulated text with any still-open `{`/`[` closed,
+  // in the correct (innermost-first) order — turning a patch the model
+  // truncated (dropped its trailing brace on a long line) back into parseable
+  // JSON. Only meaningful when canRepair() is true.
+  repaired(): string {
+    return this.text.trimEnd() + [...this.closers].reverse().join("");
+  }
+
+  // canRepair reports whether repaired() is worth attempting. It is restricted
+  // to depth EXACTLY 1: only the outer patch object's closing brace is missing,
+  // meaning everything inside (the element value) was fully formed — the model
+  // dropped just the final brace on a long line. That repair is lossless.
+  // Deeper truncation (depth >= 2: a value/array/props cut mid-structure) would
+  // fabricate content, and a text ending mid-string/mid-escape cannot be closed
+  // at all; both are left for the caller to report and drop.
+  canRepair(): boolean {
+    return this.depth === 1 && !this.inString && !this.escapeNext;
   }
 
   // isComplete reports whether the accumulated text is a structurally closed
@@ -169,6 +201,7 @@ class PatchAccumulator {
     this.inString = false;
     this.escapeNext = false;
     this.sawOpen = false;
+    this.closers = [];
   }
 }
 
@@ -235,7 +268,10 @@ export class FenceParser {
       this.buffer = "";
     }
 
-    if (final && !this.patch.isEmpty) {
+    if (final && !this.patch.isEmpty && !this.trySalvage()) {
+      // A patch still buffered at true end of stream will never get more input.
+      // trySalvage recovers a single dropped outer brace; anything deeper is an
+      // unterminated patch, reported here.
       this.callbacks.onSpecError?.(
         `unterminated spec line at end of stream: ${this.patch.buffer.trim()}`,
       );
@@ -264,7 +300,14 @@ export class FenceParser {
     // this is a mid-patch fence-close (malformed stream): don't swallow the
     // ``` as JSON content, just discard the incomplete patch and close.
     if (this.inSpecFence && trimmed === SPEC_FENCE_CLOSE) {
-      if (!this.patch.isEmpty && !this.patch.isComplete()) {
+      if (
+        !this.patch.isEmpty &&
+        !this.patch.isComplete() &&
+        !this.trySalvage()
+      ) {
+        // The fence closed with a still-buffered patch that could not be
+        // salvaged (its truncation was deeper than a single missing brace, or
+        // the repair did not parse). Report and discard the incomplete patch.
         this.callbacks.onSpecError?.(
           `spec fence closed mid-patch, discarding incomplete patch: ${this.patch.buffer.trim()}`,
         );
@@ -319,6 +362,26 @@ export class FenceParser {
       return;
     }
 
+    // A fresh patch line (`{"op":...`) arriving while the accumulator is still
+    // mid-patch means the PREVIOUS patch was truncated — a real production
+    // failure mode is a model dropping the trailing brace(s) on a long nested
+    // line (BarChart, DonutChart). Salvage the buffered patch by repairing its
+    // brackets and applying it, then start THIS line clean. Without this, one
+    // truncated line glues every subsequent line into a never-completing buffer
+    // that the fence-close then discards wholesale, losing every element.
+    if (
+      !this.patch.isEmpty &&
+      !this.patch.isComplete() &&
+      OP_PATCH_LINE.test(trimmed)
+    ) {
+      if (!this.trySalvage()) {
+        this.callbacks.onSpecError?.(
+          `discarding truncated spec patch: ${this.patch.buffer.trim()}`,
+        );
+        this.patch.reset();
+      }
+    }
+
     // A line arriving while nothing is accumulated (depth 0) that doesn't
     // even start a JSON value is garbage, not the start of a multi-line
     // patch — depth-tracking alone would never "complete" it (no braces to
@@ -356,7 +419,13 @@ export class FenceParser {
 
     const raw = this.patch.buffer.trim();
     this.patch.reset();
+    this.applyRawPatch(raw);
+  }
 
+  // applyRawPatch parses one structurally-complete patch string and applies it
+  // to the active spec segment. Shared by the normal complete-patch path and
+  // the salvage path (repaired truncated patches).
+  private applyRawPatch(raw: string): void {
     if (raw === "") {
       return;
     }
@@ -380,6 +449,28 @@ export class FenceParser {
     segment.spec = { ...applySpecPatch(segment.spec, patch) };
     segment.patchCount += 1;
     this.callbacks.onPatch?.(this.activeSpecIndex, segment.patchCount);
+  }
+
+  // trySalvage attempts to rescue a truncated buffered patch by closing its
+  // one missing outer brace (canRepair restricts this to lossless depth-1
+  // repairs), applying it if the repair parses. Returns whether it recovered.
+  // On success the accumulator is reset and the patch applied; on failure the
+  // buffer is left intact so the caller can report its own contextual error and
+  // decide when to reset.
+  private trySalvage(): boolean {
+    if (!this.patch.canRepair()) {
+      return false;
+    }
+
+    const repaired = this.patch.repaired();
+    if (parseSpecStreamLine(repaired) === null) {
+      return false;
+    }
+
+    this.patch.reset();
+    this.applyRawPatch(repaired);
+
+    return true;
   }
 
   private appendText(text: string): void {

@@ -47,8 +47,10 @@ export const TESTID_SIDEBAR_BACKDROP = "sidebar-backdrop";
 export const TESTID_CHAT_RENAME = "chat-rename";
 export const TESTID_CHAT_RENAME_INPUT = "chat-rename-input";
 export const TESTID_CHAT_SEARCH = "chat-search";
-export const TESTID_CHAT_PIN = "chat-pin";
 export const TESTID_CHAT_DELETE = "chat-delete";
+// The per-row "⋮" trigger and the edit item inside its popup menu. Delete reuses
+// TESTID_CHAT_DELETE; rename reuses TESTID_CHAT_RENAME.
+export const TESTID_CHAT_MENU = "chat-menu";
 
 // MCP admin: per-server actions.
 export const TESTID_MCP_RECONNECT = "mcp-reconnect";

@@ -32,13 +32,11 @@
     NAV_ADMIN_MCP,
     NAV_ADMIN_READINESS,
     A11Y_CHAT_RENAME,
-    A11Y_CHAT_PIN,
     A11Y_CHAT_SEARCH,
-    A11Y_CHAT_UNPIN,
     A11Y_CHAT_DELETE,
+    A11Y_CHAT_MENU,
     LABEL_DELETE,
-    LABEL_PIN,
-    LABEL_UNPIN,
+    LABEL_CHAT_EDIT,
     SIDEBAR_SEARCH_PLACEHOLDER,
     mcpChip,
   } from "$lib/common/labels";
@@ -52,11 +50,9 @@
     TESTID_CHAT_RENAME,
     TESTID_CHAT_RENAME_INPUT,
     TESTID_CHAT_DELETE,
-    TESTID_CHAT_PIN,
+    TESTID_CHAT_MENU,
     TESTID_CHAT_SEARCH,
   } from "$lib/common/test-ids";
-
-  const EMPTY_PROJECT_ID = "";
 
   interface Props {
     collapsed: boolean;
@@ -144,6 +140,52 @@
     void chats.setSearch(input.value);
   }
 
+  // Per-row action menu: the ⋮ button toggles a small popup holding Edit +
+  // Delete, so the row stays a single compact line. Only one is open at a time.
+  let menuOpenId = $state<string | null>(null);
+
+  function toggleMenu(event: MouseEvent, id: string): void {
+    event.preventDefault();
+    menuOpenId = menuOpenId === id ? null : id;
+  }
+
+  function closeMenu(): void {
+    menuOpenId = null;
+  }
+
+  function onMenuEdit(event: MouseEvent, id: string, title: string): void {
+    closeMenu();
+    startRename(event, id, title);
+  }
+
+  function onMenuDelete(id: string): void {
+    closeMenu();
+    void chats.delete(id);
+  }
+
+  // Close the open menu on any pointerdown outside it and on Escape. The
+  // actions cluster stops propagation on its own pointerdown (see markup), so
+  // interacting with the trigger or the menu never triggers this close.
+  $effect(() => {
+    if (menuOpenId === null) {
+      return;
+    }
+
+    const onPointerDown = (): void => closeMenu();
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key === "Escape") {
+        closeMenu();
+      }
+    };
+
+    window.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+    };
+  });
 </script>
 
 {#if collapsed}
@@ -259,37 +301,51 @@
                     >
                       <span class="sidebar__item-name">{chat.title}</span>
                     </a>
-                  </div>
-                  <div class="sidebar__actions">
-                    <button
-                      class="icon-btn sidebar__rename"
-                      type="button"
-                      onclick={(e) => startRename(e, chat.id, chat.title)}
-                      aria-label={A11Y_CHAT_RENAME}
-                      data-testid={TESTID_CHAT_RENAME}>&#9998;</button
+                    <!-- The ⋮ trigger + its popup. The trigger and the menu stop
+                         their own pointerdown so the window outside-close handler
+                         never fires for clicks on them. -->
+                    <div
+                      class="sidebar__actions"
+                      class:sidebar__actions--open={menuOpenId === chat.id}
                     >
-                    <button
-                      class="icon-btn"
-                      type="button"
-                      onclick={() =>
-                        chat.pinnedAt === undefined
-                          ? chats.pin(chat.id)
-                          : chats.unpin(chat.id)}
-                      aria-label={chat.pinnedAt === undefined
-                        ? A11Y_CHAT_PIN
-                        : A11Y_CHAT_UNPIN}
-                      data-testid={TESTID_CHAT_PIN}
-                      >{chat.pinnedAt === undefined
-                        ? LABEL_PIN
-                        : LABEL_UNPIN}</button
-                    >
-                    <button
-                      class="icon-btn"
-                      type="button"
-                      onclick={() => chats.delete(chat.id)}
-                      aria-label={A11Y_CHAT_DELETE}
-                      data-testid={TESTID_CHAT_DELETE}>{LABEL_DELETE}</button
-                    >
+                      <button
+                        class="icon-btn sidebar__menu-btn"
+                        type="button"
+                        aria-haspopup="menu"
+                        aria-expanded={menuOpenId === chat.id}
+                        aria-label={A11Y_CHAT_MENU}
+                        data-testid={TESTID_CHAT_MENU}
+                        onpointerdown={(e) => e.stopPropagation()}
+                        onclick={(e) => toggleMenu(e, chat.id)}>&#8942;</button
+                      >
+                      {#if menuOpenId === chat.id}
+                        <div
+                          class="sidebar__menu"
+                          role="menu"
+                          tabindex="-1"
+                          onpointerdown={(e) => e.stopPropagation()}
+                        >
+                          <button
+                            class="sidebar__menu-item"
+                            type="button"
+                            role="menuitem"
+                            onclick={(e) => onMenuEdit(e, chat.id, chat.title)}
+                            aria-label={A11Y_CHAT_RENAME}
+                            data-testid={TESTID_CHAT_RENAME}
+                            >{LABEL_CHAT_EDIT}</button
+                          >
+                          <button
+                            class="sidebar__menu-item sidebar__menu-item--danger"
+                            type="button"
+                            role="menuitem"
+                            onclick={() => onMenuDelete(chat.id)}
+                            aria-label={A11Y_CHAT_DELETE}
+                            data-testid={TESTID_CHAT_DELETE}
+                            >{LABEL_DELETE}</button
+                          >
+                        </div>
+                      {/if}
+                    </div>
                   </div>
                 {/if}
               </li>
@@ -563,10 +619,10 @@
     white-space: nowrap;
   }
 
+  /* One compact line per chat; position:relative anchors the popup menu so it
+     never adds height to the row. */
   .sidebar__row {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-1);
+    position: relative;
   }
 
   .sidebar__row-main {
@@ -581,24 +637,68 @@
     min-width: 0;
   }
 
-  /* The row's controls stay out of the way until the pointer is on the row.
-     focus-within keeps them reachable by keyboard, where there is no hover. */
+  /* The ⋮ trigger stays hidden until the row is hovered or focused, or its menu
+     is open. focus-within keeps it reachable by keyboard, where there is no
+     hover. position:relative anchors the popup to the trigger. */
   .sidebar__actions {
-    display: flex;
-    align-items: center;
-    gap: 2px;
+    position: relative;
     flex-shrink: 0;
     opacity: 0;
   }
 
   .sidebar__row:hover .sidebar__actions,
-  .sidebar__row:focus-within .sidebar__actions {
+  .sidebar__row:focus-within .sidebar__actions,
+  .sidebar__actions--open {
     opacity: 1;
   }
 
-  .sidebar__rename {
-    flex-shrink: 0;
-    font-size: var(--text-xs);
+  .sidebar__menu-btn {
+    font-size: var(--text-lg);
+    line-height: 1;
+  }
+
+  /* Popup anchored under the trigger, absolutely positioned so it overlays the
+     list instead of pushing rows apart. */
+  .sidebar__menu {
+    position: absolute;
+    top: calc(100% + 2px);
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    min-width: 8rem;
+    padding: var(--space-1);
+    background: var(--panel);
+    border: var(--border-width) solid var(--border-strong);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar__menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: var(--space-2) var(--space-3);
+    background: transparent;
+    border: none;
+    border-radius: var(--radius);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-size: var(--text-sm);
+    cursor: pointer;
+  }
+
+  .sidebar__menu-item:hover {
+    background: var(--panel-2);
+  }
+
+  .sidebar__menu-item--danger {
+    color: var(--danger, var(--accent));
+  }
+
+  .sidebar__menu-item--danger:hover {
+    background: var(--danger-soft, var(--accent-soft));
+    color: var(--danger, var(--accent));
   }
 
   .sidebar__rename-input {

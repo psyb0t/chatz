@@ -5,6 +5,36 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-08-19
+
+### Removed
+
+- **Breaking.** Chat pinning is gone. A row's edit and delete now live behind a
+  hover-revealed three-dot menu; editing renames the chat inline, so the list
+  stays one line per chat. Chats sort by newest activity only.
+  - **API.** Removed `PUT/DELETE /chats/{chatId}/pin` and the `pinnedAt` field
+    from `ChatSummary`. The only consumer is the SPA generated from this spec.
+  - **Schema.** Migration `0000020` drops `chats.pinned_at` and rebuilds the
+    sidebar ordering index without it (`idx_chats_user_active_updated`). The down
+    migration restores the column and the pinned-order index, not the data.
+
+### Fixed
+
+- A generative-UI reply whose `/root` named an element the model never defined
+  (it set `/root` to `main` while keying its container `stackMain`) rendered as a
+  blank block. The renderer now recovers the real root when it is unambiguous
+  (`web/src/lib/render/recover-root.ts`); genuinely ambiguous specs still surface
+  a visible error instead of drawing nothing.
+- A generative-UI reply where the model dropped the closing brace on a long
+  element line lost that element and every one after it, leaving an empty spec.
+  The fence parser now repairs a single-brace truncation and applies the element
+  (`web/src/lib/render/fence.ts`).
+
+### Changed
+
+- Prompt rule guiding the model to set `/root` to the exact key of its top-level
+  element, cutting the dangling-root failure at the source.
+
 ## [0.2.0] - 2026-08-19
 
 ### Added
@@ -1316,4 +1346,5 @@ Initial release of chatz (renamed from chatter): a self-hosted, single-binary st
 [1.1.1]: https://github.com/psyb0t/chatz/releases/tag/v1.1.1
 [1.1.0]: https://github.com/psyb0t/chatz/releases/tag/v1.1.0
 [1.0.0]: https://github.com/psyb0t/chatter/releases/tag/v1.0.0
+[0.3.0]: https://github.com/psyb0t/chatz/releases/tag/v0.3.0
 [0.2.0]: https://github.com/psyb0t/chatz/releases/tag/v0.2.0

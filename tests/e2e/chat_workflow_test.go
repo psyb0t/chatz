@@ -19,18 +19,17 @@ const (
 	chatWorkflowResponseWaitSec = 120
 
 	chatWorkflowSearchSel  = "[data-testid=chat-search]"
-	chatWorkflowPin        = "[data-testid=chat-pin]"
+	chatWorkflowMenu       = "[data-testid=chat-menu]"
 	chatWorkflowDelete     = "[data-testid=chat-delete]"
 	chatWorkflowScreenshot = "chat_workflow.png"
 )
 
+// The per-row menu trigger exists once per chat, so counting it counts the
+// visible chats without depending on a control only present in an open menu.
 const chatWorkflowProbeJS = `JSON.stringify({
 	chatCount: document
-		.querySelectorAll('[data-testid=chat-pin]')
+		.querySelectorAll('[data-testid=chat-menu]')
 		.length,
-	pinned: document
-		.querySelector('[data-testid=chat-pin]')
-		?.textContent.trim(),
 	empty: document.body.textContent.includes('NO CHATS YET'),
 	noHorizontalOverflow:
 		document.documentElement.scrollWidth <= window.innerWidth &&
@@ -39,14 +38,13 @@ const chatWorkflowProbeJS = `JSON.stringify({
 })`
 
 type chatWorkflowProbe struct {
-	ChatCount            int    `json:"chatCount"`
-	Pinned               string `json:"pinned"`
-	Empty                bool   `json:"empty"`
-	NoHorizontalOverflow bool   `json:"noHorizontalOverflow"`
+	ChatCount            int  `json:"chatCount"`
+	Empty                bool `json:"empty"`
+	NoHorizontalOverflow bool `json:"noHorizontalOverflow"`
 }
 
-// TestChatWorkflow drives the sidebar flow a user relies on for retaining a
-// completed conversation: pin the chat, search for it, then delete it.
+// TestChatWorkflow drives the sidebar flow a user relies on for pruning a
+// completed conversation: search for it, open the row's ⋮ menu, then delete it.
 func TestChatWorkflow(t *testing.T) {
 	t.Parallel()
 
@@ -71,13 +69,9 @@ func TestChatWorkflow(t *testing.T) {
 		chatWorkflowResponseWaitSec,
 	))
 
-	require.NoError(t, client.Eval(ctx, clickJS(chatWorkflowPin)))
-	require.NoError(t, client.Eval(ctx, settleJS(chatWorkflowSettleMS)))
-
 	var active chatWorkflowProbe
 	require.NoError(t, client.EvalJSON(ctx, chatWorkflowProbeJS, &active))
 	assert.Equal(t, 1, active.ChatCount)
-	assert.Equal(t, "Unpin", active.Pinned)
 	assert.False(t, active.Empty)
 	assert.True(t, active.NoHorizontalOverflow)
 
@@ -93,6 +87,8 @@ func TestChatWorkflow(t *testing.T) {
 	assert.Equal(t, 1, searched.ChatCount)
 	assert.True(t, searched.NoHorizontalOverflow)
 
+	// Open the row's ⋮ menu; the delete item only exists while it is open.
+	require.NoError(t, client.Eval(ctx, clickJS(chatWorkflowMenu)))
 	require.NoError(t, client.WaitForElement(
 		ctx,
 		chatWorkflowDelete,

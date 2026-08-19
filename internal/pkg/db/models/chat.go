@@ -1,8 +1,6 @@
 package models
 
 import (
-	"time"
-
 	"github.com/google/uuid"
 	"gorm.io/datatypes"
 )
@@ -18,8 +16,6 @@ type Chat struct {
 	UserID  uuid.UUID
 	Title   string
 	ModelID string
-
-	PinnedAt *time.Time
 
 	Temperature      *float64
 	TopP             *float64

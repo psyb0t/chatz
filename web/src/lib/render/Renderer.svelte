@@ -8,6 +8,7 @@
   import { TESTID_SPEC_ERROR } from "$lib/common/test-ids";
   import { registry } from "./registry";
   import { stampSpecIds } from "./stamp";
+  import { recoverRoot } from "./recover-root";
 
   interface Props {
     spec: Spec;
@@ -21,16 +22,18 @@
   // reactively as the spec grows during streaming.
   const stamped = $derived(stampSpecIds(spec));
 
-  // json-render resolves the tree from /root and renders nothing at all when
-  // that key names an element the model never defined — indistinguishable from
-  // "the assistant chose not to draw". A model that set /root to "main" while
-  // naming its element "cardMain" therefore produced a permanently blank block,
-  // on first render and on every reload of the persisted message.
+  // A model that set /root to "main" while keying its top element "stackMain"
+  // leaves /root dangling, and json-render then draws nothing — indistinguishable
+  // from "the assistant chose not to draw", on first render and every reload.
+  // recoverRoot rewires /root to the real top element when it is unambiguous, so
+  // an otherwise-complete tree renders instead of vanishing.
   //
-  // Only checked once the block is complete: mid-stream /root legitimately
-  // arrives before the element it points at, and rule 19 has leaves emitted
-  // before their parents, so a partial tree is expected to be unresolvable.
-  const issues = $derived(loading ? [] : validateSpec(stamped).issues);
+  // Both recovery and validation are deferred until the block is complete:
+  // mid-stream /root legitimately precedes the element it points at (rule 19
+  // emits leaves before parents), so a partial tree is expected to be
+  // unresolvable and must not be "recovered" against a transient shape.
+  const rendered = $derived(loading ? stamped : recoverRoot(stamped));
+  const issues = $derived(loading ? [] : validateSpec(rendered).issues);
   const errors = $derived(
     issues.filter((issue) => issue.severity === STATE_ERROR),
   );
@@ -49,8 +52,8 @@
       {/each}
     </ul>
   {:else}
-    <JsonUIProvider initialState={stamped.state}>
-      <Renderer spec={stamped} {registry} {loading} />
+    <JsonUIProvider initialState={rendered.state}>
+      <Renderer spec={rendered} {registry} {loading} />
     </JsonUIProvider>
   {/if}
 </div>

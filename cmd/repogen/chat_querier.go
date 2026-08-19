@@ -27,8 +27,8 @@ type ChatQuerier interface {
 	FindEmptyChat(userID uuid.UUID) ([]*models.Chat, error)
 
 	// ListNonEmpty returns a page of the user's chats that have at least one
-	// user message, optionally narrowed by a literal title search. Pinned chats
-	// sort first, then newest activity.
+	// user message, optionally narrowed by a literal title search, newest
+	// activity first.
 	//
 	/*
 		SELECT c.*
@@ -42,9 +42,7 @@ type ChatQuerier interface {
 		      SELECT 1 FROM messages m
 		      WHERE m.chat_id = c.id AND m.role = 'user'
 		  )
-		ORDER BY CASE WHEN c.pinned_at IS NULL THEN 1 ELSE 0 END,
-		         c.pinned_at DESC,
-		         c.updated_at DESC
+		ORDER BY c.updated_at DESC
 		{{if limit > 0}} LIMIT @limit {{end}}
 		{{if offset > 0}} OFFSET @offset {{end}}
 	*/

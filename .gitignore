@@ -76,6 +76,7 @@ gigplan-playbook.md
 llmclientplan.md
 improve.md
 improve.html
+CHATZ_IN_DEPTH.md
 
 # LAST, so it beats every pattern above. vendor/ is upstream source copied
 # verbatim by the dependency refresh; every rule in this file names an artifact

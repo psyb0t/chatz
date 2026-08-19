@@ -333,24 +333,6 @@ export interface paths {
         patch: operations["updateChatMCPServer"];
         trace?: never;
     };
-    "/chats/{chatId}/pin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** Pin one caller-owned chat. */
-        put: operations["pinChat"];
-        post?: never;
-        /** Remove a caller-owned chat pin. */
-        delete: operations["unpinChat"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/mcp/servers": {
         parameters: {
             query?: never;
@@ -550,11 +532,6 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
-            /**
-             * Format: date-time
-             * @description Present when the chat is pinned.
-             */
-            pinnedAt?: string;
         };
         MessageToolCall: {
             id: string;
@@ -1350,52 +1327,6 @@ export interface operations {
                 };
             };
             400: components["responses"]["BadRequest"];
-            404: components["responses"]["NotFound"];
-        };
-    };
-    pinChat: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chatId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatSummary"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-        };
-    };
-    unpinChat: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                chatId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ChatSummary"];
-                };
-            };
             404: components["responses"]["NotFound"];
         };
     };

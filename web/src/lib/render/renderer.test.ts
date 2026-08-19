@@ -41,27 +41,81 @@ describe("Renderer — data-jr-type contract survives ui-primitive refactor", ()
   });
 });
 
-// A spec whose /root names an element that was never defined resolves to no
-// tree at all. json-render draws nothing for it, which is indistinguishable
-// from "the assistant chose not to draw" — that is how a real model's typo
-// ("main" as root, "cardMain" as the element) produced a permanently blank
-// block in production, on first paint and on every reload.
-describe("Renderer — an unresolvable spec is surfaced, not swallowed", () => {
-  const danglingRootSpec = {
+// The production failure: the model set /root to the prompt-example literal
+// "main" while keying its actual top-level container "stackMain", so /root
+// dangled and json-render drew nothing — a permanently blank block, on first
+// paint and every reload. The real root is recoverable (the one element no
+// other element lists among its children), so the Renderer rewires it and the
+// tree renders instead of vanishing.
+describe("Renderer — a dangling root is recovered when unambiguous", () => {
+  // Structurally the production dashboard: /root names "main" (undefined), but
+  // "stackMain" is the true top element — nothing lists it as a child.
+  const recoverableSpec = {
     root: "main",
     elements: {
-      cardMain: {
+      stackMain: {
+        type: "Stack",
+        props: { id: null, direction: "vertical", gap: "md" },
+        children: ["heading1", "gridStats"],
+      },
+      heading1: {
+        type: "Heading",
+        props: { id: null, level: 1, content: "System Status" },
+        children: [],
+      },
+      gridStats: {
+        type: "Grid",
+        props: { id: null, columns: 2 },
+        children: ["statA", "statB"],
+      },
+      statA: {
+        type: "Stat",
+        props: { id: null, label: "Pending", value: "0" },
+        children: [],
+      },
+      statB: {
+        type: "Stat",
+        props: { id: null, label: "Processed", value: "1735" },
+        children: [],
+      },
+    },
+  } as unknown as SpecSegment["spec"];
+
+  it("renders the tree instead of the invalid-spec notice", () => {
+    const { container } = render(Renderer, {
+      props: { spec: recoverableSpec },
+    });
+
+    expect(
+      container.querySelector(`[data-testid=${TESTID_SPEC_ERROR}]`),
+    ).toBeNull();
+    expect(container.querySelectorAll(`[${DATA_JR_TYPE}]`)).toHaveLength(5);
+  });
+});
+
+// Recovery only fires when the real root is unambiguous. A spec with two
+// unreferenced elements (disconnected trees) and a dangling /root cannot be
+// resolved without guessing, so the Renderer leaves it to validateSpec and
+// surfaces the notice rather than rendering an arbitrary half of the UI.
+describe("Renderer — a genuinely unresolvable spec is surfaced, not swallowed", () => {
+  const ambiguousSpec = {
+    root: "main",
+    elements: {
+      cardA: {
         type: "Card",
-        props: { id: null, title: "Service Status" },
+        props: { id: null, title: "One" },
+        children: [],
+      },
+      cardB: {
+        type: "Card",
+        props: { id: null, title: "Two" },
         children: [],
       },
     },
   } as unknown as SpecSegment["spec"];
 
   it("shows the invalid-spec notice instead of rendering nothing", () => {
-    const { container } = render(Renderer, {
-      props: { spec: danglingRootSpec },
-    });
+    const { container } = render(Renderer, { props: { spec: ambiguousSpec } });
 
     expect(
       container.querySelector(`[data-testid=${TESTID_SPEC_ERROR}]`),
@@ -72,9 +126,9 @@ describe("Renderer — an unresolvable spec is surfaced, not swallowed", () => {
   it("stays quiet while the block is still streaming", () => {
     // Mid-stream /root legitimately arrives before the element it points at
     // (rule 19 has leaves emitted before their parents), so an incomplete tree
-    // must not flash an error at the reader.
+    // must neither flash an error nor be recovered against a transient shape.
     const { container } = render(Renderer, {
-      props: { spec: danglingRootSpec, loading: true },
+      props: { spec: ambiguousSpec, loading: true },
     });
 
     expect(

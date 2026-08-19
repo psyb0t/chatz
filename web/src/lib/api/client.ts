@@ -32,7 +32,6 @@ type AdminReadiness = components["schemas"]["AdminReadiness"];
 const METHOD_GET = "GET";
 const METHOD_POST = "POST";
 const METHOD_PATCH = "PATCH";
-const METHOD_PUT = "PUT";
 const METHOD_DELETE = "DELETE";
 
 const PATH_AUTH_STATUS = "/api/v1/auth/status";
@@ -346,30 +345,6 @@ export async function renameChat(
   );
 
   return unwrap(METHOD_PATCH, path, result);
-}
-
-// pinChat pins one chat above ordinary recent conversations.
-export async function pinChat(chatId: string): Promise<ChatSummary> {
-  const path = `${PATH_CHATS}/${chatId}/pin`;
-  const result = await instrument(METHOD_PUT, path, () =>
-    client.PUT("/chats/{chatId}/pin", {
-      params: { path: { chatId } },
-    }),
-  );
-
-  return unwrap(METHOD_PUT, path, result);
-}
-
-// unpinChat removes a chat pin.
-export async function unpinChat(chatId: string): Promise<ChatSummary> {
-  const path = `${PATH_CHATS}/${chatId}/pin`;
-  const result = await instrument(METHOD_DELETE, path, () =>
-    client.DELETE("/chats/{chatId}/pin", {
-      params: { path: { chatId } },
-    }),
-  );
-
-  return unwrap(METHOD_DELETE, path, result);
 }
 
 // deleteChat soft-deletes one chat. The server returns no response body.

@@ -9,15 +9,14 @@
 A lean, self-hosted AI chat app that doesn't need a fucking cluster to run. One
 Go binary talks to OpenAI-compatible and Anthropic upstreams, streams responses
 over Anthropic-style SSE, and serves a Svelte SPA it embeds at build time
-(`go:embed`) — so there's one artifact to deploy and one origin to reason
+(`go:embed`), so there's one artifact to deploy and one origin to reason
 about. Persistence is Postgres by default, with a single-process SQLite mode
 for a local persistent volume. Tool calling is via MCP servers (stdio + HTTP).
 Assistant replies can emit fenced ` ```spec ` blocks that render inline as live
 UI components (generative UI, via json-render).
 
-Streaming chat, MCP tools, generative UI and admin-provisioned auth, with no
-Temporal, no NATS, no message broker, no service mesh, no fifteen-container
-docker-compose you're scared to touch — just Go and a database you choose.
+Streaming chat, MCP tools, generative UI, and admin-provisioned auth. It ships
+as one binary plus the database you pick, and that's the whole deploy.
 
 ---
 
@@ -39,7 +38,7 @@ docker-compose you're scared to touch — just Go and a database you choose.
 ## Features
 
 - **Streaming chat** over Anthropic-style SSE (one wire, backend to browser).
-  A turn renders as an ordered list of blocks in **arrival order** — prose
+  A turn renders as an ordered list of blocks in **arrival order**: prose
   (markdown + inline generative UI), reasoning, and tool calls interleave exactly
   as the model emits them (`text → tool → text → tool → …`), never clumped into
   one undifferentiated wall at the end. During a live turn, a small progress
@@ -53,9 +52,9 @@ docker-compose you're scared to touch — just Go and a database you choose.
   never replayed to a later model request. The completed assistant/tool
   transcript atomically replaces that checkpoint.
 - **Chat organization that does not turn into a landfill.** Create an empty
-  chat before you have a prompt, pin the ones you keep reaching for, rename them,
-  and search titles with a literal case-insensitive filter. A single delete
-  control appears on row hover; deletion is soft deletion.
+  chat before you have a prompt, rename it, and search titles with a literal
+  case-insensitive filter. Each row has a hover-revealed ⋮ menu with Edit and
+  Delete; deletion is soft deletion.
 - **Per-chat generation controls.** The composer settings panel controls
   temperature, top-p, reasoning effort, output tokens, and history tokens.
   Unset generation values use the provider default; unset history uses 100,000.
@@ -65,9 +64,9 @@ docker-compose you're scared to touch — just Go and a database you choose.
   expandable card (name, streamed args, result) that goes `CALLING → DONE/ERROR`
   as the result lands.
 - **Generative UI.** Assistant (or MCP tool) output can include fenced
-  ` ```spec ` blocks — json-render JSONL (one RFC-6902 patch per line) — that
+  ` ```spec ` blocks, json-render JSONL (one RFC-6902 patch per line), that
   the browser detects **client-side** and renders as live components from a
-  26-component shared catalog — actual live components, not a screenshot of a
+  26-component shared catalog. Actual live components, not a screenshot of a
   chart the model hallucinated. Alongside text, layout, status, and table
   primitives, the catalog includes time-series, area, sparkline, bar, donut,
   funnel, gauge, scatter, heatmap, histogram, box-plot, treemap, network, and
@@ -82,10 +81,10 @@ docker-compose you're scared to touch — just Go and a database you choose.
   exact catalog prompts with deterministic thinking, synthetic tool activity,
   then embedded dashboards. It uses deliberate model- and tool-like pauses, and
   every displayed business metric, action, and entity is grounded in the
-  visible synthetic tool results — no numbers pulled out of its ass. Those
+  visible synthetic tool results. No numbers pulled out of its ass. Those
   replies are persisted like normal chats, so a recording can refresh or
   continue them.
-- **Auth — admin-provisioned, no public registration.** Nobody signs themselves
+- **Auth: admin-provisioned, no public registration.** Nobody signs themselves
   up. On first run the app is in *setup* state (no users yet); `/setup` creates
   the sole admin, and the admin provisions everyone else. Sessions are opaque
   tokens in a cookie.
@@ -101,15 +100,15 @@ docker-compose you're scared to touch — just Go and a database you choose.
 - **MCP tool servers.** Add stdio or HTTP MCP servers (admin), or import a
   Claude-style `.mcp.json`. Their tools are aggregated into the chat's tool
   catalog. HTTP header secrets and stdio env are **encrypted at rest**
-  (AES-256-GCM AEAD) using `CHATZ_SECRETS_KEY` — not base64, not "we'll do it
+  (AES-256-GCM AEAD) using `CHATZ_SECRETS_KEY`. Not base64, not "we'll do it
   later", actually encrypted. Stored `Authorization` values stay masked when an
   MCP server is listed or edited.
 - **Bounded chat history.** Each chat has an outbound-history cap (100,000
   tokens by default), so a long conversation doesn't quietly turn into a
   four-figure invoice. The earliest system message stays sticky and counts toward
   the cap; the current user turn stays pinned too. Older history gets added
-  newest-first until the next complete message unit would blow past the cap —
-  whole units only, so a tool result never gets orphaned from its call.
+  newest-first until the next complete message unit would blow past the cap.
+  Whole units only, so a tool result never gets orphaned from its call.
 - **Honest context controls.** The composer shows the backend's actual next-turn
   selection: sticky system, retained history, current draft, total/budget/free
   tokens, and any omitted complete turns. Friendly model aliases never replace
@@ -119,12 +118,12 @@ docker-compose you're scared to touch — just Go and a database you choose.
   applying one still uses the same per-chat settings save path.
 - **Outbound-prompt trace.** `LOG_LEVEL=debug` records the exact ordered,
   post-trimming messages sent to the model, including token accounting,
-  reasoning, and tool arguments — so when the model does something stupid you
+  reasoning, and tool arguments, so when the model does something stupid you
   can see precisely what you fed it. Secret-shaped values are redacted, but
   ordinary user content isn't, so keep those logs on your own damn machine.
 - **Usage accounting + metrics.** Every upstream call goes through a usage
   decorator that records Prometheus counters/histograms in-process and writes
-  one `llm_usage` row per call — best-effort, on a detached ctx, so the slow
+  one `llm_usage` row per call, best-effort, on a detached ctx, so the slow
   and failed calls still get recorded instead of being exactly the ones that
   vanish when you're trying to work out where the fuck the money went.
 - **Admin readiness.** The sidebar exposes the running app version and commit,
@@ -136,7 +135,7 @@ docker-compose you're scared to touch — just Go and a database you choose.
 
 ## Quickstart
 
-One command brings up the whole thing — Postgres plus the Go backend, which
+One command brings up the whole thing, Postgres plus the Go backend, which
 serves both the API and the embedded SvelteKit SPA on a single origin:
 
 ```bash
@@ -147,7 +146,7 @@ Then open **http://localhost:8080**. First run needs no secrets and no LLM
 config whatsoever: the SPA loads, you hit **`/setup`** to create the admin, and
 the chat list works (the model list is just empty until you wire an upstream).
 With no LLM configured at all you can still drive the render pipeline
-end-to-end via showcase mode — `make run-showcase`, then send one of the
+end-to-end via showcase mode: `make run-showcase`, then send one of the
 embedded catalog prompts.
 
 Tear it down with:
@@ -259,7 +258,7 @@ credential that upstream may use and a keyless local endpoint stays keyless.
   initial picker choice. Omit capability booleans when unknown; Chatz will not
   pretend that a provider supports a control it has not declared.
 
-`make run` picks up `.env` automatically. `.env` is gitignored — don't be the
+`make run` picks up `.env` automatically. `.env` is gitignored. Don't be the
 guy who commits real keys anyway.
 
 ### Secrets key (for MCP secrets at rest)
@@ -277,7 +276,7 @@ plaintext.
 ### Passwordless single-user mode
 
 Set `CHATZ_AUTH_PASSWORDLESS=true`. While exactly one user exists, the app
-auto-issues that admin's session — no login screen. Adding a second user
+auto-issues that admin's session. No login screen. Adding a second user
 re-enables normal login for everyone.
 
 ---
@@ -315,7 +314,7 @@ See [`.env.example`](.env.example).
 | `CHATZ_UPSTREAM_TURN_TIMEOUT` | `5m` | Maximum provider time from acquiring its bounded request slot through completion. |
 | `CHATZ_UPSTREAM_CONCURRENCY` | `8` | Maximum simultaneous provider requests per configured upstream. |
 | any `apiKeyEnv` name | *(empty)* | Credential named by one `CHATZ_UPSTREAMS` entry, for example `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or a gateway-specific name. Put it in gitignored `.env`; Compose forwards it to Chatz without putting the value in the JSON. |
-| `CHATZ_FORCE_REAL_LLM` | `false` | Under `go test` every upstream resolves to a scripted test double, so a test cannot reach a provider by accident. `true` uses the real providers instead — what `make test-real` does. No effect outside tests. |
+| `CHATZ_FORCE_REAL_LLM` | `false` | Under `go test` every upstream resolves to a scripted test double, so a test cannot reach a provider by accident. `true` uses the real providers instead, what `make test-real` does. No effect outside tests. |
 | `LOG_LEVEL` | `info` | Backend log threshold; use `debug` locally for the outbound-prompt trace. |
 | `LOG_FORMAT` | `json` | Backend log format. |
 | `LOG_ADD_SOURCE` | `true` | Include source locations in backend log records. |
@@ -332,9 +331,9 @@ chat text may remain. Do not use debug in a shared log sink. In docker compose,
 > **Metrics / pprof.** The usage decorator records Prometheus metrics
 > in-process; they're served at `/metrics` on `CHATZ_METRICS_LISTENADDRESS`
 > (`:9091`) with pprof on `CHATZ_PROFILING_LISTENADDRESS` (`:6060`). Both run
-> as internal-only listeners alongside the API — **do not** hang them off your
-> public ingress, pprof will happily dump your process to anyone who asks — and
-> a bind failure only warns, because observability has no business taking the
+> as internal-only listeners alongside the API. **Do not** hang them off your
+> public ingress, pprof will happily dump your process to anyone who asks. A
+> bind failure only warns, because observability has no business taking the
 > API down with it. An empty address disables the listener. Usage is also
 > persisted per call to the `llm_usage` table.
 
@@ -358,7 +357,7 @@ chat text may remain. Do not use debug in a shared log sink. In docker compose,
 - **DB layer.** gorm + gorm-gen generated repositories on Postgres or SQLite.
   SQLite starts from its own embedded baseline rather than replaying the
   Postgres migration history; later schema changes need a migration for each
-  dialect. `.gen.go` files are never hand-edited — change the source and
+  dialect. `.gen.go` files are never hand-edited. Change the source and
   regenerate, or enjoy explaining why your fix disappeared on the next `make
   generate`. That shit is the API surface, not scratch space.
 - **Spec-first API.** `api/api.yml` (OpenAPI 3) is the source of truth, not a
@@ -389,7 +388,7 @@ chat text may remain. Do not use debug in a shared log sink. In docker compose,
   `elelemstream` subpackage translates elelem's callbacks into
   correctly-indexed content blocks. This used to live here as
   `internal/pkg/sse` and is now its own module too; chatz keeps only the shit
-  that's actually chatz's — the stall heartbeat and the per-round log lines.
+  that's actually chatz's: the stall heartbeat and the per-round log lines.
 - **MCP lifecycle.** Admin-managed servers connect asynchronously, expose
   namespaced tools, and retry transient failures. See
   [`internal/pkg/mcp/README.md`](internal/pkg/mcp/README.md).
@@ -405,7 +404,7 @@ The browser uses the versioned JSON/SSE API at `/api/v1`; its checked-in
 [OpenAPI contract](api/api.yml) is the exact client-facing reference and drives
 both generated clients. It covers setup/login/logout, admin user provisioning,
 model and redacted upstream health, streamed chat creation and continuation,
-message/history settings and context preview, pins/rename/search,
+message/history settings and context preview, rename/search,
 and MCP server import, lifecycle, and per-chat enablement. Normal user routes
 are ownership-checked; user and MCP administration require an admin session.
 `/healthz` stays unversioned for container health checks.
@@ -451,7 +450,7 @@ Key make targets ([`Makefile`](Makefile), [`Makefile.servicepack`](Makefile.serv
 | `make test-e2e` | Browser e2e suite (Go testcontainers: pg + prod app image + browser). See below. |
 
 Web dependencies go through the age-gated `web-pkg-*` targets only
-(`web-pkg-add`, `web-pkg-remove`, `web-pkg-update`, `web-pkg-lock`) — pnpm
+(`web-pkg-add`, `web-pkg-remove`, `web-pkg-update`, `web-pkg-lock`): pnpm
 only, never raw `npm` / `pnpm add`. Yes, really. Use the targets.
 
 Go dependencies and tools go through the age-gated `pkg-*` targets only
@@ -465,7 +464,7 @@ dev container, so nobody's laptop-specific toolchain gets to decide what ships.
 build tag in `tests/e2e/`. Each test is self-contained: [testcontainers](https://golang.testcontainers.org/)
 stands up the prod app image (built from the repo `Dockerfile`, embedded SPA)
 against both throwaway Postgres and temporary in-container SQLite databases,
-plus a fake upstream — and, when a driver needs it, an MCP fixture server — on
+plus a fake upstream (and, when a driver needs it, an MCP fixture server) on
 one shared network, then drives a real headless
 browser via [`psyb0t/stealthy-auto-browse`](https://hub.docker.com/r/psyb0t/stealthy-auto-browse)
 action-by-action through its JSON HTTP API. Every step is asserted, so when it
@@ -478,7 +477,7 @@ theme toggle / tool-card collapse / settings popover / model-picker filter
 (`smoke`), the admin users page (`users`), the per-chat and admin MCP flows
 (`chat_mcp`, `mcp_admin`), and the mobile off-canvas drawer geometry
 (`mobile_drawer`). They assert on rendered DOM plus the structured `CHATZ_LOG`
-console lines the client logger emits (via `?log=debug`) — proving the embed +
+console lines the client logger emits (via `?log=debug`), proving the embed +
 serve + SSE chain round-trips same-origin. `make test-e2e` runs it in the dev
 container with the host Docker socket (DIND). Focus one flow without bypassing
 the harness with, for example,
@@ -620,13 +619,13 @@ here so the next person knows it was actually considered and not just ignored:
 
 | Advisory | Module | Why chatz is not affected |
 |---|---|---|
-| [GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932) | `golang.org/x/crypto` | The advisory is against `golang.org/x/crypto/openpgp`, which is unmaintained and deprecated by design — hence `Fixed in: N/A`, permanently. chatz imports only `golang.org/x/crypto/bcrypt` (password hashing, `internal/pkg/core/auth/auth.go`) and never reaches the affected package. |
+| [GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932) | `golang.org/x/crypto` | The advisory is against `golang.org/x/crypto/openpgp`, which is unmaintained and deprecated by design, hence `Fixed in: N/A`, permanently. chatz imports only `golang.org/x/crypto/bcrypt` (password hashing, `internal/pkg/core/auth/auth.go`) and never reaches the affected package. |
 
 Everything else the scanner ever flagged has been upgraded past. Dependency
 versions are pinned in `go.mod`, checksummed in `go.sum`, and vendored;
 `scripts/check_go_age.sh` additionally tells any third-party release younger
 than seven days to fuck off, because when someone poisons a package it usually
-gets caught and pulled within hours — and you'd rather not be the one who
+gets caught and pulled within hours, and you'd rather not be the one who
 `go get`s it during that window.
 
 ---

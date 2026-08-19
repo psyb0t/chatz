@@ -558,6 +558,43 @@ describe("fence detection — multi-line pretty-printed patches", () => {
     expect(spec.spec.state).toEqual({});
   });
 
+  // Regression for the production "multiple graphs" failure: the model dropped
+  // the single trailing `}` on two long nested element lines (a BarChart and a
+  // DonutChart). The parser used to glue those two lines plus the following
+  // valid one into one never-completing buffer, discard all three at the fence
+  // close, and leave a root-only spec that rendered as empty_spec. Each such
+  // depth-1 truncation must now be salvaged so every element survives.
+  it("salvages depth-1 truncated element lines so no element is lost", () => {
+    const errors: string[] = [];
+    const message = [
+      "```spec",
+      '{"op":"add","path":"/root","value":"dashboard"}',
+      // Missing the final `}` that closes the patch object (value was complete).
+      '{"op":"add","path":"/elements/bar","value":{"type":"BarChart","props":{"id":null,"title":"Metrics"},"children":[]}',
+      // Same truncation on the next long line.
+      '{"op":"add","path":"/elements/donut","value":{"type":"DonutChart","props":{"id":null,"title":"Goroutines"},"children":[]}',
+      // A well-formed line after the truncated ones.
+      '{"op":"add","path":"/elements/dashboard","value":{"type":"Stack","props":{"id":null,"direction":"vertical","gap":"lg"},"children":["bar","donut"]}}',
+      "```",
+    ].join("\n");
+
+    const [spec] = specSegments(
+      parseMessageSegments(message, { onSpecError: (m) => errors.push(m) }),
+    );
+
+    // Every element recovered; the root resolves to a defined element.
+    expect(errors).toEqual([]);
+    expect(spec.spec.root).toBe("dashboard");
+    expect(Object.keys(spec.spec.elements).sort()).toEqual([
+      "bar",
+      "dashboard",
+      "donut",
+    ]);
+    expect(spec.spec.elements.bar?.type).toBe("BarChart");
+    expect(spec.spec.elements.donut?.type).toBe("DonutChart");
+    expect(spec.closed).toBe(true);
+  });
+
   it("assembles an identical result regardless of how the multi-line patch is chunked across push() calls", () => {
     // Simulate SSE delta boundaries splitting the same logical text at
     // arbitrary points — mid-line, mid-token, mid-brace — and confirm the

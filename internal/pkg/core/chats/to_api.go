@@ -13,7 +13,6 @@ func ChatSummaryToAPI(c *models.Chat) api.ChatSummary {
 		Title:     c.Title,
 		CreatedAt: c.CreatedAt,
 		UpdatedAt: c.UpdatedAt,
-		PinnedAt:  c.PinnedAt,
 	}
 }
 

@@ -38,7 +38,6 @@ func newChat(db *gorm.DB, opts ...gen.DOOption) chat {
 	_chat.UserID = field.NewField(tableName, "user_id")
 	_chat.Title = field.NewString(tableName, "title")
 	_chat.ModelID = field.NewString(tableName, "model_id")
-	_chat.PinnedAt = field.NewTime(tableName, "pinned_at")
 	_chat.Temperature = field.NewFloat64(tableName, "temperature")
 	_chat.TopP = field.NewFloat64(tableName, "top_p")
 	_chat.ReasoningEffort = field.NewString(tableName, "reasoning_effort")
@@ -62,7 +61,6 @@ type chat struct {
 	UserID               field.Field
 	Title                field.String
 	ModelID              field.String
-	PinnedAt             field.Time
 	Temperature          field.Float64
 	TopP                 field.Float64
 	ReasoningEffort      field.String
@@ -92,7 +90,6 @@ func (c *chat) updateTableName(table string) *chat {
 	c.UserID = field.NewField(table, "user_id")
 	c.Title = field.NewString(table, "title")
 	c.ModelID = field.NewString(table, "model_id")
-	c.PinnedAt = field.NewTime(table, "pinned_at")
 	c.Temperature = field.NewFloat64(table, "temperature")
 	c.TopP = field.NewFloat64(table, "top_p")
 	c.ReasoningEffort = field.NewString(table, "reasoning_effort")
@@ -115,7 +112,7 @@ func (c *chat) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (c *chat) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 14)
+	c.fieldMap = make(map[string]field.Expr, 13)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
@@ -123,7 +120,6 @@ func (c *chat) fillFieldMap() {
 	c.fieldMap["user_id"] = c.UserID
 	c.fieldMap["title"] = c.Title
 	c.fieldMap["model_id"] = c.ModelID
-	c.fieldMap["pinned_at"] = c.PinnedAt
 	c.fieldMap["temperature"] = c.Temperature
 	c.fieldMap["top_p"] = c.TopP
 	c.fieldMap["reasoning_effort"] = c.ReasoningEffort
@@ -242,8 +238,8 @@ func (c chatDo) FindEmptyChat(userID uuid.UUID) (result []*models.Chat, err erro
 }
 
 // ListNonEmpty returns a page of the user's chats that have at least one
-// user message, optionally narrowed by a literal title search. Pinned chats
-// sort first, then newest activity.
+// user message, optionally narrowed by a literal title search, newest
+// activity first.
 //
 //	SELECT c.*
 //	FROM chats c
@@ -256,9 +252,7 @@ func (c chatDo) FindEmptyChat(userID uuid.UUID) (result []*models.Chat, err erro
 //	      SELECT 1 FROM messages m
 //	      WHERE m.chat_id = c.id AND m.role = 'user'
 //	  )
-//	ORDER BY CASE WHEN c.pinned_at IS NULL THEN 1 ELSE 0 END,
-//	         c.pinned_at DESC,
-//	         c.updated_at DESC
+//	ORDER BY c.updated_at DESC
 //	{{if limit > 0}} LIMIT @limit {{end}}
 //	{{if offset > 0}} OFFSET @offset {{end}}
 func (c chatDo) ListNonEmpty(userID uuid.UUID, search string, limit int, offset int) (result []*models.Chat, err error) {
@@ -271,7 +265,7 @@ func (c chatDo) ListNonEmpty(userID uuid.UUID, search string, limit int, offset 
 		params = append(params, search)
 		generateSQL.WriteString("AND LOWER(c.title) LIKE LOWER(?) ESCAPE '!' ")
 	}
-	generateSQL.WriteString("AND EXISTS ( SELECT 1 FROM messages m WHERE m.chat_id = c.id AND m.role = 'user' ) ORDER BY CASE WHEN c.pinned_at IS NULL THEN 1 ELSE 0 END, c.pinned_at DESC, c.updated_at DESC ")
+	generateSQL.WriteString("AND EXISTS ( SELECT 1 FROM messages m WHERE m.chat_id = c.id AND m.role = 'user' ) ORDER BY c.updated_at DESC ")
 	if limit > 0 {
 		params = append(params, limit)
 		generateSQL.WriteString("LIMIT ? ")

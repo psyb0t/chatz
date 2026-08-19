@@ -16,7 +16,7 @@ handlers validate transport input and delegate here.
 For a real turn, the order is intentional:
 
 1. Resolve the model and acquire a per-chat lock.
-2. Build the system message, bounded history, and current user message — the
+2. Build the system message, bounded history, and current user message, the
    exact list sent to the upstream.
 3. Save the user message as an incomplete durable row before opening SSE.
 4. Checkpoint useful assistant text/reasoning at most once per interval under

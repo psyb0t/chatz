@@ -72,5 +72,5 @@ URL exist, stdio wins. Names are sorted for deterministic output.
 
 Run `make test` for transport/import/retry coverage. The real-browser MCP flows
 (per-chat picker + admin connect/tools/edit/reconnect/fail) live in the Go e2e
-suite — `tests/e2e/chat_mcp_test.go` and `tests/e2e/mcp_admin_test.go`, run via
+suite: `tests/e2e/chat_mcp_test.go` and `tests/e2e/mcp_admin_test.go`, run via
 `make test-e2e`.

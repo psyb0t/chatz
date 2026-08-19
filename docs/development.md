@@ -41,7 +41,7 @@ toolchains two chances to disagree.
 `make test` is the standard full suite. It enables Go's race detector and has
 Docker available for Testcontainers-backed tests. `make test-integration` uses
 the same package pattern but disables the Go test cache and applies a
-ten-minute timeout—use it when checking changes to real-infrastructure tests.
+ten-minute timeout. Use it when checking changes to real-infrastructure tests.
 
 `make test-coverage` also runs the race detector. It calculates framework
 coverage after excluding `cmd/`, the complete `internal/pkg/services/` tree,
@@ -64,9 +64,9 @@ working around the integration tests.
 requirements inside that temporary container, and writes `build/<module-tail>`
 back with your host UID/GID. It injects two values with linker flags:
 
-- `main.appName` — the final segment of the module path; it sets the binary
+- `main.appName`: the final segment of the module path; it sets the binary
   name and root Cobra command name;
-- `main.buildCommit` — the checked-out `HEAD` commit when available.
+- `main.buildCommit`: the checked-out `HEAD` commit when available.
 
 `cmd/main.go` puts those into the global log scope as `binary` and `commit`.
 Build output is therefore traceable without hardcoding identity in service
@@ -113,7 +113,7 @@ Likewise, project `Dockerfile`, `Dockerfile.dev`, `cmd/init.go`, and
 ## Before you hand off a change
 
 For a normal code change, run the narrowest useful target first, then the
-relevant full check—for example `make test`, `make lint`, and
+relevant full check, for example `make test`, `make lint`, and
 `make test-coverage` when a framework behavior changes. The repository's
 pre-commit hook calls `make lint && make test-coverage`, so it will repeat
 those checks during the project's normal commit flow.

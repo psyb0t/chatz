@@ -20,7 +20,7 @@ const (
 	// mcpClientName + mcpClientVersion identify chatz to MCP servers in the
 	// initialize handshake.
 	mcpClientName    = "chatz"
-	mcpClientVersion = "0.2.0"
+	mcpClientVersion = "0.3.0"
 
 	// toolNameSep joins a server name and a tool name into the qualified name
 	// the LLM sees, so a call routes back to the owning server. Server names

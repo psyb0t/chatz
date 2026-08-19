@@ -3,9 +3,7 @@ import { page } from "$app/state";
 import {
   deleteChat as apiDeleteChat,
   listChats,
-  pinChat as apiPinChat,
   renameChat as apiRenameChat,
-  unpinChat as apiUnpinChat,
   getOrCreateEmptyChat,
   type ChatSummary,
 } from "$lib/api/client";
@@ -24,18 +22,10 @@ import {
 const SIDEBAR_CHATS_LIMIT = 100;
 const EMPTY_SEARCH = "";
 
-function compareChats(left: ChatSummary, right: ChatSummary): number {
-  const leftPinned = left.pinnedAt !== undefined;
-  const rightPinned = right.pinnedAt !== undefined;
-  if (leftPinned !== rightPinned) {
-    return leftPinned ? -1 : 1;
-  }
-
-  return right.updatedAt.localeCompare(left.updatedAt);
-}
-
 function sortChats(items: ChatSummary[]): ChatSummary[] {
-  return [...items].sort(compareChats);
+  return [...items].sort((left, right) =>
+    right.updatedAt.localeCompare(left.updatedAt),
+  );
 }
 
 // ChatsStore holds the caller's chat list. load() is called once the auth phase
@@ -113,15 +103,8 @@ class ChatsStore {
       return;
     }
 
-    if (
-      entry.pinnedAt !== undefined ||
-      remaining.some((chat) => chat.pinnedAt !== undefined)
-    ) {
-      this.list = sortChats([...remaining, entry]);
-
-      return;
-    }
-
+    // touch() stamps updatedAt to now, so the entry is the newest — it belongs
+    // at the head, which is exactly the activity order the list is kept in.
     this.list = [entry, ...remaining];
   }
 
@@ -157,14 +140,6 @@ class ChatsStore {
     }
   }
 
-  async pin(id: string): Promise<void> {
-    await this.applyChatMutation(() => apiPinChat(id));
-  }
-
-  async unpin(id: string): Promise<void> {
-    await this.applyChatMutation(() => apiUnpinChat(id));
-  }
-
   // delete soft-deletes the chat and drops it from the sidebar. When it is the
   // chat currently on screen the router is moved off it too: the route param
   // would otherwise still name a row the API no longer resolves, leaving a dead
@@ -195,16 +170,6 @@ class ChatsStore {
     this.list = this.matchesFilters(updated)
       ? sortChats([...withoutUpdated, updated])
       : withoutUpdated;
-  }
-
-  private async applyChatMutation(
-    mutation: () => Promise<ChatSummary>,
-  ): Promise<void> {
-    try {
-      this.replaceVisible(await mutation());
-    } catch (err) {
-      this.captureError(err);
-    }
   }
 
   private captureError(err: unknown): void {

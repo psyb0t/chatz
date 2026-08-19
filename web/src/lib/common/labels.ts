@@ -59,9 +59,11 @@ export const MCP_TOOLS_NO_PARAMS = "No parameters.";
 export const MCP_TOOLS_REQUIRED = "required";
 export const A11Y_CHAT_RENAME = "Rename chat";
 export const A11Y_CHAT_SEARCH = "Search chats";
-export const A11Y_CHAT_PIN = "Pin chat";
-export const A11Y_CHAT_UNPIN = "Unpin chat";
 export const A11Y_CHAT_DELETE = "Delete chat";
+// Accessible name for the per-row "⋮" button that opens the edit/delete menu.
+export const A11Y_CHAT_MENU = "Chat actions";
+// Context-menu item labels.
+export const LABEL_CHAT_EDIT = "Edit";
 export const LABEL_SAVE = "Save";
 export const LABEL_CLOSE = "Close";
 
@@ -164,6 +166,4 @@ export const EMPTY_USERS = "NO USERS";
 export const EMPTY_MCP = "NO MCP SERVERS";
 export const EMPTY_CHATS = "NO CHATS YET";
 export const SIDEBAR_SEARCH_PLACEHOLDER = "Search chats…";
-export const LABEL_PIN = "Pin";
-export const LABEL_UNPIN = "Unpin";
 export const EMPTY_CONVERSATION = "Start a conversation.";

@@ -382,11 +382,8 @@ type ChatSettingsReasoningEffort string
 type ChatSummary struct {
 	CreatedAt time.Time          `json:"createdAt"`
 	Id        openapi_types.UUID `json:"id"`
-
-	// PinnedAt Present when the chat is pinned.
-	PinnedAt  *time.Time `json:"pinnedAt,omitempty"`
-	Title     string     `json:"title"`
-	UpdatedAt time.Time  `json:"updatedAt"`
+	Title     string             `json:"title"`
+	UpdatedAt time.Time          `json:"updatedAt"`
 }
 
 // ContinueChatRequest defines model for ContinueChatRequest.
@@ -951,16 +948,6 @@ type ClientInterface interface {
 	// Corresponds with GET /chats/{chatId}/messages (the `ListChatMessages` operationId).
 	ListChatMessages(ctx context.Context, chatId openapi_types.UUID, params *ListChatMessagesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// UnpinChat Remove a caller-owned chat pin.
-	//
-	// Corresponds with DELETE /chats/{chatId}/pin (the `UnpinChat` operationId).
-	UnpinChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
-	// PinChat Pin one caller-owned chat.
-	//
-	// Corresponds with PUT /chats/{chatId}/pin (the `PinChat` operationId).
-	PinChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
-
 	// UpdateChatSettingsWithBody Update a chat's model-generation settings.
 	//
 	// Full replacement of the chat's settings object: a field omitted from the body clears that setting (back to the provider default; history returns to its 100000-token default).
@@ -1458,36 +1445,6 @@ func (c *Client) UpdateChatMCPServer(ctx context.Context, chatId openapi_types.U
 // Corresponds with GET /chats/{chatId}/messages (the `ListChatMessages` operationId).
 func (c *Client) ListChatMessages(ctx context.Context, chatId openapi_types.UUID, params *ListChatMessagesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewListChatMessagesRequest(c.Server, chatId, params)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// UnpinChat Remove a caller-owned chat pin.
-//
-// Corresponds with DELETE /chats/{chatId}/pin (the `UnpinChat` operationId).
-func (c *Client) UnpinChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewUnpinChatRequest(c.Server, chatId)
-	if err != nil {
-		return nil, err
-	}
-	req = req.WithContext(ctx)
-	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
-		return nil, err
-	}
-	return c.Client.Do(req)
-}
-
-// PinChat Pin one caller-owned chat.
-//
-// Corresponds with PUT /chats/{chatId}/pin (the `PinChat` operationId).
-func (c *Client) PinChat(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPinChatRequest(c.Server, chatId)
 	if err != nil {
 		return nil, err
 	}
@@ -2483,74 +2440,6 @@ func NewListChatMessagesRequest(server string, chatId openapi_types.UUID, params
 	return req, nil
 }
 
-// NewUnpinChatRequest constructs an http.Request for the UnpinChat method
-func NewUnpinChatRequest(server string, chatId openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "chatId", chatId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/chats/%s/pin", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
-// NewPinChatRequest constructs an http.Request for the PinChat method
-func NewPinChatRequest(server string, chatId openapi_types.UUID) (*http.Request, error) {
-	var err error
-
-	var pathParam0 string
-
-	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "chatId", chatId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
-	if err != nil {
-		return nil, err
-	}
-
-	serverURL, err := url.Parse(server)
-	if err != nil {
-		return nil, err
-	}
-
-	operationPath := fmt.Sprintf("/chats/%s/pin", pathParam0)
-	if operationPath[0] == '/' {
-		operationPath = "." + operationPath
-	}
-
-	queryURL, err := serverURL.Parse(operationPath)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPut, queryURL.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-
-	return req, nil
-}
-
 // NewUpdateChatSettingsRequest calls the generic UpdateChatSettings builder with application/json body
 func NewUpdateChatSettingsRequest(server string, chatId openapi_types.UUID, body UpdateChatSettingsJSONRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
@@ -3254,20 +3143,6 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /chats/{chatId}/messages (the `ListChatMessages` operationId).
 	ListChatMessagesWithResponse(ctx context.Context, chatId openapi_types.UUID, params *ListChatMessagesParams, reqEditors ...RequestEditorFn) (*ListChatMessagesResponse, error)
-
-	// UnpinChatWithResponse Remove a caller-owned chat pin.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with DELETE /chats/{chatId}/pin (the `UnpinChat` operationId).
-	UnpinChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*UnpinChatResponse, error)
-
-	// PinChatWithResponse Pin one caller-owned chat.
-	//
-	// Returns a wrapper object for the known response body format(s).
-	//
-	// Corresponds with PUT /chats/{chatId}/pin (the `PinChat` operationId).
-	PinChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*PinChatResponse, error)
 
 	// UpdateChatSettingsWithBodyWithResponse Update a chat's model-generation settings.
 	//
@@ -4190,102 +4065,6 @@ func (r ListChatMessagesResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r ListChatMessagesResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type UnpinChatResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *ChatSummary
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r UnpinChatResponse) GetJSON200() *ChatSummary {
-	return r.JSON200
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r UnpinChatResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetBody returns the raw response body bytes
-func (r UnpinChatResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r UnpinChatResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r UnpinChatResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r UnpinChatResponse) ContentType() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Header.Get("Content-Type")
-	}
-	return ""
-}
-
-type PinChatResponse struct {
-	Body         []byte
-	HTTPResponse *http.Response
-	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *ChatSummary
-	// JSON404 the response for an HTTP 404 `application/json` response
-	JSON404 *NotFound
-}
-
-// GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r PinChatResponse) GetJSON200() *ChatSummary {
-	return r.JSON200
-}
-
-// GetJSON404 returns the response for an HTTP 404 `application/json` response
-func (r PinChatResponse) GetJSON404() *NotFound {
-	return r.JSON404
-}
-
-// GetBody returns the raw response body bytes
-func (r PinChatResponse) GetBody() []byte {
-	return r.Body
-}
-
-// Status returns HTTPResponse.Status
-func (r PinChatResponse) Status() string {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.Status
-	}
-	return http.StatusText(0)
-}
-
-// StatusCode returns HTTPResponse.StatusCode
-func (r PinChatResponse) StatusCode() int {
-	if r.HTTPResponse != nil {
-		return r.HTTPResponse.StatusCode
-	}
-	return 0
-}
-
-// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
-func (r PinChatResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -5270,32 +5049,6 @@ func (c *ClientWithResponses) ListChatMessagesWithResponse(ctx context.Context, 
 	return ParseListChatMessagesResponse(rsp)
 }
 
-// UnpinChatWithResponse Remove a caller-owned chat pin.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with DELETE /chats/{chatId}/pin (the `UnpinChat` operationId).
-func (c *ClientWithResponses) UnpinChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*UnpinChatResponse, error) {
-	rsp, err := c.UnpinChat(ctx, chatId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParseUnpinChatResponse(rsp)
-}
-
-// PinChatWithResponse Pin one caller-owned chat.
-//
-// Returns a wrapper object for the known response body format(s).
-//
-// Corresponds with PUT /chats/{chatId}/pin (the `PinChat` operationId).
-func (c *ClientWithResponses) PinChatWithResponse(ctx context.Context, chatId openapi_types.UUID, reqEditors ...RequestEditorFn) (*PinChatResponse, error) {
-	rsp, err := c.PinChat(ctx, chatId, reqEditors...)
-	if err != nil {
-		return nil, err
-	}
-	return ParsePinChatResponse(rsp)
-}
-
 // UpdateChatSettingsWithBodyWithResponse Update a chat's model-generation settings.
 //
 // Full replacement of the chat's settings object: a field omitted from the body clears that setting (back to the provider default; history returns to its 100000-token default).
@@ -6101,72 +5854,6 @@ func ParseListChatMessagesResponse(rsp *http.Response) (*ListChatMessagesRespons
 			return nil, err
 		}
 		response.JSON400 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParseUnpinChatResponse parses an HTTP response from a UnpinChatWithResponse call
-func ParseUnpinChatResponse(rsp *http.Response) (*UnpinChatResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &UnpinChatResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ChatSummary
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
-
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
-		var dest NotFound
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON404 = &dest
-
-	}
-
-	return response, nil
-}
-
-// ParsePinChatResponse parses an HTTP response from a PinChatWithResponse call
-func ParsePinChatResponse(rsp *http.Response) (*PinChatResponse, error) {
-	bodyBytes, err := io.ReadAll(rsp.Body)
-	defer func() { _ = rsp.Body.Close() }()
-	if err != nil {
-		return nil, err
-	}
-
-	response := &PinChatResponse{
-		Body:         bodyBytes,
-		HTTPResponse: rsp,
-	}
-
-	switch {
-	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest ChatSummary
-		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
-			return nil, err
-		}
-		response.JSON200 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest NotFound

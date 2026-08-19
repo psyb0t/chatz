@@ -1,4 +1,4 @@
-# UI primitives — the brutalist design-system layer
+# UI primitives: the brutalist design-system layer
 
 Every visual primitive in the chatz frontend is a real, reusable Svelte 5
 component that lives here and is driven **only** by the shared design tokens in
@@ -17,7 +17,7 @@ exclusively from the `:root` custom properties in `app.css`:
 - Structure: `--border-width` (2px), `--shadow` (hard offset), `border-radius: 0`
 
 A component reaches a semantic color through a **variant** prop (see
-`variants.ts`) — never by typing the hex. If you need a new color/size, add a
+`variants.ts`), never by typing the hex. If you need a new color/size, add a
 token to `app.css` first, then reference it.
 
 ## Theme and layout safety
@@ -42,7 +42,7 @@ own bounded scroll/clip surface, never in a layout that widens the document.
 | `Modal`      | Focus-trapped dialog overlay: `title`, `onClose`, `children` body. Escape and scrim click both close; autofocuses the first form control. |
 | `StateBlock` | Loading/empty/error scaffold. `variant`: `loading \| empty \| error`. `label`, optional `actions` snippet for dismiss/retry affordances.  |
 
-`variants.ts` holds the variant vocabularies as exported constants — reference
+`variants.ts` holds the variant vocabularies as exported constants. Reference
 those, never spell the strings inline.
 
 ### `rootAttrs` forwarding
@@ -55,8 +55,8 @@ generated UI and hand-built UI share the exact same look and markup.
 ## Reach for these first
 
 Before hand-rolling a button, a bordered box, a status pill, a labeled input,
-or a table — **use the primitive here, or extend it**. If none fits, extend an
+or a table: **use the primitive here, or extend it**. If none fits, extend an
 existing primitive (add a variant) rather than adding a one-off style. Only
 create a new primitive when a real duplication exists across the app. Don't
-invent unused primitives, and don't add a prop-explosion or a theme engine —
-just token-driven reusable components.
+invent unused primitives, and don't add a prop-explosion or a theme engine.
+Just token-driven reusable components.
