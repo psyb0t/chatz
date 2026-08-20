@@ -5,6 +5,20 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-08-20
+
+### Changed
+
+- Updated the servicepack framework from v1.7.1 to v1.8.1 through
+  `make servicepack-update`. The Docker-in-Docker test runner (`DEV_RUN_DIND`)
+  now runs on the host network so testcontainers' host-published ports are
+  reachable, and a framework update now re-formats the files it path-rewrites so
+  a renamed import stays correctly sorted. Bumped `testcontainers-go` from
+  v0.43.0 to v0.44.0.
+- Excluded chatz's own test tree from framework updates (`tests/` in
+  `.servicepackupdateignore`), so servicepack's baseline `tests/testinfra`
+  harness never overwrites chatz's Postgres + browser harness.
+
 ## [0.6.1] - 2026-08-20
 
 ### Fixed
