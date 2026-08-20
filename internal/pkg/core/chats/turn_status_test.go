@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -81,6 +82,115 @@ func TestRunToolDemoStreamEmitsLifecycleStatuses(t *testing.T) {
 		turnStatusWaitingForFirstToken,
 		turnStatusStreaming,
 	})
+}
+
+// TestRunDemoStreamEmitsTokens covers the canned-text demo path (runDemoStream
+// -> streamTokens): it tokenizes the text, emits the connecting/waiting/
+// streaming lifecycle, streams every token, and closes cleanly. This is the
+// KindText branch the tool-heavy showcase catalog never exercises.
+func TestRunDemoStreamEmitsTokens(t *testing.T) {
+	t.Parallel()
+
+	var stream bytes.Buffer
+
+	chat := &models.Chat{
+		Base:    models.Base{ID: uuid.New()},
+		ModelID: "showcase-model",
+	}
+
+	require.NoError(t, (&Service{}).runDemoStream(
+		t.Context(),
+		&stream,
+		chat,
+		"one two three",
+	))
+
+	assertTurnStatusesInOrder(t, stream.String(), []string{
+		turnStatusConnecting,
+		turnStatusWaitingForFirstToken,
+		turnStatusStreaming,
+	})
+	assert.NotEmpty(t, stream.String())
+}
+
+// failAfterSink is an io.Writer that succeeds for the first okWrites emits,
+// then fails every write after. okWrites == 0 fails the first status publish; a
+// larger value lets the preamble through so the failure lands inside the token
+// or block streaming loop, driving the deeper publish-error branches a healthy
+// sink never reaches.
+type failAfterSink struct {
+	okWrites int
+}
+
+func (s *failAfterSink) Write(p []byte) (int, error) {
+	if s.okWrites <= 0 {
+		return 0, io.ErrClosedPipe
+	}
+
+	s.okWrites--
+
+	return len(p), nil
+}
+
+// TestDemoStreamsPropagatePublishError proves both demo entry points surface a
+// sink write failure instead of swallowing it, whether it fails on the opening
+// status publish or partway through the stream (the mid-stream token/block
+// emit branches).
+func TestDemoStreamsPropagatePublishError(t *testing.T) {
+	t.Parallel()
+
+	chat := &models.Chat{
+		Base:    models.Base{ID: uuid.New()},
+		ModelID: "showcase-model",
+	}
+
+	demo := fixedresponses.Response{
+		Kind: fixedresponses.KindTools,
+		Steps: []fixedresponses.Step{
+			{Kind: fixedresponses.StepThinking, Text: "thinking"},
+			{
+				Kind: fixedresponses.StepTool,
+				Tool: &fixedresponses.ToolStep{
+					ToolUseID:  "call-1",
+					Name:       "lookup",
+					ArgsJSON:   `{}`,
+					ResultText: `{"ok":true}`,
+				},
+			},
+			{Kind: fixedresponses.StepText, Text: "the answer"},
+		},
+	}
+
+	// okWrites walks the failure from the opening publish (0) to partway
+	// through the stream, so both the early-return and mid-loop error branches
+	// of each demo path run.
+	for _, okWrites := range []int{0, 3, 6} {
+		require.Error(t, (&Service{}).runDemoStream(
+			t.Context(), &failAfterSink{okWrites: okWrites},
+			chat, "one two three four",
+		))
+		require.Error(t, (&Service{}).runToolDemoStream(
+			t.Context(), &failAfterSink{okWrites: okWrites}, chat, demo,
+		))
+	}
+}
+
+// TestWatchDemoPipeCancellation proves the cancellation watcher closes the demo
+// pipe with the context error when the turn is cancelled, so the SSE reader
+// unblocks with a failure instead of hanging.
+func TestWatchDemoPipeCancellation(t *testing.T) {
+	t.Parallel()
+
+	pr, pw := io.Pipe()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	stop := watchDemoPipeCancellation(ctx, pw, uuid.New())
+	defer stop()
+
+	cancel()
+
+	_, err := pr.Read(make([]byte, 1))
+	require.Error(t, err)
 }
 
 func TestRunStreamCandidatesEmitsRetryBeforeFallback(t *testing.T) {

@@ -17,6 +17,22 @@ type testLockResult struct {
 	err    error
 }
 
+// TestReleaseUntransferredChatTurn covers both branches: a non-nil unlock is
+// invoked, and a nil unlock is a safe no-op (the turn was already transferred
+// to the streamer, which owns the release).
+func TestReleaseUntransferredChatTurn(t *testing.T) {
+	t.Parallel()
+
+	called := false
+	unlock := func() { called = true }
+	releaseUntransferredChatTurn(&unlock)
+	require.True(t, called)
+
+	var transferred func()
+
+	require.NotPanics(t, func() { releaseUntransferredChatTurn(&transferred) })
+}
+
 func TestLockChatTurnSerializesSameChat(t *testing.T) {
 	t.Parallel()
 

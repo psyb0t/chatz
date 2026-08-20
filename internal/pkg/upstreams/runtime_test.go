@@ -78,6 +78,125 @@ func wrappedRuntimeDriver(
 	return runtime, health
 }
 
+// delegatingTestDriver lets each Driver method be scripted independently so
+// the wrapper's thin delegators (Complete/ListModels/Capabilities/
+// TokenCounter) can be exercised without the timeout machinery.
+type delegatingTestDriver struct {
+	stream func(
+		context.Context,
+		elelem.DriverRequest,
+		func(elelem.Delta) error,
+	) (elelem.Usage, error)
+	listModels   func(context.Context) ([]string, error)
+	capabilities func(elelem.Model) elelem.Capabilities
+	tokenCounter func() elelem.TokenCounter
+}
+
+func (d delegatingTestDriver) Stream(
+	ctx context.Context,
+	request elelem.DriverRequest,
+	onDelta func(elelem.Delta) error,
+) (elelem.Usage, error) {
+	return d.stream(ctx, request, onDelta)
+}
+
+func (d delegatingTestDriver) Complete(
+	ctx context.Context,
+	request elelem.DriverRequest,
+	onDelta func(elelem.Delta) error,
+) (elelem.Usage, error) {
+	return d.stream(ctx, request, onDelta)
+}
+
+func (d delegatingTestDriver) ListModels(
+	ctx context.Context,
+) ([]string, error) {
+	return d.listModels(ctx)
+}
+
+func (d delegatingTestDriver) Capabilities(
+	model elelem.Model,
+) elelem.Capabilities {
+	return d.capabilities(model)
+}
+
+func (d delegatingTestDriver) TokenCounter() elelem.TokenCounter {
+	return d.tokenCounter()
+}
+
+// TestRuntimeDriver_Delegates covers the pass-through methods: Complete runs
+// through the same guarded call path as Stream, and ListModels/Capabilities/
+// TokenCounter forward to the wrapped driver on the success path.
+func TestRuntimeDriver_Delegates(t *testing.T) {
+	t.Parallel()
+
+	wantModels := []string{"model-a", "model-b"}
+	wantCaps := elelem.Capabilities{SupportsToolChoice: true}
+
+	driver, _ := wrappedRuntimeDriver(t, delegatingTestDriver{
+		stream: func(
+			_ context.Context,
+			_ elelem.DriverRequest,
+			onDelta func(elelem.Delta) error,
+		) (elelem.Usage, error) {
+			if err := onDelta(elelem.Delta{}); err != nil {
+				return elelem.Usage{}, err
+			}
+
+			return elelem.Usage{
+				TokenCounts: elelem.TokenCounts{Total: 3},
+			}, nil
+		},
+		listModels: func(context.Context) ([]string, error) {
+			return wantModels, nil
+		},
+		capabilities: func(elelem.Model) elelem.Capabilities {
+			return wantCaps
+		},
+		tokenCounter: elelem.DefaultTokenCounter,
+	}, runtimeLimits())
+
+	usage, err := driver.Complete(t.Context(), elelem.DriverRequest{}, nil)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), usage.Total)
+
+	models, err := driver.ListModels(t.Context())
+	require.NoError(t, err)
+	assert.Equal(t, wantModels, models)
+
+	assert.Equal(t, wantCaps, driver.Capabilities(elelem.Model{}))
+	assert.NotNil(t, driver.TokenCounter())
+}
+
+// TestRuntimeDriver_ListModelsError proves the wrapper annotates a failing
+// upstream ListModels rather than swallowing it.
+func TestRuntimeDriver_ListModelsError(t *testing.T) {
+	t.Parallel()
+
+	sentinel := ErrInvalidLimits
+
+	driver, _ := wrappedRuntimeDriver(t, delegatingTestDriver{
+		stream: func(
+			context.Context,
+			elelem.DriverRequest,
+			func(elelem.Delta) error,
+		) (elelem.Usage, error) {
+			return elelem.Usage{}, nil
+		},
+		listModels: func(context.Context) ([]string, error) {
+			return nil, sentinel
+		},
+		capabilities: func(elelem.Model) elelem.Capabilities {
+			return elelem.Capabilities{}
+		},
+		tokenCounter: elelem.DefaultTokenCounter,
+	}, runtimeLimits())
+
+	models, err := driver.ListModels(t.Context())
+	require.ErrorIs(t, err, sentinel)
+	assert.Nil(t, models)
+}
+
 func TestRuntimeLimits_Validate(t *testing.T) {
 	t.Parallel()
 

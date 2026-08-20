@@ -110,7 +110,7 @@ make web-check                      # svelte-check, strict: 0 errors
 make web-test                       # vitest renderer + stream unit tests
 make web-build                      # static build/ with index.html + _app/
 make web-format-check               # prettier, no modifications
-make test-e2e                       # Go testcontainers browser e2e (repo root)
+make test-api                       # Go testcontainers API suite, full app + browser (repo root)
 ```
 
 ## Dependencies

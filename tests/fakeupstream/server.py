@@ -24,12 +24,12 @@ MODELS = ["e2e-fake-gpt", "e2e-fake-mini", "e2e-fake-vision"]
 PARTIAL_RESPONSE = "Recovered partial answer."
 COMPLETED_RESPONSE = " The stream completed."
 STREAM_PAUSE_SECONDS = 5
-FAIL_FIRST_STREAM_ENV = "CHATZ_E2E_FAIL_FIRST_STREAM"
+FAIL_FIRST_STREAM_ENV = "CHATZ_API_FAIL_FIRST_STREAM"
 # When set, the assistant turn is exactly this text and streams in one chunk
 # with no pause, instead of the partial/pause/completed script. Lets a test
 # drive the browser with a specific assistant payload — notably a malformed
 # ```spec block, which no canned showcase response can express.
-RESPONSE_TEXT_ENV = "CHATZ_E2E_RESPONSE_TEXT"
+RESPONSE_TEXT_ENV = "CHATZ_API_RESPONSE_TEXT"
 FAILURE_DELAY_SECONDS = 1.5
 # The OpenAI SDK retries a transient 5xx twice before Elelem sees it; Elelem
 # then makes three provider attempts. Exhaust all nine requests of the first

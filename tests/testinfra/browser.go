@@ -1,4 +1,4 @@
-//go:build e2e
+//go:build api
 
 package testinfra
 
@@ -23,14 +23,14 @@ import (
 
 // The browser is a psyb0t/stealthy-auto-browse container in server mode: it
 // exposes a JSON HTTP API where each POST is one browser action. It joins the
-// e2e network so it reaches the app same-origin by alias, and its API port is
+// api network so it reaches the app same-origin by alias, and its API port is
 // mapped to the host so the Go test process drives it.
 const (
 	browserImage = "psyb0t/stealthy-auto-browse"
 	browserPort  = "8080"
 
 	// ~20s on an idle host, but this starts Xvfb, Chrome and a Python API
-	// server, and e2e runs several full stacks at once on a shared box. Under
+	// server, and api runs several full stacks at once on a shared box. Under
 	// load it has been measured past two minutes, and overshooting surfaces as
 	// "wait until ready: context deadline exceeded" — which reads like a broken
 	// image rather than a slow one. Generous costs nothing on a fast host: the
@@ -41,10 +41,10 @@ const (
 	screenshotDirPerm  = 0o750
 	screenshotFilePerm = 0o600
 
-	// E2EUser / E2EPass are the admin credentials the setupAdmin flow creates
+	// APIUser / APIPass are the admin credentials the setupAdmin flow creates
 	// on first run (/setup), then logs in with.
-	E2EUser = "admin"
-	E2EPass = "hunter2hunter2"
+	APIUser = "admin"
+	APIPass = "hunter2hunter2"
 )
 
 // Browser owns the running browser container plus the client that drives it.
@@ -75,8 +75,8 @@ func SetupBrowser(
 ) (*Browser, error) {
 	env := map[string]string{
 		"APP_URL":  appURL,
-		"E2E_USER": E2EUser,
-		"E2E_PASS": E2EPass,
+		"API_USER": APIUser,
+		"API_PASS": APIPass,
 	}
 	if opts.Viewport != "" {
 		env["USE_VIEWPORT"] = "true"

@@ -4,12 +4,12 @@ import (
 	"context"
 	"os"
 
-	"github.com/psyb0t/ctxerrors"
-	"github.com/psyb0t/ctxscope"
 	"github.com/psyb0t/chatz/internal/app"
 	servicemanager "github.com/psyb0t/chatz/internal/pkg/service-manager"
 	"github.com/psyb0t/chatz/internal/pkg/services"
 	"github.com/psyb0t/chatz/pkg/runner"
+	"github.com/psyb0t/ctxerrors"
+	"github.com/psyb0t/ctxscope"
 	_ "github.com/psyb0t/slogging/slogconf"
 	"github.com/spf13/cobra"
 )

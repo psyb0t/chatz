@@ -10,6 +10,9 @@ import (
 
 	"github.com/psyb0t/aichteeteapee"
 	"github.com/psyb0t/chatz/internal/pkg/config"
+	chatzlogging "github.com/psyb0t/chatz/internal/pkg/logging"
+	"github.com/psyb0t/chatz/internal/pkg/metrics"
+	"github.com/psyb0t/ctxscope"
 	"github.com/psyb0t/elelem"
 	"github.com/psyb0t/elelem/drivers/anthropic"
 	"github.com/psyb0t/elelem/drivers/openai"
@@ -287,4 +290,61 @@ func TestNewUpstreamHTTPClient_UsesConnectionDeadlineOnly(t *testing.T) {
 	dialer := newUpstreamDialer(connectTimeout)
 	assert.Equal(t, connectTimeout, dialer.Timeout)
 	assert.Equal(t, upstreamHTTPKeepAlive, dialer.KeepAlive)
+}
+
+// TestName pins the service identity reported to the service manager.
+func TestName(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, ServiceName, (&Service{}).Name())
+}
+
+// TestBuildCommit_FallsBackToEnv covers the env fallback taken when the build
+// was not stamped with a commit at link time (the default in a test binary).
+func TestBuildCommit_FallsBackToEnv(t *testing.T) {
+	t.Setenv(commitEnvVar, "deadbeef")
+
+	assert.Equal(t, "deadbeef", buildCommit())
+}
+
+// TestSetGlobalScope proves the process identity (service name) lands in the
+// global logging scope. Serial: it mutates process-global scope.
+func TestSetGlobalScope(t *testing.T) {
+	setGlobalScope()
+
+	global := ctxscope.GetGlobal()
+	assert.Equal(t, ServiceName, global[chatzlogging.ScopeKeyService])
+}
+
+// TestLoadWebFS returns the embedded SPA filesystem (placeholder or real)
+// without error.
+func TestLoadWebFS(t *testing.T) {
+	t.Parallel()
+
+	webFS, err := loadWebFS(t.Context())
+	require.NoError(t, err)
+	assert.NotNil(t, webFS)
+}
+
+// TestMetricsMux serves the Prometheus exposition at metricsPath and 404s
+// elsewhere.
+func TestMetricsMux(t *testing.T) {
+	t.Parallel()
+
+	m, err := metrics.New()
+	require.NoError(t, err)
+
+	handler := (&Service{metrics: m}).metricsMux()
+
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(
+		rec, httptest.NewRequest(http.MethodGet, metricsPath, nil),
+	)
+	assert.Equal(t, http.StatusOK, rec.Code)
+
+	miss := httptest.NewRecorder()
+	handler.ServeHTTP(
+		miss, httptest.NewRequest(http.MethodGet, "/nope", nil),
+	)
+	assert.Equal(t, http.StatusNotFound, miss.Code)
 }

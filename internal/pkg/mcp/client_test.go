@@ -1,6 +1,9 @@
 package mcp
 
 import (
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -11,6 +14,50 @@ import (
 )
 
 const toolNameRead = "read"
+
+// captureRoundTripper records the request it received and returns a canned
+// response, standing in for the real transport under headerRoundTripper.
+type captureRoundTripper struct {
+	got *http.Request
+}
+
+func (c *captureRoundTripper) RoundTrip(
+	r *http.Request,
+) (*http.Response, error) {
+	c.got = r
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(strings.NewReader("")),
+	}, nil
+}
+
+// TestHeaderRoundTripper_InjectsHeaders proves the custom transport stamps
+// every configured header onto a clone of the outbound request (the SDK
+// transport has no header field, so this is how Authorization etc. ride along).
+func TestHeaderRoundTripper_InjectsHeaders(t *testing.T) {
+	t.Parallel()
+
+	base := &captureRoundTripper{}
+	rt := &headerRoundTripper{
+		headers: map[string]string{"Authorization": "Bearer xyz"},
+		base:    base,
+	}
+
+	req, err := http.NewRequestWithContext(
+		t.Context(), http.MethodGet, "https://mcp.example.com/mcp", nil,
+	)
+	require.NoError(t, err)
+
+	resp, err := rt.RoundTrip(req)
+	require.NoError(t, err)
+	require.NoError(t, resp.Body.Close())
+
+	require.NotNil(t, base.got)
+	assert.Equal(t, "Bearer xyz", base.got.Header.Get("Authorization"))
+	// The original request must not be mutated — RoundTrip clones it.
+	assert.Empty(t, req.Header.Get("Authorization"))
+}
 
 func TestTool_QualifiedName(t *testing.T) {
 	t.Parallel()

@@ -5,6 +5,35 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-20
+
+### Changed
+
+- Restructured the test suite into three tiers, one per build tag. `make test`
+  runs the Go unit tests only, with no build tag and no external infrastructure.
+  `make test-integration` runs the `integration`-tagged tests that call the
+  generated handlers in process over a real Postgres via testcontainers; the
+  former `tests/auth`, `tests/db`, `tests/httpserver`, and `tests/mcp` packages
+  are merged into one `tests/integration` package that boots a single container.
+  `make test-api`, renamed from `make test-e2e`, builds the full app image and
+  drives it end to end. Its build tag moved from `e2e` to `api`, its runner
+  variables from `E2E_*` to `API_*`, and its fixture variables from `CHATZ_E2E_*`
+  to `CHATZ_API_*`. Update any local scripts or CI that call `make test-e2e` or
+  set those variables.
+- Updated the servicepack framework from v1.3.1 to v1.6.4. The coverage gate now
+  runs the framework's own measurement, which excludes generated code, command
+  mains, and mocks from the denominator.
+- Raised the coverage floor (`MIN_TEST_COVERAGE`) from 60 to 85.
+- Bumped the Go directive to 1.26.6.
+
+### Added
+
+- In-process boot test tier (`tests/boot`) that runs the http-server service's
+  real startup path in process: config parse, database connect, upstream
+  discovery, MCP connect, server assembly, serve, and shutdown, all against a
+  testcontainer Postgres. This credits the boot wiring that only the api tier
+  exercised before. Statement coverage rose from 78.9% to 87.5%.
+
 ## [0.4.0] - 2026-08-19
 
 ### Changed

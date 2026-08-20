@@ -447,7 +447,7 @@ Key make targets ([`Makefile`](Makefile), [`Makefile.servicepack`](Makefile.serv
 | `make web-check` | Type-check the web app (`svelte-check`, strict). |
 | `make web-test` | Web unit tests (vitest: SSE parser + render pipeline). |
 | `make web-format-check` | Check web formatting without modifying files. |
-| `make test-e2e` | Browser e2e suite (Go testcontainers: pg + prod app image + browser). See below. |
+| `make test-api` | API suite (Go testcontainers: pg + prod app image + browser). See below. |
 
 Web dependencies go through the age-gated `web-pkg-*` targets only
 (`web-pkg-add`, `web-pkg-remove`, `web-pkg-update`, `web-pkg-lock`): pnpm
@@ -458,10 +458,10 @@ Go dependencies and tools go through the age-gated `pkg-*` targets only
 `pkg-lock`). They refresh `go.sum` and the committed `vendor/` tree inside the
 dev container, so nobody's laptop-specific toolchain gets to decide what ships.
 
-### Browser e2e
+### API tests
 
-`make test-e2e` runs the browser e2e suite entirely in Go, under the `e2e`
-build tag in `tests/e2e/`. Each test is self-contained: [testcontainers](https://golang.testcontainers.org/)
+`make test-api` runs the full-stack API suite entirely in Go, under the `api`
+build tag in `tests/api/`. Each test is self-contained: [testcontainers](https://golang.testcontainers.org/)
 stands up the prod app image (built from the repo `Dockerfile`, embedded SPA)
 against both throwaway Postgres and temporary in-container SQLite databases,
 plus a fake upstream (and, when a driver needs it, an MCP fixture server) on
@@ -470,7 +470,7 @@ browser via [`psyb0t/stealthy-auto-browse`](https://hub.docker.com/r/psyb0t/stea
 action-by-action through its JSON HTTP API. Every step is asserted, so when it
 breaks you get the exact action that shat itself instead of "test failed", and
 the whole stack is torn down on cleanup. The shared fixtures live in
-`tests/testinfra/` (`e2e.go`, `browser.go`).
+`tests/testinfra/` (`api.go`, `browser.go`).
 
 The drivers cover: showcase dashboard render + reload durability (`showcase`),
 theme toggle / tool-card collapse / settings popover / model-picker filter
@@ -478,18 +478,18 @@ theme toggle / tool-card collapse / settings popover / model-picker filter
 (`chat_mcp`, `mcp_admin`), and the mobile off-canvas drawer geometry
 (`mobile_drawer`). They assert on rendered DOM plus the structured `CHATZ_LOG`
 console lines the client logger emits (via `?log=debug`), proving the embed +
-serve + SSE chain round-trips same-origin. `make test-e2e` runs it in the dev
+serve + SSE chain round-trips same-origin. `make test-api` runs it in the dev
 container with the host Docker socket (DIND). Focus one flow without bypassing
 the harness with, for example,
-`E2E_RUN='^TestSmoke$' E2E_PARALLEL=1 make test-e2e`; `E2E_TIMEOUT` controls the
+`API_RUN='^TestSmoke$' API_PARALLEL=1 make test-api`; `API_TIMEOUT` controls the
 package timeout. It runs each selected flow against both stores by default;
-set `E2E_DB_DRIVERS=sqlite` or `E2E_DB_DRIVERS=postgres` to focus one.
+set `API_DB_DRIVERS=sqlite` or `API_DB_DRIVERS=postgres` to focus one.
 
 The `real_chat` driver exercises a genuine streamed turn against a live
 configured OpenAI-compatible or Anthropic upstream; it self-skips unless
 `CHATZ_UPSTREAMS` is configured. It validates that configuration and forwards
 only the provider-key environment variables named by its upstream entries. Run
-it with `E2E_REAL=1 make test-e2e`, which loads the same `.env` `make run` uses.
+it with `API_REAL=1 make test-api`, which loads the same `.env` `make run` uses.
 
 Real-LLM tool calling is covered by a build-tagged test that drives the chat loop
 against the configured provider plus the Python MCP server in

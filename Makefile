@@ -1,28 +1,29 @@
 # Project Makefile — chatz-specific targets on top of the servicepack
 # framework. All language tooling runs in the dev container (Dockerfile.dev).
 #
-# Framework targets (test / test-coverage / dep) are transparently redirected
-# into Docker: their recipes call $(call find_script_path,NAME.sh), and the lookup
-# prefers ./scripts/make/NAME.sh (our Docker overrides) over the framework's
+# Framework targets (test / dep) are transparently redirected into Docker: their
+# recipes call $(call find_script_path,NAME.sh), and the lookup prefers
+# ./scripts/make/NAME.sh (our Docker overrides) over the framework's
 # ./scripts/make/servicepack/NAME.sh. So `make test` already runs in Docker.
-
-# servicepack defaults this to 90, which is a LIBRARY number. chatz is a
-# service: most of its statements are HTTP handlers, DB wiring, service
-# lifecycle and MCP plumbing that the integration suite drives end to end,
-# not code a unit test calls directly. scripts/make/test_coverage.sh therefore
-# measures the tagged run (see the comment there); that reports 62.3% where
-# the untagged one reported 19.3%.
 #
-# 60 is a ratchet floor, not a target — it sits just under the real number so
-# CI has headroom, and it only ever moves UP. Raise it when the measured
-# figure clears the next step; never lower it to make a red build go green.
-MIN_TEST_COVERAGE = 60
+# test-coverage has no override anymore. It runs servicepack v1.6.4's coverage
+# gate, which instruments every package under -coverpkg with the integration
+# tag and excludes generated code, cmd mains, and mocks from the measured floor.
+# That gate runs go test directly (in CI the go-workflow provides the toolchain),
+# not inside the dev container. The web typecheck/unit tests and the api tier run
+# alongside it in CI via the test command in .github/workflows/pipeline.yml, not
+# inside the coverage pass.
+#
+# MIN is a ratchet floor, not a target: it sits under the real measured number
+# and only ever moves UP. Raise it when the measured figure clears the next
+# step; never lower it to make a red build go green.
+MIN_TEST_COVERAGE = 85
 
 include Makefile.servicepack
 
 .PHONY: dev-image shell run run-showcase stop migrate test test-coverage \
 	generate generate-repos generate-api genui-prompt \
-	test-unit test-integration test-real test-e2e \
+	test-unit test-integration test-real test-api \
 	pkg-lock pkg-add pkg-add-tool pkg-update pkg-upgrade pkg-remove audit \
 	web-install web-build web-embed web-dev web-gen-api web-check web-test \
 	web-format web-format-check web-lint-fix web-pkg-lock web-pkg-add \
@@ -95,10 +96,10 @@ migrate: ## Run DB migrations in Docker
 test-integration: ## Run integration tests (testcontainers, DIND) in Docker
 	@bash "$(call find_script_path,test_integration.sh)"
 
-test: ## Run the complete Chatz test battery through its Docker-aware override
+test: ## Run the Go unit tests (no build tag, no infra) in Docker
 	@bash "$(call find_script_path,test.sh)"
 
-test-coverage: ## Run the complete Chatz test battery with its coverage gate
+test-coverage: ## Run the integration-tagged suite through the Go coverage gate
 	@MIN_TEST_COVERAGE=$(MIN_TEST_COVERAGE) bash "$(call find_script_path,test_coverage.sh)"
 
 test-unit: dev-image ## Run race-enabled Go tests in Docker (optional PKG=./path/...)
@@ -107,8 +108,8 @@ test-unit: dev-image ## Run race-enabled Go tests in Docker (optional PKG=./path
 test-real: ## Run the real-LLM tests (dev container, host net, uses the same .env as make run)
 	@bash "$(call find_script_path,test_real.sh)"
 
-test-e2e: ## Run browser e2e tests (Go testcontainers, DIND) in Docker
-	@bash "$(call find_script_path,test_e2e.sh)"
+test-api: ## Run API tests (full app image + browser, Go testcontainers, DIND)
+	@bash "$(call find_script_path,test_api.sh)"
 
 # --- Go dependencies: age-gated and always vendored -------------------------
 

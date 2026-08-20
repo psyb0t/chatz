@@ -82,5 +82,5 @@ side-effecting URLs.
 | `components/` / `charts/`      | Typed UI and chart helpers.         |
 
 Run `make genui-prompt`, `make web-check`, `make web-test`,
-`make web-format-check`, and `make test-e2e` (the showcase render is covered by
-the Go browser e2e driver `tests/e2e/showcase_test.go`).
+`make web-format-check`, and `make test-api` (the showcase render is covered by
+the Go browser driver `tests/api/showcase_test.go`).

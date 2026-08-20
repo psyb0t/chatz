@@ -20,7 +20,13 @@ jobs:
       go_version: "1.26.6"
       dep_command: "make dep"
       lint_command: "make lint"
-      test_command: "make test-coverage"
+      # `make test-coverage` is the framework's Go coverage gate (writes
+      # coverage-percent.txt). It runs the integration-tagged Go suite only, so
+      # the web typecheck/unit tests and the api tier are chained after
+      # it here. They used to ride inside a chatz override of test_coverage.sh;
+      # that override was dropped once servicepack v1.6.4's gate started
+      # excluding generated code, which was the override's only remaining reason.
+      test_command: "make test-coverage && make web-check && make web-test && make test-api"
       is_vendored: true
       coverage_file: "coverage-percent.txt"
       # Without this, a hand-edit to a *.gen.go survives until the next person

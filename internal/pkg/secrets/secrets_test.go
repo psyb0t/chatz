@@ -20,6 +20,31 @@ func testKey(t *testing.T) []byte {
 	return key
 }
 
+// TestBox_OpenErrorBranches covers Open + OpenMap failure paths: a blob shorter
+// than the nonce, a correctly sized but unauthenticated blob, a sealed blob
+// that decrypts to non-JSON, and garbage passed to OpenMap.
+func TestBox_OpenErrorBranches(t *testing.T) {
+	t.Parallel()
+
+	box, err := New(testKey(t))
+	require.NoError(t, err)
+
+	_, err = box.Open([]byte{1, 2, 3})
+	require.ErrorIs(t, err, ErrCiphertextTooShort)
+
+	_, err = box.Open(make([]byte, nonceSize+16))
+	require.Error(t, err)
+
+	sealed, err := box.Seal([]byte("not-json"))
+	require.NoError(t, err)
+
+	_, err = box.OpenMap(sealed)
+	require.Error(t, err)
+
+	_, err = box.OpenMap(make([]byte, nonceSize+16))
+	require.Error(t, err)
+}
+
 func TestNew_RejectsBadKeyLength(t *testing.T) {
 	t.Parallel()
 

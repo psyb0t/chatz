@@ -6,8 +6,33 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/psyb0t/chatz/internal/pkg/db/models"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// TestToolToAPI covers both projection branches: a tool with no input schema
+// surfaces an empty (non-null) parameters object, and a populated schema is
+// passed through unchanged.
+func TestToolToAPI(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil schema becomes empty object", func(t *testing.T) {
+		t.Parallel()
+
+		got := ToolToAPI(Tool{Name: "ping", Description: "health check"})
+		assert.Equal(t, "ping", got.Name)
+		assert.Equal(t, "health check", got.Description)
+		assert.Equal(t, map[string]any{}, got.Parameters)
+	})
+
+	t.Run("populated schema passes through", func(t *testing.T) {
+		t.Parallel()
+
+		schema := map[string]any{"type": "object"}
+		got := ToolToAPI(Tool{Name: "query", InputSchema: schema})
+		assert.Equal(t, schema, got.Parameters)
+	})
+}
 
 func TestServerToAPIProjectsHealthTelemetry(t *testing.T) {
 	t.Parallel()

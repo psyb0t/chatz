@@ -1,4 +1,4 @@
-//go:build e2e
+//go:build api
 
 package testinfra
 
@@ -24,7 +24,7 @@ const probeBootTimeout = time.Second
 // opportunity to call Destroy". Dropping it leaks a container that stays
 // attached to the per-test network, so the stack's Teardown then fails with
 // "network ... has active endpoints", and every later run starts with less
-// headroom and leaks more. Two full e2e suites died to that before it was
+// headroom and leaks more. Two full api suites died to that before it was
 // found, and it looked like flake because the failing assertion was in
 // teardown, nowhere near the cause.
 //
