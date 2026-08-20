@@ -10,11 +10,18 @@
 FROM golang:1.26.6-alpine@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df
 
 # pnpm + the python mcp SDK pinned per supply-chain discipline
-# (managing-dependencies.md). python3 + mcp are here ONLY for the MCP
-# integration tests, which launch a real Python MCP server (stdio +
-# streamable-HTTP) for chatz's Go MCP client to talk to.
+# (managing-dependencies.md). python3 serves the MCP integration tests (which
+# launch a real Python MCP server, stdio + streamable-HTTP, for chatz's Go MCP
+# client to talk to) and semgrep (the SAST half of `make sec`).
+#
+# semgrep bundles its own mcp pin (semgrep 1.173.0 -> mcp==1.29.0), which
+# collides with the exact mcp version the integration tests need in the system
+# env. So semgrep lives in a dedicated venv and is only reached through the
+# /usr/local/bin/semgrep symlink; the two never share an interpreter and chatz
+# keeps full control of MCP_VERSION.
 ARG PNPM_VERSION=10.15.0
 ARG MCP_VERSION=1.28.1
+ARG SEMGREP_VERSION=1.173.0
 
 RUN apk add --no-cache \
 	bash \
@@ -32,7 +39,10 @@ RUN apk add --no-cache \
 	shfmt \
 	&& npm install -g pnpm@${PNPM_VERSION} \
 	&& npm cache clean --force \
-	&& pip3 install --break-system-packages --no-cache-dir mcp==${MCP_VERSION}
+	&& pip3 install --break-system-packages --no-cache-dir mcp==${MCP_VERSION} \
+	&& python3 -m venv /opt/semgrep \
+	&& /opt/semgrep/bin/pip install --no-cache-dir semgrep==${SEMGREP_VERSION} \
+	&& ln -sf /opt/semgrep/bin/semgrep /usr/local/bin/semgrep
 
 WORKDIR /work
 

@@ -320,6 +320,9 @@ func errorHandler(err error, c echo.Context) {
 // over plain HTTP in dev; terminate TLS at the proxy in prod and the cookie
 // still rides on the encrypted hop.
 func sessionCookie(token string) *string {
+	// Secure omitted by design (see doc comment above): dev serves plain HTTP,
+	// prod terminates TLS at the proxy.
+	// nosemgrep
 	c := &http.Cookie{
 		Name:     auth.CookieName,
 		Value:    token,

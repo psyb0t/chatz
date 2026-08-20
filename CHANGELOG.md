@@ -5,6 +5,29 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-20
+
+### Changed
+
+- Updated the servicepack framework from v1.6.4 to v1.7.1, which adds the
+  `make sec` security scan and ships semgrep in the development image.
+- Migrated CI from the `go-workflow` reusable workflow to the generic
+  `code-workflow`. The pipeline now chains the project's own Make targets
+  (`make lint`, the three test tiers, `make sec`, `make generate`) instead of
+  baking Go-specific steps into the shared workflow, and uploads the `make sec`
+  SARIF to the Security tab. The Docker image build, multi-arch publish and
+  badges are unchanged.
+
+### Added
+
+- `make sec`: a full security scan that runs govulncheck and semgrep and merges
+  both into `sec.sarif` for the Security tab, failing on any finding. semgrep is
+  pinned in the dev image in its own virtualenv so its bundled mcp dependency
+  cannot collide with the exact mcp version the MCP integration tests pin.
+- Annotated the two intentional patterns semgrep now flags with `nosemgrep`: the
+  session cookie omits `Secure` for the dev-HTTP / prod-TLS-at-proxy model, and
+  retry-backoff jitter in `pkg/rebound` uses `math/rand` (not security relevant).
+
 ## [0.5.0] - 2026-08-20
 
 ### Changed

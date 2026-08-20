@@ -3,7 +3,7 @@ package rebound
 import (
 	"context"
 	"math"
-	"math/rand/v2"
+	"math/rand/v2" // nosemgrep -- jitter for retry backoff, not crypto
 	"time"
 
 	"github.com/psyb0t/ctxerrors"
