@@ -71,4 +71,12 @@ scripts/check-go-age.sh
 # baseline Dockerfile knows none of that and would overwrite all of it.
 Dockerfile
 
+# chatz owns its entire test tree: tests/testinfra (a real Postgres + browser
+# harness), tests/api, tests/boot, tests/integration, tests/fakeupstream,
+# tests/mcpserver, tests/real. servicepack v1.8.0+ ships its own minimal
+# tests/testinfra + tests/integration baseline that would otherwise overwrite
+# chatz's (rsync has no --delete, but it does overwrite same-path files). Keep
+# the framework out of tests/ entirely.
+tests/
+
 # Note: internal/pkg/services/* is always excluded - your services are never touched
