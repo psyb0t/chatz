@@ -81,6 +81,6 @@ side-effecting URLs.
 | `Renderer.svelte` / `stamp.ts` | Provider and stable ids.            |
 | `components/` / `charts/`      | Typed UI and chart helpers.         |
 
-Run `make genui-prompt`, `make web-check`, `make web-test`,
-`make web-format-check`, and `make test-api` (the showcase render is covered by
-the Go browser driver `tests/api/showcase_test.go`).
+Run `make genui-prompt`, `make lint-web`, `make test-web`, and `make test-api`
+(the showcase render is covered by the Go browser driver
+`tests/api/showcase_test.go`).

@@ -106,10 +106,9 @@ make web-gen-api   # → src/lib/api/schema.d.ts
 ```bash
 make web-gen-api                    # regenerate types from api/api.yml
 make genui-prompt                   # regenerate backend prompt from the catalog
-make web-check                      # svelte-check, strict: 0 errors
-make web-test                       # vitest renderer + stream unit tests
+make lint-web                       # prettier --check + svelte-check (strict)
+make test-web                       # vitest renderer + stream unit tests
 make web-build                      # static build/ with index.html + _app/
-make web-format-check               # prettier, no modifications
 make test-api                       # Go testcontainers API suite, full app + browser (repo root)
 ```
 

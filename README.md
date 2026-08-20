@@ -444,9 +444,8 @@ Key make targets ([`Makefile`](Makefile), [`Makefile.servicepack`](Makefile.serv
 | `make web-embed` | Build the SPA and sync it into the `go:embed` dist dir. |
 | `make web-gen-api` | Regenerate the web API types from `api/api.yml`. |
 | `make genui-prompt` | Regenerate the backend's embedded GenUI prompt from the web catalog. |
-| `make web-check` | Type-check the web app (`svelte-check`, strict). |
-| `make web-test` | Web unit tests (vitest: SSE parser + render pipeline). |
-| `make web-format-check` | Check web formatting without modifying files. |
+| `make lint-web` | Lint the web app: `prettier --check` + `svelte-check` (strict). Runs as part of `make lint`. |
+| `make test-web` | Web unit tests (vitest: SSE parser + render pipeline). Runs as part of `make test` and `make test-coverage`. |
 | `make test-api` | API suite (Go testcontainers: pg + prod app image + browser). See below. |
 
 Web dependencies go through the age-gated `web-pkg-*` targets only

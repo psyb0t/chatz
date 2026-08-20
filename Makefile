@@ -26,12 +26,13 @@ MIN_TEST_COVERAGE = 85
 
 include Makefile.servicepack
 
-.PHONY: dev-image shell run run-showcase stop migrate test test-coverage \
+.PHONY: dev-image shell run run-showcase stop migrate lint lint-go lint-web \
+	test test-go test-web test-coverage \
 	generate generate-repos generate-api genui-prompt \
 	test-unit test-integration test-real test-api \
 	pkg-lock pkg-add pkg-add-tool pkg-update pkg-upgrade pkg-remove audit \
-	web-install web-build web-embed web-dev web-gen-api web-check web-test \
-	web-format web-format-check web-lint-fix web-pkg-lock web-pkg-add \
+	web-install web-build web-embed web-dev web-gen-api format-web lint-fix-web \
+	web-pkg-lock web-pkg-add \
 	web-pkg-update web-pkg-upgrade web-pkg-remove
 
 # go:embed target for the built SPA. `make web-embed` syncs web/build/ here so a
@@ -98,14 +99,23 @@ generate-api: dev-image ## Regenerate just the HTTP server + client
 migrate: ## Run DB migrations in Docker
 	@bash "$(call find_script_path,migrate.sh)"
 
+lint: lint-go lint-web ## Lint everything: Go/shell and the web app
+
+lint-go: ## Lint Go and shell (shfmt, shellcheck, go fix, golangci-lint) in Docker
+	@$(MAKE) dev-image
+	@$(call run_dev_script,lint.sh)
+
 test-integration: ## Run integration tests (testcontainers, DIND) in Docker
 	@bash "$(call find_script_path,test_integration.sh)"
 
-test: ## Run the Go unit tests (no build tag, no infra) in Docker
+test: test-go test-web ## Run all unit tests: Go and web
+
+test-go: ## Run the Go unit tests (no build tag, no infra) in Docker
 	@bash "$(call find_script_path,test.sh)"
 
-test-coverage: ## Run the integration-tagged suite through the Go coverage gate
+test-coverage: ## Backend Go coverage gate plus the web unit tests (coverage is Go-only)
 	@MIN_TEST_COVERAGE=$(MIN_TEST_COVERAGE) bash "$(call find_script_path,test_coverage.sh)"
+	@$(MAKE) test-web
 
 test-unit: dev-image ## Run race-enabled Go tests in Docker (optional PKG=./path/...)
 	$(DEV_RUN) go test -race $(or $(PKG),./...)
@@ -174,19 +184,16 @@ web-gen-api: web-install ## Generate the web API types from api/api.yml (src/lib
 genui-prompt: web-install ## Regenerate just the backend's embedded GenUI prompt
 	$(WEB_RUN) go generate ./internal/pkg/core/chats/prompts/...
 
-web-check: web-install ## Type-check the web app (svelte-check, strict)
-	$(WEB_RUN) pnpm --dir web check
+lint-web: web-install ## Lint the web app: prettier --check + svelte-check (strict)
+	$(WEB_RUN) bash -c 'pnpm --dir web exec prettier --check . && pnpm --dir web check'
 
-web-test: web-install ## Run the web unit tests (vitest, SSE parser + conversation store)
+test-web: web-install ## Run the web unit tests (vitest, SSE parser + conversation store)
 	$(WEB_RUN) pnpm --dir web test
 
-web-format: web-install ## Format the web app (prettier --write)
+format-web: web-install ## Format the web app (prettier --write)
 	$(WEB_RUN) pnpm --dir web format
 
-web-format-check: web-install ## Check web formatting without modifying files
-	$(WEB_RUN) pnpm --dir web exec prettier --check .
-
-web-lint-fix: web-install ## Auto-fix + type-check the web app (prettier --write + svelte-check)
+lint-fix-web: web-install ## Auto-fix + type-check the web app (prettier --write + svelte-check)
 	$(WEB_RUN) bash -c 'pnpm --dir web format && pnpm --dir web check'
 
 # --- Web frontend: age-gated dependency lifecycle ---------------------------

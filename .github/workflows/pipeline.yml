@@ -18,11 +18,16 @@ jobs:
       security-events: write # code-workflow declares it for the sec SARIF upload; a caller must grant at least what the reusable workflow requests or the run fails at startup
     uses: psyb0t/reusable-github-workflows/.github/workflows/code-workflow.yml@master
     with:
+      # `make lint` covers both languages: lint-go (shfmt, shellcheck, go fix,
+      # golangci-lint) and lint-web (prettier --check + svelte-check strict).
       lint_command: "make lint"
-      # `make test-coverage` is the framework's Go coverage gate (writes
-      # coverage-percent.txt). It runs the integration-tagged Go suite only, so
-      # the web typecheck/unit tests and the api tier are chained after it.
-      test_command: "make test-coverage && make web-check && make web-test && make test-api"
+      # `make test-coverage` runs the backend Go coverage gate (integration-tagged
+      # suite through the coverage floor, writes coverage-percent.txt) AND the web
+      # unit tests (vitest); coverage is measured on Go only. The E2E browser tier
+      # (make test-api) is deliberately kept OUT of CI: it builds the full app
+      # image and drives a real headless browser, which is minutes-long, so it
+      # stays a local-only make target run before a release.
+      test_command: "make test-coverage"
       # Full security scan (govulncheck + semgrep) merged into sec.sarif, run
       # inside the dev-image. Fails the job on any finding.
       sec_command: "make sec"

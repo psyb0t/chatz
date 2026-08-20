@@ -5,6 +5,23 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-08-20
+
+### Changed
+
+- Reorganized the lint and test make targets by language. `make lint` is now an
+  umbrella that runs `lint-go` (shfmt, shellcheck, go fix, golangci-lint) and
+  `lint-web` (`prettier --check` + `svelte-check`). `make test` runs `test-go`
+  (Go units) and `test-web` (vitest). `make test-coverage` runs the backend Go
+  coverage gate and `test-web`, measuring coverage on Go only. Renamed the web
+  targets: `web-check` + `web-format-check` are now `lint-web`, `web-test` is
+  `test-web`, `web-format` is `format-web`, and `web-lint-fix` is `lint-fix-web`.
+- CI now runs `make lint` and `make test-coverage` only, which covers Go lint,
+  web lint, the Go integration/coverage suite, and the web unit tests. The E2E
+  browser tier (`make test-api`) is no longer run in CI; it builds the full app
+  image and drives a real headless browser (minutes-long), so it stays a
+  local-only target run before a release.
+
 ## [0.7.0] - 2026-08-20
 
 ### Changed

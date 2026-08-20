@@ -105,6 +105,6 @@ keep debug local.
 | `turn_locks.go` / `mcp_tools.go` | Serialization and tool filtering. |
 | `prompts/` / `fixedresponses/` | GenUI guide and demo/showcase fixtures. |
 
-Run `make test`, `make web-test`, and `make test-api` from the repository root.
+Run `make test`, `make test-web`, and `make test-api` from the repository root.
 The showcase render + streamed thinking/tool-cards/GenUI is covered by the Go
 browser drivers in the api tier `tests/api/` (`showcase_test.go`, `smoke_test.go`).
