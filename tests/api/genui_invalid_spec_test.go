@@ -22,28 +22,34 @@ const (
 	invalidSpecFenceClose = "```"
 )
 
-// The card element is keyed "cardMain" in both payloads. Only the /root value
-// differs: the broken one names "main", an element that is never defined, which
-// is precisely what a real model emitted in production. json-render resolves
-// the tree from /root, finds nothing, and draws nothing — so before the
-// renderer validated the spec this failure was completely invisible, on first
-// paint and on every reload of the persisted message.
+// A dangling /root surfaces the invalid-spec notice only when the real root is
+// AMBIGUOUS. The invalid payload names /root "main" (an element never defined)
+// and emits TWO unreferenced cards, so recoverRoot cannot rewire it without
+// guessing which half of the UI to draw and validateSpec surfaces the notice
+// instead of json-render silently drawing nothing. The valid payload points
+// /root straight at its single card. A dangling /root with exactly ONE
+// unreferenced element recovers silently (recoverRoot rewires to it); that path
+// is the renderer unit tests' job, not this browser test's.
 const (
 	invalidSpecRootLine = `{"op":"add","path":"/root","value":"main"}`
 	validSpecRootLine   = `{"op":"add","path":"/root","value":"cardMain"}`
 	//nolint:lll // one JSONL patch = one physical line, by the spec's contract
 	specCardLine = `{"op":"add","path":"/elements/cardMain","value":{"type":"Card","props":{"id":null,"title":"Service Status"},"children":[]}}`
+	//nolint:lll // one JSONL patch = one physical line, by the spec's contract
+	specCardLineExtra = `{"op":"add","path":"/elements/cardExtra","value":{"type":"Card","props":{"id":null,"title":"Fleet Status"},"children":[]}}`
 )
 
-func genUISpecResponse(rootLine string) string {
-	return strings.Join([]string{
+func genUISpecResponse(rootLine string, cardLines ...string) string {
+	lines := []string{
 		"Here is the current status.",
 		"",
 		invalidSpecFenceOpen,
 		rootLine,
-		specCardLine,
-		invalidSpecFenceClose,
-	}, "\n")
+	}
+	lines = append(lines, cardLines...)
+	lines = append(lines, invalidSpecFenceClose)
+
+	return strings.Join(lines, "\n")
 }
 
 // Counts what actually reached the DOM: rendered json-render components, and
@@ -111,7 +117,9 @@ func genUISpecProbeAfterSend(
 func TestGenUIValidSpecRendersComponents(t *testing.T) {
 	t.Parallel()
 
-	probe := genUISpecProbeAfterSend(t, genUISpecResponse(validSpecRootLine))
+	probe := genUISpecProbeAfterSend(
+		t, genUISpecResponse(validSpecRootLine, specCardLine),
+	)
 
 	assert.Positive(t, probe.Components,
 		"a valid spec must render at least one json-render component")
@@ -120,14 +128,18 @@ func TestGenUIValidSpecRendersComponents(t *testing.T) {
 }
 
 // TestGenUIInvalidSpecSurfacesError is the regression: a spec whose /root names
-// an undefined element must tell the reader, not render an empty block.
+// an undefined element AND is ambiguous (two unreferenced elements, so recovery
+// would be a guess) must tell the reader, not render an empty block.
 func TestGenUIInvalidSpecSurfacesError(t *testing.T) {
 	t.Parallel()
 
-	probe := genUISpecProbeAfterSend(t, genUISpecResponse(invalidSpecRootLine))
+	probe := genUISpecProbeAfterSend(
+		t,
+		genUISpecResponse(invalidSpecRootLine, specCardLine, specCardLineExtra),
+	)
 
 	assert.Positive(t, probe.Errors,
-		"an unresolvable /root must surface the invalid-spec notice")
+		"an unresolvable, ambiguous /root must surface the invalid-spec notice")
 	assert.Equal(t, 0, probe.Components,
 		"an unresolvable /root resolves to no components at all")
 }

@@ -5,6 +5,26 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-08-20
+
+### Fixed
+
+- The coverage gate (`make test-coverage`) now runs inside the dev container on
+  the host network, so the integration tier reaches both the Python MCP SDK (in
+  the dev image) and the testcontainers Postgres. It previously ran the framework
+  coverage script on the bare host, where the MCP integration tests failed with
+  `No module named 'mcp'` and, once containerized on the default bridge network,
+  could not reach Postgres. A chatz-owned `scripts/make/test_coverage.sh` now
+  wraps the framework gate in `dev_run_dind`, matching `make test-integration`
+  and `make test-api`.
+- The `api` test tier's fake upstream still advertised the pre-rename
+  `e2e-fake-*` model IDs, so the showcase test's model-picker assertion failed.
+  Renamed them to `api-fake-*`.
+- `TestGenUIInvalidSpecSurfacesError` sent a single-element spec, which root
+  recovery correctly resolves, so it never reached the error path it meant to
+  test. Switched it to an ambiguous two-element spec (a dangling `/root` with no
+  unique real root), which is what surfaces the invalid-spec notice.
+
 ## [0.6.0] - 2026-08-20
 
 ### Changed

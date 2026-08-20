@@ -6,13 +6,18 @@
 # ./scripts/make/NAME.sh (our Docker overrides) over the framework's
 # ./scripts/make/servicepack/NAME.sh. So `make test` already runs in Docker.
 #
-# test-coverage has no override anymore. It runs servicepack v1.6.4's coverage
-# gate, which instruments every package under -coverpkg with the integration
-# tag and excludes generated code, cmd mains, and mocks from the measured floor.
-# That gate runs go test directly (in CI the go-workflow provides the toolchain),
-# not inside the dev container. The web typecheck/unit tests and the api tier run
-# alongside it in CI via the test command in .github/workflows/pipeline.yml, not
-# inside the coverage pass.
+# test-coverage runs INSIDE the dev container (like `make test`,
+# `make test-integration` and `make test-api`), never on the bare host: chatz's
+# scripts/make/test_coverage.sh wraps servicepack's coverage gate in
+# dev_run_dind (host docker socket plus --network host). The integration tier
+# needs BOTH the Python MCP SDK (only in the dev image) and the testcontainers
+# Postgres (whose host-published ports are reachable on localhost:<mapped> only
+# under --network host), and under code-workflow the CI runner provides no
+# Go/Python toolchain of its own. The gate instruments every package under
+# -coverpkg with the integration tag and excludes generated code, cmd mains, and
+# mocks from the measured floor. The web typecheck/unit tests and the api tier
+# run alongside it in CI via the test command in
+# .github/workflows/pipeline.yml, not inside the coverage pass.
 #
 # MIN is a ratchet floor, not a target: it sits under the real measured number
 # and only ever moves UP. Raise it when the measured figure clears the next

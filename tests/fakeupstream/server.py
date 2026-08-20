@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Minimal OpenAI-compatible streaming fixture for chatz's e2e harness.
+"""Minimal OpenAI-compatible streaming fixture for chatz's api harness.
 
 Real (not mocked-in-process) HTTP server so the backend's actual upstream
 discovery (internal/pkg/upstreams.Discover -> llmclient openai.ListModels,
 which pages the official OpenAI SDK's Models.ListAutoPaging over GET
-/v1/models) has something real and reachable to hit — letting the e2e browser
+/v1/models) has something real and reachable to hit, letting the api browser
 exercise the model picker (search/filter/select) against genuine model IDs
 without needing a real OpenAI API key or a live LLM. Its completion endpoint
 sends a first text delta, pauses long enough for a browser stop/reload test,
@@ -20,7 +20,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-MODELS = ["e2e-fake-gpt", "e2e-fake-mini", "e2e-fake-vision"]
+MODELS = ["api-fake-gpt", "api-fake-mini", "api-fake-vision"]
 PARTIAL_RESPONSE = "Recovered partial answer."
 COMPLETED_RESPONSE = " The stream completed."
 STREAM_PAUSE_SECONDS = 5
@@ -52,7 +52,7 @@ class Handler(BaseHTTPRequestHandler):
             {
                 "object": "list",
                 "data": [
-                    {"id": m, "object": "model", "owned_by": "e2e"}
+                    {"id": m, "object": "model", "owned_by": "api"}
                     for m in MODELS
                 ],
             }
@@ -114,7 +114,7 @@ class Handler(BaseHTTPRequestHandler):
     def _send_json_completion(self, request: dict) -> None:
         body = json.dumps(
             {
-                "id": "e2e-completion",
+                "id": "api-completion",
                 "object": "chat.completion",
                 "model": request.get("model", MODELS[0]),
                 "choices": [
@@ -168,7 +168,7 @@ class Handler(BaseHTTPRequestHandler):
         finish_reason: str | None,
     ) -> bool:
         event = {
-            "id": "e2e-completion",
+            "id": "api-completion",
             "object": "chat.completion.chunk",
             "model": request.get("model", MODELS[0]),
             "choices": [
