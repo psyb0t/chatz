@@ -159,6 +159,10 @@
   function toggleSettings(): void {
     settingsOpen = !settingsOpen;
   }
+
+  export function focusInput(): void {
+    inputEl?.focus();
+  }
 </script>
 
 <form

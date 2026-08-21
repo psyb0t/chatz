@@ -5,6 +5,19 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.4] - 2026-08-21
+
+### Fixed
+
+- Kept the active turn status visible while the chat is pinned to its latest
+  message. When a response finishes, the message composer regains focus only
+  if the user remained in the chat area.
+
+### Changed
+
+- The sidebar now keeps the Chatz heading and links to
+  `github.com/psyb0t/chatz` beneath it.
+
 ## [0.7.3] - 2026-08-21
 
 ### Changed

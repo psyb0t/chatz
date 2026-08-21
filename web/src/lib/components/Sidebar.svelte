@@ -17,8 +17,8 @@
     STATE_LOADING_CHATS,
     LABEL_LOGOUT,
     SIDEBAR_WORDMARK,
-    SIDEBAR_CREDIT_LABEL,
-    SIDEBAR_CREDIT_URL,
+    SIDEBAR_REPOSITORY_LABEL,
+    SIDEBAR_REPOSITORY_URL,
     A11Y_SIDEBAR_COLLAPSE,
     A11Y_SIDEBAR_EXPAND,
     A11Y_SIDEBAR_CLOSE,
@@ -194,12 +194,12 @@
     <div class="sidebar__inner">
       <div class="sidebar__brand">
         <div class="sidebar__brand-text">
-          <span class="sidebar__wordmark">{SIDEBAR_WORDMARK}</span>
+          <h1 class="sidebar__wordmark">{SIDEBAR_WORDMARK}</h1>
           <a
-            class="sidebar__credit"
-            href={SIDEBAR_CREDIT_URL}
+            class="sidebar__repository"
+            href={SIDEBAR_REPOSITORY_URL}
             target="_blank"
-            rel="noopener noreferrer">{SIDEBAR_CREDIT_LABEL}</a
+            rel="noopener noreferrer">{SIDEBAR_REPOSITORY_LABEL}</a
           >
         </div>
         <!-- Desktop: collapse to the rail. Mobile: close the drawer. -->
@@ -519,20 +519,22 @@
   }
 
   .sidebar__wordmark {
+    margin: 0;
     font-family: var(--font-display);
     font-weight: 600;
     font-size: var(--text-lg);
     letter-spacing: -0.01em;
   }
 
-  .sidebar__credit {
+  .sidebar__repository {
     font-family: var(--font-display);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
     color: var(--muted);
     text-decoration: none;
+    overflow-wrap: anywhere;
   }
 
-  .sidebar__credit:hover {
+  .sidebar__repository:hover {
     color: var(--accent);
     text-decoration: underline;
   }

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import Composer from "$lib/components/Composer.svelte";
   import Message from "$lib/components/Message.svelte";
   import Button from "$lib/components/ui/Button.svelte";
@@ -59,7 +59,11 @@
   const BOTTOM_STICK_THRESHOLD_PX = 64;
 
   let listEl: HTMLDivElement | undefined = $state();
+  let chatEl: HTMLDivElement | undefined = $state();
+  let composerEl: Composer | undefined = $state();
   let stuck = $state(true);
+  let chatAreaActive = false;
+  let wasStreaming = false;
   // Plain (non-reactive) — compared across effect runs to detect a chat switch.
   let trackedChatId: string | null = null;
   let touchStartY = 0;
@@ -89,17 +93,21 @@
   // Upward wheel detaches immediately, synchronously with the gesture — before
   // a pending delta's auto-scroll can yank us back to the bottom.
   function onWheel(event: WheelEvent): void {
+    chatAreaActive = true;
+
     if (event.deltaY < 0) {
       stuck = false;
     }
   }
 
   function onTouchStart(event: TouchEvent): void {
+    chatAreaActive = true;
     touchStartY = event.touches[0]?.clientY ?? 0;
   }
 
   // Finger dragging down pulls content up (a scroll-up gesture) → detach.
   function onTouchMove(event: TouchEvent): void {
+    chatAreaActive = true;
     const y = event.touches[0]?.clientY ?? 0;
     if (y > touchStartY) {
       stuck = false;
@@ -107,6 +115,20 @@
 
     touchStartY = y;
   }
+
+  function trackChatAreaActivity(event: Event): void {
+    chatAreaActive = chatEl?.contains(event.target as Node) ?? false;
+  }
+
+  onMount(() => {
+    document.addEventListener("pointerdown", trackChatAreaActivity);
+    document.addEventListener("focusin", trackChatAreaActivity);
+
+    return () => {
+      document.removeEventListener("pointerdown", trackChatAreaActivity);
+      document.removeEventListener("focusin", trackChatAreaActivity);
+    };
+  });
 
   // Switching chats (or starting a new one) snaps back to the newest message.
   $effect(() => {
@@ -126,13 +148,24 @@
   // re-enters the threshold snaps the view back to the bottom mid-gesture,
   // fighting the user's own scroll instead of just gating future auto-scrolls.
   $effect(() => {
+    void turnStatus;
+    void elapsedSeconds;
+
     if (messages.length > 0 && untrack(() => stuck)) {
       scrollToBottom();
     }
   });
+
+  $effect(() => {
+    if (wasStreaming && !streaming && chatAreaActive) {
+      queueMicrotask(() => composerEl?.focusInput());
+    }
+
+    wasStreaming = streaming;
+  });
 </script>
 
-<div class="chat" id="chat">
+<div class="chat" id="chat" bind:this={chatEl}>
   <div
     class="chat__messages"
     data-testid={TESTID_MESSAGE_LIST}
@@ -191,7 +224,7 @@
     {/if}
   </div>
 
-  <Composer />
+  <Composer bind:this={composerEl} />
 </div>
 
 <style>

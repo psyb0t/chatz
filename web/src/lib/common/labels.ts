@@ -11,10 +11,10 @@ export function mcpChip(count: number): string {
   return `[MCP:${count}]`;
 }
 
-// Sidebar brand + collapse toggle. The wordmark now lives in the left bar.
+// Sidebar brand, repository link, and collapse toggle.
 export const SIDEBAR_WORDMARK = "Chatz";
-export const SIDEBAR_CREDIT_LABEL = "by psyb0t";
-export const SIDEBAR_CREDIT_URL = "https://github.com/psyb0t/";
+export const SIDEBAR_REPOSITORY_LABEL = "github.com/psyb0t/chatz";
+export const SIDEBAR_REPOSITORY_URL = "https://github.com/psyb0t/chatz";
 export const A11Y_SIDEBAR_COLLAPSE = "Collapse sidebar";
 export const A11Y_SIDEBAR_EXPAND = "Expand sidebar";
 // Mobile off-canvas drawer open/close (hamburger + in-drawer close button).
