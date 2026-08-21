@@ -67,8 +67,8 @@ The key distinction:
 - `ReadyNotifier` controls when dependents may advance beyond that group.
 
 Without `ReadyNotifier`, launch is treated as readiness. If `api` needs a
-database that is accepting connections—not merely a goroutine that has been
-scheduled—have `database.Ready()` return a channel and close it after the
+database that is accepting connections, not merely a goroutine that has been
+scheduled, have `database.Ready()` return a channel and close it after the
 connection is established.
 
 Missing dependency names are treated as external to this process: the manager

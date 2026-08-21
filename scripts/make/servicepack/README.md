@@ -11,8 +11,8 @@ developer-facing targets; this file documents how those targets are wired.
 
 `Makefile.servicepack` resolves a script name by checking:
 
-1. `scripts/make/<name>.sh` — project override; then
-2. `scripts/make/servicepack/<name>.sh` — framework default.
+1. `scripts/make/<name>.sh`, the project override.
+2. `scripts/make/servicepack/<name>.sh`, the framework default.
 
 For example:
 

@@ -6,7 +6,7 @@
 [![license](https://raw.githubusercontent.com/psyb0t/chatz/badges/license.svg)](LICENSE)
 [![Docker Pulls](https://img.shields.io/docker/pulls/psyb0t/chatz?style=flat-square)](https://hub.docker.com/r/psyb0t/chatz)
 
-A lean, self-hosted AI chat app that doesn't need a fucking cluster to run. One
+A lean, self-hosted AI chat app that runs without a cluster. One
 Go binary talks to OpenAI-compatible and Anthropic upstreams, streams responses
 over Anthropic-style SSE, and serves a Svelte SPA it embeds at build time
 (`go:embed`), so there's one artifact to deploy and one origin to reason
@@ -76,12 +76,12 @@ as one binary plus the database you pick, and that's the whole deploy.
   See the [rendering deep-dive](web/src/lib/render/README.md) for the streaming
   contract, catalog workflow, and responsive rendering guarantees.
 - **Recording-ready showcase mode.** Demos that depend on a live model going
-  off-script are how you end up doing eleven takes. `make run-showcase` keeps
+  off-script are unreliable. `make run-showcase` keeps
   the normal model list, MCP setup, and chat behavior intact, but intercepts
   exact catalog prompts with deterministic thinking, synthetic tool activity,
   then embedded dashboards. It uses deliberate model- and tool-like pauses, and
   every displayed business metric, action, and entity is grounded in the
-  visible synthetic tool results. No numbers pulled out of its ass. Those
+  visible synthetic tool results. Those
   replies are persisted like normal chats, so a recording can refresh or
   continue them.
 - **Auth: admin-provisioned, no public registration.** Nobody signs themselves
@@ -120,12 +120,11 @@ as one binary plus the database you pick, and that's the whole deploy.
   post-trimming messages sent to the model, including token accounting,
   reasoning, and tool arguments, so when the model does something stupid you
   can see precisely what you fed it. Secret-shaped values are redacted, but
-  ordinary user content isn't, so keep those logs on your own damn machine.
+  ordinary user content is not. Keep those logs local.
 - **Usage accounting + metrics.** Every upstream call goes through a usage
   decorator that records Prometheus counters/histograms in-process and writes
   one `llm_usage` row per call, best-effort, on a detached ctx, so the slow
-  and failed calls still get recorded instead of being exactly the ones that
-  vanish when you're trying to work out where the fuck the money went.
+  and failed calls still get recorded instead of vanishing from cost analysis.
 - **Admin readiness.** The sidebar exposes the running app version and commit,
   selected database driver, applied migration position, redacted upstream
   health, and backup-marker freshness. It never guesses a backup succeeded
@@ -341,7 +340,8 @@ chat text may remain. Do not use debug in a shared log sink. In docker compose,
 
 ## Architecture
 
-- **One origin, one binary.** No CORS bullshit, no separate frontend deploy.
+- **One origin, one binary.** No CORS configuration or separate frontend
+  deployment.
   The Go binary serves the JSON API under
   `/api/v1`, plus the embedded SvelteKit static SPA at `/` with an SPA fallback
   (any non-API path → `index.html`). The SPA is built into
@@ -358,8 +358,8 @@ chat text may remain. Do not use debug in a shared log sink. In docker compose,
   SQLite starts from its own embedded baseline rather than replaying the
   Postgres migration history; later schema changes need a migration for each
   dialect. `.gen.go` files are never hand-edited. Change the source and
-  regenerate, or enjoy explaining why your fix disappeared on the next `make
-  generate`. That shit is the API surface, not scratch space.
+  regenerate. Generated repository code is part of the database contract, not
+  scratch space.
 - **Spec-first API.** `api/api.yml` (OpenAPI 3) is the source of truth, not a
   doc somebody updates when they remember. `oapi-codegen` generates the strict
   Echo server + a Go client; the web app generates its typed client from that
@@ -380,15 +380,15 @@ chat text may remain. Do not use debug in a shared log sink. In docker compose,
   owns request snapshots, history limiting, streaming assembly, retries,
   structured output, and tool-loop safety. Its OpenAI and Anthropic drivers
   keep their SDKs locked in their own packages; chatz keeps persistence, MCP
-  discovery, and usage records. It used to live here as `pkg/elelem` and got
-  kicked the hell out into its own module, which is where that code belongs.
+  discovery, and usage records. It lives in its own module rather than in this
+  application.
 - **SSE protocol library.** [`essessey`](https://github.com/psyb0t/essessey)
   owns the event model, the publisher, the text/thinking streamers, the SSE
   framing, and reassembly of a stream back into text plus tool calls. Its
   `elelemstream` subpackage translates elelem's callbacks into
   correctly-indexed content blocks. This used to live here as
-  `internal/pkg/sse` and is now its own module too; chatz keeps only the shit
-  that's actually chatz's: the stall heartbeat and the per-round log lines.
+  `internal/pkg/sse` and now lives in its own module. Chatz keeps the stall
+  heartbeat and per-round log lines.
 - **MCP lifecycle.** Admin-managed servers connect asynchronously, expose
   namespaced tools, and retry transient failures. See
   [`internal/pkg/mcp/README.md`](internal/pkg/mcp/README.md).
@@ -430,12 +430,13 @@ Key make targets ([`Makefile`](Makefile), [`Makefile.servicepack`](Makefile.serv
 | `make run-showcase` | Build + start the normal stack with exact-message recording showcase interception. |
 | `make stop` | Stop the stack (`docker compose down`). |
 | `make build` | Build the app binary (in Docker). |
-| `make test` | Full battery: Go unit tests, integration tests, web typecheck + unit tests, and the curated browser e2e flows. |
-| `make test-coverage` | The full `make test` battery plus the Go coverage gate (what CI runs). |
+| `make test` | Go and web unit tests. It does not start test infrastructure or a browser. |
+| `make test-coverage` | Integration-tagged Go coverage gate plus web unit tests. CI runs this target. |
 | `make test-integration` | Just the integration tests (testcontainers / DIND). |
-| `make lint` / `make lint-fix` | Lint the Go code. |
+| `make lint` | Lint Go, shell, and web code. |
+| `make lint-fix` / `make lint-fix-web` | Apply Go/shell or web formatting fixes, respectively. |
 | `make audit` | Scan reachable Go code against the Go vulnerability database. |
-| `make generate` | Run all codegen: `go generate ./...` plus the ui-lib and svelte builds. Each generated package declares its own generator in a `gen.go`, so new ones are picked up automatically. |
+| `make generate` | Run all code generation: `go generate ./...` plus the static web build. Each generated package declares its own generator in a `gen.go`, so new ones are picked up automatically. |
 | `make generate-repos` | Regenerate just the gorm repositories. |
 | `make generate-api` | Regenerate just the HTTP server + client. |
 | `make migrate` | Run DB migrations. |
@@ -466,9 +467,9 @@ against both throwaway Postgres and temporary in-container SQLite databases,
 plus a fake upstream (and, when a driver needs it, an MCP fixture server) on
 one shared network, then drives a real headless
 browser via [`psyb0t/stealthy-auto-browse`](https://hub.docker.com/r/psyb0t/stealthy-auto-browse)
-action-by-action through its JSON HTTP API. Every step is asserted, so when it
-breaks you get the exact action that shat itself instead of "test failed", and
-the whole stack is torn down on cleanup. The shared fixtures live in
+action-by-action through its JSON HTTP API. Every step is asserted, so failures
+identify the action that failed, and the whole stack is torn down on cleanup.
+The shared fixtures live in
 `tests/testinfra/` (`api.go`, `browser.go`).
 
 The drivers cover: showcase dashboard render + reload durability (`showcase`),
@@ -613,19 +614,12 @@ docker start chatz
 ## Security notes
 
 `make audit` runs the Go vulnerability scanner against every pinned version.
-It currently reports exactly one advisory that can't be fixed, written down
-here so the next person knows it was actually considered and not just ignored:
-
-| Advisory | Module | Why chatz is not affected |
-|---|---|---|
-| [GO-2026-5932](https://pkg.go.dev/vuln/GO-2026-5932) | `golang.org/x/crypto` | The advisory is against `golang.org/x/crypto/openpgp`, which is unmaintained and deprecated by design, hence `Fixed in: N/A`, permanently. chatz imports only `golang.org/x/crypto/bcrypt` (password hashing, `internal/pkg/core/auth/auth.go`) and never reaches the affected package. |
-
-Everything else the scanner ever flagged has been upgraded past. Dependency
-versions are pinned in `go.mod`, checksummed in `go.sum`, and vendored;
-`scripts/check_go_age.sh` additionally tells any third-party release younger
-than seven days to fuck off, because when someone poisons a package it usually
-gets caught and pulled within hours, and you'd rather not be the one who
-`go get`s it during that window.
+It reports reachability, not merely advisories in modules present in the
+dependency graph. Rerun it before a release; do not treat a past clean report
+as a permanent security status. Dependency versions are pinned in `go.mod`,
+checksummed in `go.sum`, and vendored.
+`scripts/check_go_age.sh` rejects third-party releases younger than seven days,
+giving maintainers time to identify and remove a compromised package.
 
 ---
 
@@ -634,5 +628,3 @@ gets caught and pulled within hours, and you'd rather not be the one who
 See [`LICENSE`](LICENSE).
 
 ---
-
-*Built with spite using https://github.com/psyb0t/servicepack*

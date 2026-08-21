@@ -1,151 +1,87 @@
-# Getting started
+# Getting started with Chatz
 
-Servicepack is the starting point for a Go application with multiple
-long-running things to run: an API, workers, feeds, schedulers, migration
-commands, whatever. Clone it, make the clone yours, and put your services in
-`internal/pkg/services/`.
+Chatz is already a Servicepack-based application. Do not run `make own` in this
+repository. That command is for a disposable clone of Servicepack and replaces
+its Git and module setup.
 
-It is not intended to be imported wholesale into an existing project with
-`go get`.
+For an operator quickstart, use the root [README](../README.md). This guide is
+for contributors working from a Chatz checkout.
 
-## 1. Make a fresh clone yours
+## Run the application
 
-```bash
-git clone https://github.com/psyb0t/servicepack.git my-service
-cd my-service
-make own MODNAME=github.com/yourname/my-service
-```
-
-Run that once, only in a disposable fresh clone. `make own`:
-
-1. removes shipped `example-*` services but leaves `hello-world`;
-2. removes the clone's `.git`, module manifests, and `vendor/` directory;
-3. recreates the module using the supplied `MODNAME` while retaining the
-   framework's pinned dependency and tool declarations;
-4. rewrites framework imports to your module path;
-5. replaces this README with a project stub;
-6. records the framework revision in `servicepack.version` if it does not
-   already exist;
-7. runs dependency and service-registration targets; and
-8. initializes a new Git repository on `main` and creates an initial commit.
-
-It needs Git identity configured well enough for that initial commit. Its
-normal dependency and generation targets run in the Docker development image;
-it does not reject an older host Go toolchain.
-
-Your binary name is the final segment of `MODNAME`: for
-`github.com/yourname/my-service`, it is `my-service`.
-
-## 2. Add a service
+Docker is the required development toolchain. The Make targets build the
+development image and run Go, Node, and Python tooling in containers.
 
 ```bash
-make service NAME=price-worker
+make run
 ```
 
-That creates `internal/pkg/services/price-worker/priceworker.go` and then
-regenerates `internal/pkg/services/services.gen.go`. The generated file finds
-the service factories at runtime; do not hand-edit it.
+The command builds the production image, creates `chatz.log` as a regular host
+file, starts Postgres and Chatz, then serves the embedded SPA at
+`http://localhost:8080`. Copy `.env.example` to the gitignored `.env` when you
+need an upstream, real-model tests, or a non-default database setting. The app
+can start with no LLM configured, so complete `/setup` first and configure an
+upstream later.
 
-The scaffold is intentionally boring:
+Set `CHATZ_DB_DRIVER=sqlite` in `.env` before `make run` to use the persistent
+`chatzdata` Docker volume instead of the Compose Postgres service. SQLite mode
+is for one Chatz process and one local volume. It does not migrate an existing
+Postgres database or support shared storage.
 
-```go
-func (s *PriceWorker) Run(ctx context.Context) error {
-	ctx = ctxscope.Set(ctx, ctxscope.Attr("service", ServiceName))
-	logger := ctxscope.GetLogger(ctx)
-	logger.Info("starting service")
-
-	<-ctx.Done()
-	logger.Info("service context cancelled")
-
-	return nil
-}
-```
-
-Replace the wait with the real work, but keep cancellation part of the
-contract. `Run` returning a non-nil error normally starts application
-shutdown; see [services and lifecycle](services-and-lifecycle.md) for the
-exceptions and retry rules.
-
-When you add, remove, rename, or materially change a service implementation,
-regenerate registration:
+Stop the local stack with:
 
 ```bash
-make service-registration
+make stop
 ```
 
-## 3. Configure and run it
+## Work on one area
 
-Generated services load their own typed config with `gonfiguration`:
-
-```go
-type Config struct {
-	Endpoint string        `env:"PRICEWORKER_ENDPOINT"`
-	Interval time.Duration `env:"PRICEWORKER_INTERVAL" default:"15s"`
-}
-```
-
-Parse configuration in `New`, fail with context, and do not reach straight for
-`os.Getenv`:
-
-```go
-func New() (*PriceWorker, error) {
-	cfg := Config{}
-
-	if err := gonfiguration.Parse(&cfg); err != nil {
-		return nil, ctxerrors.Wrap(err, "parse price-worker config")
-	}
-
-	return &PriceWorker{config: cfg}, nil
-}
-```
-
-Build and run:
-
-```bash
-make build
-./build/my-service run
-```
-
-For the everyday development loop, `make run-dev` builds the development image
-and runs the application with the race detector. It is useful for the shipped
-examples; a made-own project usually needs its own config and services first.
-
-## Framework configuration
-
-These names belong to the framework itself. Your services own their own
-configuration names.
-
-| Variable | Meaning | Default |
-| --- | --- | --- |
-| `LOG_LEVEL` | `debug`, `info`, `warn`, or `error` logging threshold. | Handler default |
-| `LOG_FORMAT` | `json` or `text` output. | Handler default |
-| `LOG_ADD_SOURCE` | Include source location in log records. | Handler default |
-| `ENV` | Environment selected by `goenv`. | `prod` |
-| `RUNNER_SHUTDOWNTIMEOUT` | Whole-application graceful shutdown deadline. | `10s` |
-| `SERVICES_ENABLED` | Comma-separated in-process service allowlist. Empty/unset means all registered services. | all |
-
-Example:
-
-```bash
-SERVICES_ENABLED=price-worker,api LOG_LEVEL=debug ./build/my-service run
-```
-
-## Where your changes go
-
-| You are changing | Put it here |
+| You are changing | Start here |
 | --- | --- |
-| A business service | `internal/pkg/services/<name>/` |
-| Service-specific config | That service's `Config` struct and project env documentation |
-| Startup/shutdown extensions | `cmd/init.go` hooks |
-| Standalone application commands | `cmd/commands.go` |
-| Project build behavior | `Makefile` or `scripts/make/` overrides |
-| Project Docker behavior | `Dockerfile`, `Dockerfile.dev` |
+| HTTP API contract | `api/api.yml`, then `make generate` |
+| HTTP handlers and service wiring | `internal/pkg/http/server/` and `internal/pkg/services/http-server/` |
+| Chat turns, history, streaming, or showcase replies | `internal/pkg/core/chats/` |
+| MCP configuration or tool transport | `internal/pkg/mcp/` |
+| Database schema or repositories | `internal/pkg/db/migrations/`, `internal/pkg/db/models/`, and `internal/pkg/db/repositories/` |
+| Svelte UI | `web/src/` |
+| Generative UI catalog | `web/src/lib/render/`, then `make genui-prompt` |
+| Runtime configuration | `.env.example` and `internal/pkg/config/config.go` |
 
-The framework-owned directories are deliberately replaceable by
-`make servicepack-update`: `internal/app/`,
-`internal/pkg/service-manager/`, `pkg/runner/`, `cmd/main.go`,
-`Makefile.servicepack`, `scripts/make/servicepack/`, and
-`Dockerfile.servicepack*`. Do not put application-specific changes there.
+The generated boundaries are intentional. `api/api.yml` generates the strict
+server/client types and web API types. Gorm repository generation and the
+embedded GenUI prompt also have declared generators. Change the source, then
+run `make generate`; never hand-edit generated output.
 
-Next: learn the [service lifecycle](services-and-lifecycle.md), then the
-[Docker-first development workflow](development.md).
+## Test the right layer
+
+```bash
+make test              # Go and web unit tests
+make test-integration  # Postgres-backed integration tests
+make test-coverage     # Integration-tagged Go coverage gate plus web tests
+make test-api           # Production image + browser against both databases
+make test-real          # Opt-in live-provider and MCP tests using .env
+make lint               # Go, shell, and web checks
+```
+
+`make test` does not require a Docker socket and never contacts a live model.
+`make test-integration`, `make test-coverage`, and `make test-api` start their
+own Testcontainers fixtures. `make test-real` is the only test target that
+uses the provider settings from `.env`; it skips the live cases without a
+usable upstream.
+
+See [development](development.md) for the exact test tiers, focused test
+variables, dependency targets, and build behavior.
+
+## Framework-owned code
+
+Chatz extends Servicepack but does not modify its updateable implementation
+layer for application behavior. Project-owned extensions belong in `Makefile`,
+`scripts/make/`, `internal/pkg/services/`, and the application Dockerfiles.
+Framework files, including `Makefile.servicepack`, `pkg/runner/`,
+`internal/pkg/service-manager/`, and `scripts/make/servicepack/`, are replaced
+by `make servicepack-update`.
+
+Read [framework updates](framework-updates.md) before updating Servicepack.
+Read [architecture](architecture.md) for runtime ownership and
+[services and lifecycle](services-and-lifecycle.md) when changing service
+startup or shutdown behavior.

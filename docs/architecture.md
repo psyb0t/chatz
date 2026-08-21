@@ -1,8 +1,9 @@
 # Architecture
 
-Servicepack is a clone-and-own application skeleton. It gives a project a
-well-defined process lifecycle and a place for multiple services; it does not
-require every future deployment to stay inside one binary.
+Chatz is a Servicepack-based application. Servicepack supplies the process
+lifecycle and in-process service manager. Chatz currently registers one HTTP
+service that owns the API, embedded SPA, database connection, MCP manager, and
+LLM upstream registry.
 
 ## Runtime shape
 
@@ -30,41 +31,18 @@ the [service manager](../internal/pkg/service-manager/README.md). `App` is the
 place for whole-process behavior; individual services should not reach across
 into siblings to create their own lifecycle graph.
 
-## Local composition and deployment choices
+## Deployment shape
 
-During local development, keeping related services in one process makes
-debugging concrete: one binary, one cancellation path, one structured log
-stream, and direct visibility into failures. This is the default development
-shape:
+One Chatz container runs one binary. The binary serves the versioned JSON/SSE
+API and the static SPA from the same origin. Postgres is the default store;
+SQLite is available for a single process using one local Docker volume. See the
+root [README](../README.md) for the deployment and backup commands.
 
-```
-my-service process
-  ├─ api service
-  ├─ worker service
-  ├─ scheduler service
-  └─ migration command namespace
-```
-
-Production has two valid shapes:
-
-```
-one release unit                      independently deployed units
-----------------                      ----------------------------
-my-service binary                     api binary ──────┐
-  ├─ api                               worker binary ───┼─ explicit HTTP/gRPC/queue contracts
-  ├─ worker                            scheduler binary ┘
-  └─ scheduler
-```
-
-Choose one binary when the services have the same release cadence and
-operational boundary. Split when they need separate scaling, ownership,
-security boundaries, or failure isolation. Splitting is an architecture change:
-replace in-process calls and service-manager dependency declarations with
-explicit APIs, messages, authentication, retries, observability, and deploy
-configuration.
-
-`SERVICES_ENABLED` is useful for a partial local run within one binary; it is
-not a microservice deployment system.
+The HTTP service constructs the database, generated repositories, auth service,
+MCP manager, upstream registry, and web-asset server. They run in the same
+process and share its cancellation path. Adding separately deployed workers or
+other processes would require explicit network or queue contracts. A
+Servicepack dependency declaration only orders in-process services.
 
 ## Source ownership
 
@@ -89,12 +67,13 @@ update's normal exclusion policy preserves it. See
 ## Registration and lazy construction
 
 `make service-registration` runs the generator that discovers `Service`
-implementations and writes `internal/pkg/services/services.gen.go`. The
-generated code registers factories rather than fully constructed services.
+implementations and writes `internal/pkg/services/services.gen.go`. Chatz uses
+that generated registration for its HTTP service. The generated code registers
+factories rather than fully constructed services.
 
 That distinction matters:
 
-- `run` instantiates all enabled factories;
+- `run` instantiates enabled factories;
 - a per-service Cobra command instantiates only that one service;
 - connections and config parsing happen in a service's `New`, not at package
   import time.
@@ -111,9 +90,8 @@ The binary and build commit are global scope; the service manager adds a
 context passed into `Run`; it carries cancellation and those fields together.
 
 Configuration is typed and parsed at each service boundary with
-`gonfiguration`. Framework settings are documented in
-[getting started](getting-started.md); application settings belong in the
-project's own docs and config examples.
+`gonfiguration`. Chatz configuration is documented in the root
+[README](../README.md) and [`.env.example`](../.env.example).
 
 ## Build and test topology
 

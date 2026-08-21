@@ -28,7 +28,7 @@ The runner waits for the first of:
 - a return from `Runnable.Run`.
 
 A non-nil `Run` error is logged and returned with context after shutdown. A
-nil return also initiates cleanup—it means the application is done, not that
+nil return also initiates cleanup. It means the application is done, not that
 the runner should hang forever.
 
 ## Deadline semantics

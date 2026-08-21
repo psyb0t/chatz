@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Updated Servicepack from v1.8.1 to v1.9.0. Future framework updates leave
   Chatz's downstream-owned `docs/` and `tests/` trees untouched.
+- Updated Servicepack to v1.9.1. Update backups now archive only tracked and
+  unignored local files, and the updater rejects a framework file hidden by
+  `.gitignore` before it can produce an incomplete commit.
+- Corrected contributor documentation to describe Chatz's current test tiers,
+  generation targets, Docker workflow, and Servicepack ownership boundaries.
 
 ## [0.7.1] - 2026-08-20
 

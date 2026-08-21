@@ -8,8 +8,9 @@ The Makefile has two execution shapes:
 
 - ordinary build, lint, formatting, dependency, and vulnerability work runs
   in the development container with the repository mounted at `/work`;
-- `make test-unit` uses the ordinary socketless container; full, integration,
-  and coverage targets mount the Docker socket for Testcontainers.
+- `make test` and `make test-unit` use the ordinary socketless container;
+  integration, coverage, and browser API targets mount the Docker socket for
+  Testcontainers.
 
 The exact scripts and override lookup live in the
 [framework Make-script deep dive](../scripts/make/servicepack/README.md).
@@ -19,12 +20,15 @@ The exact scripts and override lookup live in the
 | Target | Runs where | Purpose |
 | --- | --- | --- |
 | `make dev-image` | Docker build | Build the development image used by normal tooling. |
-| `make test` | Docker + socket | Race-enabled `go test ./...`. |
-| `make test-unit` | Docker | Race-enabled `go test ./...` without Docker-socket access. |
-| `make test-integration` | Docker + socket | Uncached, race-enabled test run with a ten-minute timeout. |
-| `make test-coverage` | Docker + socket | Race-enabled coverage check; default floor is `MIN_TEST_COVERAGE=90`. |
-| `make lint` | Docker | `shfmt`, ShellCheck, `go fix` diff check, and golangci-lint. |
-| `make lint-fix` | Docker | Apply supported formatting and lint fixes. Review its diff. |
+| `make test` | Docker | Race-enabled Go unit tests plus web unit tests. |
+| `make test-unit` | Docker | Race-enabled Go unit tests only, optionally narrowed with `PKG=./path/...`. |
+| `make test-integration` | Docker + socket | Uncached, race-enabled integration tests with a ten-minute timeout. |
+| `make test-coverage` | Docker + socket | Integration-tagged Go coverage gate plus web unit tests. The default floor is `MIN_TEST_COVERAGE=85`. |
+| `make test-api` | Docker + socket | Full app-image browser suite against Postgres and SQLite. |
+| `make test-real` | Docker + socket | Opt-in live-provider and MCP tests using `.env`. |
+| `make lint` | Docker | Go/shell lint plus Prettier and Svelte checks. |
+| `make lint-fix` | Docker | Apply supported Go and shell formatting fixes. Review its diff. |
+| `make lint-fix-web` | Docker | Format the web app, then run Svelte checks. |
 | `make format` | Docker | Run gofumpt and shfmt. |
 | `make audit` | Docker | Run `govulncheck` over reachable Go code. |
 | `make sec` | Docker | Full security scan: `govulncheck` + semgrep, merged into `sec.sarif` for the Security tab. Fails on any finding. |
@@ -39,24 +43,19 @@ toolchains two chances to disagree.
 
 ## Tests, integration tests, and coverage
 
-`make test` is the standard full suite. It enables Go's race detector and has
-Docker available for Testcontainers-backed tests. `make test-integration` uses
-the same package pattern but disables the Go test cache and applies a
-ten-minute timeout. Use it when checking changes to real-infrastructure tests.
-Use `make test-unit` for the same race-enabled package walk without exposing
-the Docker socket; Testcontainers-backed cases cannot start infrastructure in
-that target.
+`make test` is the fast default: race-enabled Go unit tests plus web unit tests,
+with no Docker socket and no test infrastructure. `make test-integration` adds
+the integration build tag, disables the Go test cache, and applies a ten-minute
+timeout. Use it for changes that touch the database, HTTP server, MCP manager,
+or other real-infrastructure paths. `make test-unit` runs only the Go unit suite
+and accepts `PKG` when a narrow package run is useful.
 
 `make test-coverage` also runs the race detector. It instruments every module
-package (`-coverpkg=<module>/...`) and runs `-tags=integration`, so a test under
-`tests/` credits coverage to the production package it drives, and **services are
-covered**. A service-heavy project does not need to override the script to gate
-its own code. A service that runs out-of-process in a real container is covered
-too: the script exports `SERVICEPACK_COVDATA_DIR`, an integration test mounts it
-into that container as `GOCOVERDIR`, and the native covdata is merged into the
-total. Only what is not hand-written code under test is excluded from the floor:
-`cmd/` mains, the `tests/` harness, generated `*.gen.go`, the service-manager
-mocks, and the framework's own `example-*` / `hello-world` demo services.
+package (`-coverpkg=<module>/...`) with the integration build tag, so a test
+under `tests/` credits coverage to the production package it drives. It merges
+coverage emitted by the production app container through
+`SERVICEPACK_COVDATA_DIR`. The gate excludes command wiring, test harnesses,
+generated `*.gen.go`, and service-manager mocks. It then runs `make test-web`.
 Override the threshold deliberately:
 
 ```bash
@@ -68,16 +67,14 @@ the temporary coverage profiles. Testcontainers needs access to the Docker
 daemon; if Docker cannot create containers, fix Docker access rather than
 working around the integration tests.
 
-Integration tests live under `tests/`. `tests/testinfra` is the harness: its
-baseline `Setup` builds the servicepack image from the repo `Dockerfile` and
-runs it, and `tests/integration` boots that image to confirm the app comes up
-with whatever services are registered. Both are a starting point you grow.
-Extend `Infra` with the real dependencies your services need (a database, a
-cache, a broker via testcontainers-go) and add tests that drive them. `tests/`
-is listed in `.servicepackupdateignore`, so a framework update never overwrites
-your copy. The Docker runner already supports this: `DEV_RUN_DIND` runs on the
-host network, so testcontainers' host-published ports are reachable from the
-test process.
+Integration tests live under `tests/integration/` and use the shared
+`tests/testinfra/` harness. They exercise real Postgres, the HTTP server, chat
+turn persistence, MCP lifecycle, model discovery, and context selection.
+`tests/api/` is a separate browser tier. It builds the production image and
+drives it through a headless browser against both Postgres and SQLite. The
+Docker runner uses the host network, so testcontainers' host-published ports
+are reachable from the test process. `tests/` is listed in
+`.servicepackupdateignore`, so a framework update never overwrites it.
 
 ## Build outputs and runtime identity
 
@@ -106,7 +103,7 @@ the relevant script before changing either.
 Use the Make targets so dependency metadata and `vendor/` stay synchronized:
 
 ```bash
-make dep
+make pkg-lock
 make pkg-add PKG=example.com/module@v1.2.3
 make pkg-update PKG=example.com/module
 make pkg-upgrade
@@ -137,10 +134,9 @@ Likewise, project `Dockerfile`, `Dockerfile.dev`, `cmd/init.go`, and
 ## Before you hand off a change
 
 For a normal code change, run the narrowest useful target first, then the
-relevant full check, for example `make test`, `make lint`, and
-`make test-coverage` when a framework behavior changes. The repository's
-pre-commit hook calls `make lint && make test-coverage`, so it will repeat
-those checks during the project's normal commit flow.
+relevant broader check. For example, run `make test` and `make lint` for a
+unit-sized change. Run `make test-coverage` after changing backend behavior,
+and `make test-api` after changing an end-to-end user flow.
 
 Read [getting started](getting-started.md) for ownership boundaries and
 [architecture](architecture.md) for where a change should live.
