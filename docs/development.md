@@ -30,7 +30,6 @@ The exact scripts and override lookup live in the
 | `make lint-fix` | Docker | Apply supported Go and shell formatting fixes. Review its diff. |
 | `make lint-fix-web` | Docker | Format the web app, then run Svelte checks. |
 | `make format` | Docker | Run gofumpt and shfmt. |
-| `make audit` | Docker | Run `govulncheck` over reachable Go code. |
 | `make sec` | Docker | Full security scan: `govulncheck` + semgrep, merged into `sec.sarif` for the Security tab. Fails on any finding. |
 | `make generate` | Docker | Execute package-local `go:generate` directives. |
 | `make build` | Docker | Build a static executable under `build/`. |

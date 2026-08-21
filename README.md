@@ -435,7 +435,6 @@ Key make targets ([`Makefile`](Makefile), [`Makefile.servicepack`](Makefile.serv
 | `make test-integration` | Just the integration tests (testcontainers / DIND). |
 | `make lint` | Lint Go, shell, and web code. |
 | `make lint-fix` / `make lint-fix-web` | Apply Go/shell or web formatting fixes, respectively. |
-| `make audit` | Scan reachable Go code against the Go vulnerability database. |
 | `make generate` | Run all code generation: `go generate ./...` plus the static web build. Each generated package declares its own generator in a `gen.go`, so new ones are picked up automatically. |
 | `make generate-repos` | Regenerate just the gorm repositories. |
 | `make generate-api` | Regenerate just the HTTP server + client. |
@@ -613,8 +612,9 @@ docker start chatz
 
 ## Security notes
 
-`make audit` runs the Go vulnerability scanner against every pinned version.
-It reports reachability, not merely advisories in modules present in the
+`make sec` runs the full security scan (govulncheck plus semgrep) against every
+pinned version, merging the results into `sec.sarif`. Its govulncheck half
+reports reachability, not merely advisories in modules present in the
 dependency graph. Rerun it before a release; do not treat a past clean report
 as a permanent security status. Dependency versions are pinned in `go.mod`,
 checksummed in `go.sum`, and vendored.

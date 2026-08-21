@@ -30,7 +30,7 @@ include Makefile.servicepack
 	test test-go test-web test-coverage \
 	generate generate-repos generate-api genui-prompt \
 	test-unit test-integration test-real test-api \
-	pkg-lock pkg-add pkg-add-tool pkg-update pkg-upgrade pkg-remove audit \
+	pkg-lock pkg-add pkg-add-tool pkg-update pkg-upgrade pkg-remove \
 	web-install web-build web-embed web-dev web-gen-api format-web lint-fix-web \
 	web-pkg-lock web-pkg-add \
 	web-pkg-update web-pkg-upgrade web-pkg-remove
@@ -162,9 +162,6 @@ pkg-remove: dev-image ## Remove one direct Go dependency (usage: make pkg-remove
 	@test -n "$(PKG)" || (echo "usage: make pkg-remove PKG=module" >&2; exit 1)
 	$(DEV_RUN) env GOFLAGS= go mod edit -droprequire="$(PKG)"
 	$(MAKE) pkg-lock
-
-audit: dev-image ## Scan reachable Go code against the Go vulnerability database
-	$(DEV_RUN) go tool govulncheck ./...
 
 # --- Web frontend: build / dev / check / format -----------------------------
 

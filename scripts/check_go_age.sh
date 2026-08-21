@@ -29,7 +29,7 @@ fi
 # routinely step around by hand stops being a gate at all.
 #
 # The rest of the supply-chain stack still applies to these: pinned in go.mod,
-# checksummed in go.sum, vendored, and scanned by `make audit`.
+# checksummed in go.sum, vendored, and scanned by `make sec`.
 readonly FIRST_PARTY_PREFIX="github.com/psyb0t/"
 
 if [[ "${MODULE}" == "${FIRST_PARTY_PREFIX}"* ]]; then
