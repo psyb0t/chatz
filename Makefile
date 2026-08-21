@@ -99,7 +99,9 @@ generate-api: dev-image ## Regenerate just the HTTP server + client
 migrate: ## Run DB migrations in Docker
 	@bash "$(call find_script_path,migrate.sh)"
 
+# The recipe suppresses the inherited Servicepack lint recipe.
 lint: lint-go lint-web ## Lint everything: Go/shell and the web app
+	@:
 
 lint-go: ## Lint Go and shell (shfmt, shellcheck, go fix, golangci-lint) in Docker
 	@$(MAKE) dev-image
@@ -108,7 +110,9 @@ lint-go: ## Lint Go and shell (shfmt, shellcheck, go fix, golangci-lint) in Dock
 test-integration: ## Run integration tests (testcontainers, DIND) in Docker
 	@bash "$(call find_script_path,test_integration.sh)"
 
+# The recipe suppresses the inherited Servicepack DIND test recipe.
 test: test-go test-web ## Run all unit tests: Go and web
+	@:
 
 test-go: ## Run the Go unit tests (no build tag, no infra) in Docker
 	@bash "$(call find_script_path,test.sh)"

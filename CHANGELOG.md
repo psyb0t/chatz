@@ -5,6 +5,19 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-08-21
+
+### Fixed
+
+- Added project recipes to `make lint` and `make test`, so GNU Make no longer
+  appends Servicepack's inherited recipes. The commands now run their intended
+  Chatz checks once and do not attempt Docker from inside the dev container.
+
+### Changed
+
+- Updated Servicepack from v1.8.1 to v1.9.0. Future framework updates leave
+  Chatz's downstream-owned `docs/` and `tests/` trees untouched.
+
 ## [0.7.1] - 2026-08-20
 
 ### Changed
