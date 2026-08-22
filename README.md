@@ -76,8 +76,8 @@ as one binary plus the database you pick, and that's the whole deploy.
   See the [rendering deep-dive](web/src/lib/render/README.md) for the streaming
   contract, catalog workflow, and responsive rendering guarantees.
 - **Recording-ready showcase mode.** Demos that depend on a live model going
-  off-script are unreliable. `make run-showcase` keeps
-  the normal model list, MCP setup, and chat behavior intact, but intercepts
+  off-script are unreliable. `CHATZ_SHOWCASE_MODE=true` keeps the normal model
+  list, MCP setup, and chat behavior intact, but intercepts
   exact catalog prompts with deterministic thinking, synthetic tool activity,
   then embedded dashboards. It uses deliberate model- and tool-like pauses, and
   every displayed business metric, action, and entity is grounded in the
@@ -134,37 +134,38 @@ as one binary plus the database you pick, and that's the whole deploy.
 
 ## Quickstart
 
-One command brings up the whole thing, Postgres plus the Go backend, which
-serves both the API and the embedded SvelteKit SPA on a single origin:
+Docker Compose is the normal way to run Chatz from a checkout. It starts
+Postgres and the Chatz image, which serves both the API and embedded web app on
+one origin.
 
 ```bash
-make run
+cp .env.example .env
+touch chatz.log
+docker compose up --build
 ```
 
 Then open **http://localhost:8080**. First run needs no secrets and no LLM
 config whatsoever: the SPA loads, you hit **`/setup`** to create the admin, and
 the chat list works (the model list is just empty until you wire an upstream).
-With no LLM configured at all you can still drive the render pipeline
-end-to-end via showcase mode: `make run-showcase`, then send one of the
-embedded catalog prompts.
 
-Tear it down with:
+The Compose stack stores Postgres data in its `pgdata` volume. Chatz writes
+diagnostic logs to `chatz.log`, so watch it with `tail -f chatz.log`. Stop the
+stack without deleting its data:
 
 ```bash
-make stop
+docker compose down
 ```
 
-`make run` builds the image (the `Dockerfile`'s node stage builds the SPA and the
-Go stage embeds it into the binary), starts Postgres by default, waits for it to
-be healthy, then starts the backend on `127.0.0.1:8080`. Health check: `GET
-/healthz`. To change the host port, set `CHATZ_HTTP_PORT` in `.env`.
+The image build compiles the web app and embeds it in the Go binary. Chatz
+waits for Postgres health before starting. Its health endpoint is `GET
+/healthz`. Set `CHATZ_HTTP_PORT` in `.env` to change the loopback host port.
 
 ### SQLite single-instance mode
 
-Set `CHATZ_DB_DRIVER=sqlite` in `.env`, then use the same command:
+Set `CHATZ_DB_DRIVER=sqlite` in `.env`, then start only Chatz:
 
 ```bash
-make run
+docker compose up --build --no-deps chatz
 ```
 
 That starts only Chatz, not the Postgres dependency. Its database is a regular
@@ -174,9 +175,11 @@ Docker volume only: do not place it on NFS, share it between replicas, or expect
 it to convert an existing Postgres database. Keep Postgres for shared or
 multi-process deployments.
 
-`make run` also creates a host-side JSON diagnostic file, `chatz.log`, and the
-app truncates/reopens it on boot. Watch it from another terminal with
-`tail -f chatz.log`.
+### Run a release image
+
+Published tags are multi-architecture images. For a production Docker run with
+SQLite, a persistent volume, a read-only filesystem, and bounded resources,
+follow the [release-image deployment](#release-image) instructions below.
 
 ### Record a deterministic showcase
 
@@ -184,7 +187,7 @@ For a screen recording, start the normal stack with exact-message showcase
 interception enabled:
 
 ```bash
-make run-showcase
+CHATZ_SHOWCASE_MODE=true docker compose up --build
 ```
 
 After completing `/setup`, select a normally configured model and send one of
@@ -257,8 +260,8 @@ credential that upstream may use and a keyless local endpoint stays keyless.
   initial picker choice. Omit capability booleans when unknown; Chatz will not
   pretend that a provider supports a control it has not declared.
 
-`make run` picks up `.env` automatically. `.env` is gitignored. Don't be the
-guy who commits real keys anyway.
+Docker Compose loads `.env` automatically. `.env` is gitignored. Do not commit
+real keys.
 
 ### Secrets key (for MCP secrets at rest)
 
@@ -305,7 +308,7 @@ See [`.env.example`](.env.example).
 | `CHATZ_SESSION_SECRET` | *(empty)* | Reserved for future cookie signing / CSRF; not required yet. |
 | `CHATZ_SECRETS_KEY` | *(empty)* | Base64 32-byte AES-256-GCM key sealing MCP secrets at rest. Unset ⇒ secret storage refused (no plaintext). |
 | `CHATZ_AUTH_PASSWORDLESS` | `false` | Auto-login the sole admin while exactly one user exists. |
-| `CHATZ_SHOWCASE_MODE` | `false` | Intercept exact recording-showcase prompts with deterministic thinking, synthetic tool cards, and embedded dashboards. Model discovery, MCP setup, and all other chat turns remain normal. `make run-showcase` sets it for that run. |
+| `CHATZ_SHOWCASE_MODE` | `false` | Intercept exact recording-showcase prompts with deterministic thinking, synthetic tool cards, and embedded dashboards. Model discovery, MCP setup, and all other chat turns remain normal. Set it in `.env` or for one Docker Compose command. |
 | `CHATZ_UPSTREAMS` | *(empty)* | JSON array of Elelem-driver upstreams with `provider` set to `openai` or `anthropic`. `baseUrl` is optional for the providers' official endpoints; `apiKeyEnv` is the only credential source for its upstream. Optional `models` entries attach aliases; token limits; tools/reasoning/vision/files support; expected first-token latency; and input/output prices only to IDs discovered from that upstream. Prices are integer currency-smallest-units per million tokens (`amountSmallestUnit` + uppercase ISO currency), never floats. Empty leaves the app up with no LLM models. |
 | `CHATZ_DEFAULT_MODEL` | *(empty)* | Discovered model ID used as the instance default for new chats. Startup rejects an ID no configured upstream advertises. |
 | `CHATZ_UPSTREAM_CONNECT_TIMEOUT` | `10s` | Bounds model discovery and TCP/TLS connection setup for each outbound provider request. |
@@ -413,91 +416,18 @@ are ownership-checked; user and MCP administration require an admin session.
 
 ## Development
 
-The frontend lives in [`web/`](web/) (SvelteKit static SPA, `adapter-static`,
-typed against `api/api.yml`). See [`web/README.md`](web/README.md).
+The Makefile is for contributors working from source. It runs the Go, web, and
+test toolchains in Docker. Start with `make lint`, `make test`, and
+`make generate`. See [the development guide](docs/development.md) for the full
+target list, integration-test controls, and generated-code workflow.
 
-For detailed handoff, read [`internal/pkg/core/chats/README.md`](internal/pkg/core/chats/README.md),
+The frontend lives in [`web/`](web/) (SvelteKit static SPA, `adapter-static`,
+typed against `api/api.yml`). For implementation details, read
+[`internal/pkg/core/chats/README.md`](internal/pkg/core/chats/README.md),
 [`internal/pkg/mcp/README.md`](internal/pkg/mcp/README.md), and
 [`web/src/lib/render/README.md`](web/src/lib/render/README.md). The reusable LLM
 engine and driver contract are documented in the
 [elelem repository](https://github.com/psyb0t/elelem).
-
-Key make targets ([`Makefile`](Makefile), [`Makefile.servicepack`](Makefile.servicepack)):
-
-| Target | What it does |
-|---|---|
-| `make run` | Build + start Chatz via docker compose; Postgres by default, or one-process SQLite when `CHATZ_DB_DRIVER=sqlite` is in `.env`. |
-| `make run-showcase` | Build + start the normal stack with exact-message recording showcase interception. |
-| `make stop` | Stop the stack (`docker compose down`). |
-| `make build` | Build the app binary (in Docker). |
-| `make test` | Go and web unit tests. It does not start test infrastructure or a browser. |
-| `make test-coverage` | Integration-tagged Go coverage gate plus web unit tests. CI runs this target. |
-| `make test-integration` | Just the integration tests (testcontainers / DIND). |
-| `make lint` | Lint Go, shell, and web code. |
-| `make lint-fix` / `make lint-fix-web` | Apply Go/shell or web formatting fixes, respectively. |
-| `make generate` | Run all code generation: `go generate ./...` plus the static web build. Each generated package declares its own generator in a `gen.go`, so new ones are picked up automatically. |
-| `make generate-repos` | Regenerate just the gorm repositories. |
-| `make generate-api` | Regenerate just the HTTP server + client. |
-| `make migrate` | Run DB migrations. |
-| `make web-dev` | Run the Vite dev server (proxies `/api` + `/healthz` to the backend). |
-| `make web-build` | Build the static SPA (`web/build`). |
-| `make web-embed` | Build the SPA and sync it into the `go:embed` dist dir. |
-| `make web-gen-api` | Regenerate the web API types from `api/api.yml`. |
-| `make genui-prompt` | Regenerate the backend's embedded GenUI prompt from the web catalog. |
-| `make lint-web` | Lint the web app: `prettier --check` + `svelte-check` (strict). Runs as part of `make lint`. |
-| `make test-web` | Web unit tests (vitest: SSE parser + render pipeline). Runs as part of `make test` and `make test-coverage`. |
-| `make test-api` | API suite (Go testcontainers: pg + prod app image + browser). See below. |
-
-Web dependencies go through the age-gated `web-pkg-*` targets only
-(`web-pkg-add`, `web-pkg-remove`, `web-pkg-update`, `web-pkg-lock`): pnpm
-only, never raw `npm` / `pnpm add`. Yes, really. Use the targets.
-
-Go dependencies and tools go through the age-gated `pkg-*` targets only
-(`pkg-add`, `pkg-add-tool`, `pkg-remove`, `pkg-update`, `pkg-upgrade`, and
-`pkg-lock`). They refresh `go.sum` and the committed `vendor/` tree inside the
-dev container, so nobody's laptop-specific toolchain gets to decide what ships.
-
-### API tests
-
-`make test-api` runs the full-stack API suite entirely in Go, under the `api`
-build tag in `tests/api/`. Each test is self-contained: [testcontainers](https://golang.testcontainers.org/)
-stands up the prod app image (built from the repo `Dockerfile`, embedded SPA)
-against both throwaway Postgres and temporary in-container SQLite databases,
-plus a fake upstream (and, when a driver needs it, an MCP fixture server) on
-one shared network, then drives a real headless
-browser via [`psyb0t/stealthy-auto-browse`](https://hub.docker.com/r/psyb0t/stealthy-auto-browse)
-action-by-action through its JSON HTTP API. Every step is asserted, so failures
-identify the action that failed, and the whole stack is torn down on cleanup.
-The shared fixtures live in
-`tests/testinfra/` (`api.go`, `browser.go`).
-
-The drivers cover: showcase dashboard render + reload durability (`showcase`),
-theme toggle / tool-card collapse / settings popover / model-picker filter
-(`smoke`), the admin users page (`users`), the per-chat and admin MCP flows
-(`chat_mcp`, `mcp_admin`), and the mobile off-canvas drawer geometry
-(`mobile_drawer`). They assert on rendered DOM plus the structured `CHATZ_LOG`
-console lines the client logger emits (via `?log=debug`), proving the embed +
-serve + SSE chain round-trips same-origin. `make test-api` runs it in the dev
-container with the host Docker socket (DIND). Focus one flow without bypassing
-the harness with, for example,
-`API_RUN='^TestSmoke$' API_PARALLEL=1 make test-api`; `API_TIMEOUT` controls the
-package timeout. It runs each selected flow against both stores by default;
-set `API_DB_DRIVERS=sqlite` or `API_DB_DRIVERS=postgres` to focus one.
-
-The `real_chat` driver exercises a genuine streamed turn against a live
-configured OpenAI-compatible or Anthropic upstream; it self-skips unless
-`CHATZ_UPSTREAMS` is configured. It validates that configuration and forwards
-only the provider-key environment variables named by its upstream entries. Run
-it with `API_REAL=1 make test-api`, which loads the same `.env` `make run` uses.
-
-Real-LLM tool calling is covered by a build-tagged test that drives the chat loop
-against the configured provider plus the Python MCP server in
-`tests/mcpserver/`, asserting the model calls a tool and the `tool_use` /
-`tool_result` blocks reach the wire. It is opt-in and uses the same `.env`
-`make run` uses. The endpoint and provider resolve from `CHATZ_UPSTREAMS`;
-`CHATZ_REAL_MODEL` can override the provider-aware default. Run it with
-`make test-real` (dev container, host network, `--env-file .env`); it skips
-cleanly without a key.
 
 ---
 

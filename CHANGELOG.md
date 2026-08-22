@@ -5,6 +5,18 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-08-22
+
+### Fixed
+
+- Granted the `code` reusable-workflow caller `actions: read`, matching the
+  shared workflow's permissions and allowing CI to start.
+
+### Changed
+
+- Made Docker Compose and published-image Docker runs the primary self-hosted
+  documentation paths. Moved detailed Make commands to the contributor guide.
+
 ## [0.7.4] - 2026-08-21
 
 ### Fixed

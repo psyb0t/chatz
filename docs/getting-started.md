@@ -1,38 +1,45 @@
 # Getting started with Chatz
 
+## Run Chatz with Docker Compose
+
+Docker Compose is the normal self-hosted path from a Chatz checkout. It builds
+the application image, starts Postgres, and serves Chatz at
+`http://localhost:8080`.
+
+```bash
+cp .env.example .env
+touch chatz.log
+docker compose up --build
+```
+
+The first run works without an LLM. Open `/setup` to create the admin, then add
+an upstream later from `.env`. Postgres data lives in the `pgdata` Docker volume
+and `chatz.log` is the host-side diagnostic log.
+
+```bash
+docker compose down
+```
+
+Set `CHATZ_DB_DRIVER=sqlite` in `.env` and use this command for a single Chatz
+process backed by the persistent `chatzdata` Docker volume:
+
+```bash
+docker compose up --build --no-deps chatz
+```
+
+SQLite does not migrate an existing Postgres database and does not support
+shared storage. Use Postgres for replicas, networked storage, or an existing
+database. See the root [README](../README.md#deploy) for a hardened `docker run`
+deployment of a published image.
+
+## Develop from a checkout
+
 Chatz is already a Servicepack-based application. Do not run `make own` in this
 repository. That command is for a disposable clone of Servicepack and replaces
 its Git and module setup.
 
-For an operator quickstart, use the root [README](../README.md). This guide is
-for contributors working from a Chatz checkout.
-
-## Run the application
-
-Docker is the required development toolchain. The Make targets build the
-development image and run Go, Node, and Python tooling in containers.
-
-```bash
-make run
-```
-
-The command builds the production image, creates `chatz.log` as a regular host
-file, starts Postgres and Chatz, then serves the embedded SPA at
-`http://localhost:8080`. Copy `.env.example` to the gitignored `.env` when you
-need an upstream, real-model tests, or a non-default database setting. The app
-can start with no LLM configured, so complete `/setup` first and configure an
-upstream later.
-
-Set `CHATZ_DB_DRIVER=sqlite` in `.env` before `make run` to use the persistent
-`chatzdata` Docker volume instead of the Compose Postgres service. SQLite mode
-is for one Chatz process and one local volume. It does not migrate an existing
-Postgres database or support shared storage.
-
-Stop the local stack with:
-
-```bash
-make stop
-```
+Docker is the required development toolchain. Make targets run Go, Node, and
+Python tooling in containers.
 
 ## Work on one area
 
