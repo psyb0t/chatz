@@ -1,9 +1,15 @@
 # Getting started with Chatz
 
-## Run Chatz with Docker Compose
+## Run the published Docker image
 
-Docker Compose is the normal self-hosted path from a Chatz checkout. It builds
-the application image, starts Postgres, and serves Chatz at
+The normal self-hosted entry point is the published `psyb0t/chatz` Docker image.
+Follow the root [Docker quickstart](../README.md#quickstart) for the complete
+SQLite `docker run` command, including the persistent volume, diagnostic log,
+and container hardening. Use an immutable release tag for deployment.
+
+## Run from a checkout with Docker Compose
+
+Docker Compose builds the source checkout, starts Postgres, and serves Chatz at
 `http://localhost:8080`.
 
 ```bash
@@ -29,8 +35,7 @@ docker compose up --build --no-deps chatz
 
 SQLite does not migrate an existing Postgres database and does not support
 shared storage. Use Postgres for replicas, networked storage, or an existing
-database. See the root [README](../README.md#deploy) for a hardened `docker run`
-deployment of a published image.
+database.
 
 ## Develop from a checkout
 
@@ -47,7 +52,7 @@ Python tooling in containers.
 | --- | --- |
 | HTTP API contract | `api/api.yml`, then `make generate` |
 | HTTP handlers and service wiring | `internal/pkg/http/server/` and `internal/pkg/services/http-server/` |
-| Chat turns, history, streaming, or showcase replies | `internal/pkg/core/chats/` |
+| Chat turns, history, streaming, or demo replies | `internal/pkg/core/chats/` |
 | MCP configuration or tool transport | `internal/pkg/mcp/` |
 | Database schema or repositories | `internal/pkg/db/migrations/`, `internal/pkg/db/models/`, and `internal/pkg/db/repositories/` |
 | Svelte UI | `web/src/` |

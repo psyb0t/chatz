@@ -5,6 +5,15 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.6] - 2026-08-22
+
+### Changed
+
+- Made the published Docker image the primary installation and usage path.
+  Docker Compose from a source checkout now covers the Postgres option.
+- Removed internal implementation detail and status-page trivia from the root
+  README. It now covers the parts of Chatz people actually use.
+
 ## [0.7.5] - 2026-08-22
 
 ### Fixed
