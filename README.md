@@ -16,10 +16,10 @@ an embedded web app. Run one Docker image with SQLite, or use Postgres when need
 - **Models you already use.** Connect OpenAI-compatible or Anthropic endpoints.
   Chatz discovers their models and keeps provider-specific settings in the chat.
 - **MCP tools.** Admins add stdio or HTTP MCP servers, then users enable their
-  tools per chat. Stored MCP credentials are encrypted and stay masked in the
-  admin UI.
+  tools per chat. Stored MCP settings are encrypted. Authorization headers stay
+  masked in admin responses.
 - **Useful chat controls.** Set temperature, reasoning, output size, and the
-  history budget per chat. Create, rename, search, archive, and pin chats.
+  history budget per chat. Create, rename, search, and delete chats.
 - **Generative UI.** Model and tool output can render tables, status panels,
   charts, log viewers, and other live components in the conversation. See the
   [rendering guide](web/src/lib/render/README.md) for the component catalog.
@@ -57,7 +57,7 @@ Open **http://localhost:8080**, then visit **`/setup`** to create the admin.
 The chat works before you configure an LLM, but the model picker stays empty.
 
 `latest` is for a first look. Pin an immutable release tag such as
-`psyb0t/chatz:v0.7.7` for deployment. Copy `.env.example` to `.env`, set
+`psyb0t/chatz:v0.7.8` for deployment. Copy `.env.example` to `.env`, set
 `CHATZ_DB_DRIVER=sqlite`, and add `--env-file .env` to configure upstreams,
 MCP secret storage, or other settings. Chatz exposes `GET /healthz`.
 
@@ -69,8 +69,7 @@ Start the normal stack with fixed-response mode:
 CHATZ_SHOWCASE_MODE=true docker compose up --build
 ```
 
-After completing `/setup`, select a configured model and send one of these
-exact prompts:
+After completing `/setup`, select a configured model and send, for example:
 
 - `Show me what's happening across the production platform right now.`
 - `Where are we losing deals in the sales pipeline?`

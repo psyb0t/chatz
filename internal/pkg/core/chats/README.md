@@ -8,7 +8,7 @@ handlers validate transport input and delegate here.
 
 - [Turn contract](#turn-contract)
 - [History and settings](#history-and-settings)
-- [MCP, demos, and showcase](#mcp-demos-and-showcase)
+- [MCP and fixed demos](#mcp-and-fixed-demos)
 - [Debugging and verification](#debugging-and-verification)
 
 ## Turn contract
@@ -76,7 +76,7 @@ its system/history/draft counts and omitted-turn indicator describe the prompt
 the next stream will actually receive. The endpoint is ownership-checked and
 does not persist the draft.
 
-## MCP, demos, and showcase
+## MCP and fixed demos
 
 MCP tools are namespaced as `<server>__<tool>`. A chat can disable a globally
 enabled server in its composer, hiding that server's tools from the model. This
@@ -85,7 +85,7 @@ is a preference, not a security boundary. See
 
 | Trigger | Live model/MCP | Durable | Purpose |
 | --- | --- | --- | --- |
-| Exact showcase prompt | No for the match | Yes | Paced dashboard turn with deterministic thinking + synthetic tool cards. |
+| Exact fixed-demo prompt | No for the match | Yes | Paced dashboard turn with deterministic thinking + synthetic tool cards. |
 
 `CHATZ_SHOWCASE_MODE=true` (`make run-showcase`) only intercepts exact catalog
 prompts. It never hides models, changes MCP setup, or captures near matches.
@@ -103,8 +103,8 @@ keep debug local.
 | `chats.go` / `stream.go` | Turn entry points, SSE production, persistence. |
 | `history.go` / `history_logging.go` | Stored-history validation and per-round debug trace. |
 | `turn_locks.go` / `mcp_tools.go` | Serialization and tool filtering. |
-| `prompts/` / `fixedresponses/` | GenUI guide and demo/showcase fixtures. |
+| `prompts/` / `fixedresponses/` | GenUI guide and fixed-demo fixtures. |
 
 Run `make test`, `make test-web`, and `make test-api` from the repository root.
-The showcase render + streamed thinking/tool-cards/GenUI is covered by the Go
+The fixed-demo render + streamed thinking/tool-cards/GenUI is covered by the Go
 browser drivers in the api tier `tests/api/` (`showcase_test.go`, `smoke_test.go`).

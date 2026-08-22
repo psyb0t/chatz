@@ -36,7 +36,7 @@ into siblings to create their own lifecycle graph.
 One Chatz container runs one binary. The binary serves the versioned JSON/SSE
 API and the static SPA from the same origin. Postgres is the default store;
 SQLite is available for a single process using one local Docker volume. See the
-root [README](../README.md) for the deployment and backup commands.
+root [README](../README.md) for deployment commands and configuration.
 
 The HTTP service constructs the database, generated repositories, auth service,
 MCP manager, upstream registry, and web-asset server. They run in the same

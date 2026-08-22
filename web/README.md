@@ -51,10 +51,10 @@ configuration is not evaluated.
 
 For fixed dashboard demos that stream through the same SSE and client-side
 fence-assembly path as model responses, run `make run-showcase` from the
-repository root. It keeps the normal model list and MCP setup. Exact operations,
-sales, and customer-risk prompts return deterministic thinking, paced synthetic
-tool cards, then dashboard replies grounded in the visible tool results. Other
-messages use the selected model.
+repository root. It keeps the normal model list and MCP setup. Each exact
+built-in demo prompt returns deterministic thinking, paced synthetic tool cards,
+then a dashboard reply grounded in the visible tool results. Other messages use
+the selected model.
 
 ## Streaming render behavior
 

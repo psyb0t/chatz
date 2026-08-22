@@ -41,9 +41,9 @@ The closed typed catalog has 26 components:
 | Large data    | `LogViewer`                                                                                                                                                   |
 
 Models cannot choose unregistered components or executable chart options. The
-embedded guide requires values to come from conversation/tool data. Showcase
+embedded guide requires values to come from conversation/tool data. Fixed demo
 mode (`make run-showcase`) demonstrates the catalog through paced synthetic
-operations, sales, customer-risk, and other business investigations.
+business investigations.
 
 Renderer wrappers use `min-width: 0` and `max-width: 100%`. Charts/tables stay
 inside their message column; local overflow is bounded to the component, never
@@ -67,7 +67,7 @@ internal/pkg/core/chats/prompts/genui_instructions.gen.txt
 When changing a component, update its catalog schema/description, implementation
 under `components/`, shared name, registry entry, and generator mirror. Run
 `make genui-prompt`; never hand-edit the generated `.gen.txt`. Extend catalog,
-fence, and renderer tests plus a showcase fixture when a new behavior needs one.
+fence, and renderer tests plus a fixed-demo fixture when a new behavior needs one.
 Keep
 props declarative and bounded: no arbitrary HTML, executable callbacks, or
 side-effecting URLs.
@@ -82,5 +82,5 @@ side-effecting URLs.
 | `components/` / `charts/`      | Typed UI and chart helpers.         |
 
 Run `make genui-prompt`, `make lint-web`, `make test-web`, and `make test-api`
-(the showcase render is covered by the Go browser driver
+(the fixed-demo render is covered by the Go browser driver
 `tests/api/showcase_test.go`).
