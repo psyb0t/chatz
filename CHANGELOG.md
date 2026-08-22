@@ -5,6 +5,13 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.7] - 2026-08-22
+
+### Fixed
+
+- Clarified fixed demo mode. Exact demo prompts return predefined streamed
+  replies while other messages use the selected model.
+
 ## [0.7.6] - 2026-08-22
 
 ### Changed
@@ -1168,7 +1175,7 @@ of the `/demo` chat commands.
   (`real_chat`, which self-skips unless a live upstream is configured). Shared
   fixtures live in `tests/testinfra/` (`e2e.go`, `browser.go`); run it against a
   live upstream with `E2E_REAL=1 make test-e2e`.
-- **Four more recording-showcase scenarios.** `make run-showcase` now also
+- **Four more fixed-demo scenarios.** `make run-showcase` now also
   recognizes platform-infrastructure, onboarding-experiment, cloud-finance, and
   incident-reliability prompts alongside the operations/sales/customer catalog,
   each grounded in its own synthetic tool results.
@@ -1190,8 +1197,8 @@ of the `/demo` chat commands.
 
 ### Removed
 
-- **Breaking. The `/demo` and `/demo_tools` chat commands are gone.** Use
-  showcase mode (`CHATZ_SHOWCASE_MODE=true`, `make run-showcase`) to exercise
+- **Breaking. The `/demo` and `/demo_tools` chat commands are gone.** Use fixed
+  demo mode (`CHATZ_SHOWCASE_MODE=true`, `make run-showcase`) to exercise
   the render pipeline without an LLM — it streams the same thinking, tool cards,
   and GenUI dashboards through the same SSE path, and its turns persist. The
   composer no longer special-cases `/demo`, and the Python/bash/compose e2e
@@ -1200,16 +1207,16 @@ of the `/demo` chat commands.
 
 ## [1.4.0] - 2026-07-24
 
-Deterministic recording showcase, GenUI overflow and reveal polish, and a
+Fixed-response demos, GenUI overflow and reveal polish, and a
 chat-load race fix.
 
 ### Added
 
-- **Deterministic recording showcase.** `make run-showcase` enables exact
+- **Fixed-response demos.** `make run-showcase` enables exact
   matching for an embedded operations, sales, and customer-risk catalog. It
   keeps normal model discovery and MCP setup active, streams deterministic
   thinking and synthetic tool activity before GenUI dashboards for catalog
-  matches, and persists those exchanges for refreshes and multi-turn recordings.
+  matches, and persists those exchanges for refreshes and multi-turn chats.
   Showcase turns now use model- and tool-like pacing; each dashboard metric,
   recommendation, and listed entity is backed by its visible synthetic tool
   result.
@@ -1439,7 +1446,7 @@ Initial release of chatz (renamed from chatter): a self-hosted, single-binary st
   `CALLING → DONE/ERROR` as the `tool_result` arrives; errored results render an
   error state.
 - **Demo commands.** `/demo_genui` and `/demo_markdown` stream canned responses,
-  and `/demo_tools` replays a scripted thinking + tool-call turn (all intercepted
+  and `/demo_tools` streams a scripted thinking + tool-call turn (all intercepted
   before the model) so the render pipeline — including interleaving, thinking,
   and tool cards — is exercisable with no LLM or MCP server configured.
 - **Admin-provisioned auth.** First-run `/setup` creates the sole admin; admins

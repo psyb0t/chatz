@@ -408,10 +408,9 @@ func (s *Service) nextTurnBody(
 	return s.streamTurn(ctx, chat, client, seed, turnID, onDone), nil
 }
 
-// demoTurn streams a canned showcase response. Every showcase turn is durable
-// (persisted like a real turn) so a recording can be refreshed and continued: a
-// KindTools reply replays scripted thinking + tool cards + a dashboard, while
-// the KindText fallback (a showcase file that failed to load) streams its text.
+// demoTurn streams a fixed demo response. Demo turns are durable, so they can
+// be refreshed and continued. KindTools streams scripted thinking, tool cards,
+// and a dashboard; KindText is the fallback when a demo file fails to load.
 func (s *Service) demoTurn(
 	ctx context.Context,
 	chat *models.Chat,
@@ -642,7 +641,7 @@ func streamTokens(
 	return nil
 }
 
-// runToolDemoStream replays a scripted agentic turn as SSE blocks in order:
+// runToolDemoStream streams a scripted agentic turn as SSE blocks in order:
 // thinking, text, and tool_use/tool_result pairs. Block indices increment per
 // emitted block so the client's ordered block model renders text → tool → text
 // interleaving. No LLM or MCP server is involved.

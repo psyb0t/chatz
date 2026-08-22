@@ -15,7 +15,7 @@ const (
 )
 
 // Response is a resolved demo command: canned Text (KindText) streamed as-is,
-// or a scripted Steps sequence (KindTools) replayed as thinking/text/tool SSE
+// or a scripted Steps sequence (KindTools) streamed as thinking/text/tool SSE
 // blocks so the tool-card + interleaving UI is exercised without an LLM or a
 // live MCP server. Persist makes a canned response a durable chat turn.
 type Response struct {

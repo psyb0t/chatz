@@ -49,14 +49,12 @@ hierarchies, relationships, and large scrollable logs. Charts are responsive
 native SVG and accept only the documented structured props; arbitrary chart
 configuration is not evaluated.
 
-For a recording-ready set of human-style dashboard conversations that stream the
-catalog through the same SSE and client-side fence-assembly path used by model
-responses, run `make run-showcase` from the repository root. It keeps the normal
-model list
-and MCP setup, while exact operations, sales, and customer-risk prompts stream
-deterministic thinking, paced synthetic tool cards, then dashboard replies
-whose metrics and recommendations come from those visible tool results; all
-other messages use the selected model.
+For fixed dashboard demos that stream through the same SSE and client-side
+fence-assembly path as model responses, run `make run-showcase` from the
+repository root. It keeps the normal model list and MCP setup. Exact operations,
+sales, and customer-risk prompts return deterministic thinking, paced synthetic
+tool cards, then dashboard replies grounded in the visible tool results. Other
+messages use the selected model.
 
 ## Streaming render behavior
 

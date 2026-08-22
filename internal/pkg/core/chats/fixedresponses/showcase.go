@@ -3,13 +3,13 @@ package fixedresponses
 import "time"
 
 const (
-	// ShowcasePromptOperations is a recording-ready request for an operational
+	// ShowcasePromptOperations is a fixed demo request for an operational
 	// MCP that exposes services, events, and logs.
 	ShowcasePromptOperations = "Show me what's happening across the " +
 		"production platform right now."
-	// ShowcasePromptSales is a recording-ready request for a sales MCP.
+	// ShowcasePromptSales is a fixed demo request for a sales MCP.
 	ShowcasePromptSales = "Where are we losing deals in the sales pipeline?"
-	// ShowcasePromptCustomers is a recording-ready request for a customer-data
+	// ShowcasePromptCustomers is a fixed demo request for a customer-data
 	// MCP that exposes accounts, activity, and support events.
 	ShowcasePromptCustomers = "Which customers are at risk and who should " +
 		"the team contact first?"
@@ -29,20 +29,20 @@ const (
 	// letting the dashboard spec block drag.
 	showcaseTextChunkDelay = 18 * time.Millisecond
 
-	//nolint:lll // Recording copy stays as one sentence so streamed thinking reads naturally.
+	//nolint:lll // Fixed demo text stays as one sentence for streamed thinking.
 	showcaseOperationsThinking = "I’ll check service health and recent platform events, then summarize the current operating picture."
-	//nolint:lll // Recording copy stays as one sentence so streamed thinking reads naturally.
+	//nolint:lll // Fixed demo text stays as one sentence for streamed thinking.
 	showcaseSalesThinking = "I’ll inspect stage conversion and recent loss reasons before mapping where the pipeline is leaking."
-	//nolint:lll // Recording copy stays as one sentence so streamed thinking reads naturally.
+	//nolint:lll // Fixed demo text stays as one sentence for streamed thinking.
 	showcaseCustomersThinking = "I’ll combine account health signals with recent support activity to prioritize the outreach list."
 
-	//nolint:lll // exact recording prompt matched verbatim
+	//nolint:lll // Exact demo prompt matched verbatim.
 	ShowcasePromptInfrastructure = "How is the platform infrastructure holding up under load right now?"
-	//nolint:lll // exact recording prompt matched verbatim
+	//nolint:lll // Exact demo prompt matched verbatim.
 	ShowcasePromptExperiment = "How did the new onboarding experiment perform against control?"
-	//nolint:lll // exact recording prompt matched verbatim
+	//nolint:lll // Exact demo prompt matched verbatim.
 	ShowcasePromptFinance = "Where is our cloud spend going this quarter and are we on budget?"
-	//nolint:lll // exact recording prompt matched verbatim
+	//nolint:lll // Exact demo prompt matched verbatim.
 	ShowcasePromptReliability = "Walk me through the active incident and its blast radius."
 
 	fileShowcaseInfrastructure = "showcase-infrastructure.txt"
@@ -50,13 +50,13 @@ const (
 	fileShowcaseFinance        = "showcase-finance.txt"
 	fileShowcaseReliability    = "showcase-reliability.txt"
 
-	//nolint:lll // Recording copy stays as one sentence so streamed thinking reads naturally.
+	//nolint:lll // Fixed demo text stays as one sentence for streamed thinking.
 	showcaseInfrastructureThinking = "I’ll pull current cluster saturation and the per-region latency matrix, then flag where we’re closest to capacity."
-	//nolint:lll // Recording copy stays as one sentence so streamed thinking reads naturally.
+	//nolint:lll // Fixed demo text stays as one sentence for streamed thinking.
 	showcaseExperimentThinking = "I’ll compare the variant against control on conversion and activation time, then check whether longer sessions actually convert better."
-	//nolint:lll // Recording copy stays as one sentence so streamed thinking reads naturally.
+	//nolint:lll // Fixed demo text stays as one sentence for streamed thinking.
 	showcaseFinanceThinking = "I’ll break spend down by category and by service, then check the current burn against the quarterly budget."
-	//nolint:lll // Recording copy stays as one sentence so streamed thinking reads naturally.
+	//nolint:lll // Fixed demo text stays as one sentence for streamed thinking.
 	showcaseReliabilityThinking = "I’ll pull the active incident’s affected services and the dependency graph to see the blast radius, then walk the event timeline."
 )
 
@@ -71,7 +71,7 @@ type showcaseEvidence struct {
 	answer     string
 }
 
-// showcaseResponses maps exact, recording-ready user messages to the embedded
+// showcaseResponses maps exact demo messages to the embedded
 // result that an MCP-backed assistant could return. The catalog is deliberately
 // closed: user input never selects a file, template, tool, or upstream request.
 //

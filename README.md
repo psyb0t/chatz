@@ -25,8 +25,8 @@ an embedded web app. Run one Docker image with SQLite, or use Postgres when need
   [rendering guide](web/src/lib/render/README.md) for the component catalog.
 - **Admin-managed access.** The first user is the admin. That admin creates the
   other accounts and configures upstreams and MCP servers.
-- **Recording mode.** Set `CHATZ_SHOWCASE_MODE=true` to replay fixed demo
-  conversations without changing normal chats.
+- **Demo mode.** Set `CHATZ_SHOWCASE_MODE=true` to return fixed streamed replies
+  for exact demo prompts. Normal chats keep using the selected model.
 
 ## Quickstart
 
@@ -57,13 +57,13 @@ Open **http://localhost:8080**, then visit **`/setup`** to create the admin.
 The chat works before you configure an LLM, but the model picker stays empty.
 
 `latest` is for a first look. Pin an immutable release tag such as
-`psyb0t/chatz:v0.7.6` for deployment. Copy `.env.example` to `.env`, set
+`psyb0t/chatz:v0.7.7` for deployment. Copy `.env.example` to `.env`, set
 `CHATZ_DB_DRIVER=sqlite`, and add `--env-file .env` to configure upstreams,
 MCP secret storage, or other settings. Chatz exposes `GET /healthz`.
 
-### Record a deterministic demo
+### Try fixed demo replies
 
-For a screen recording, start the normal stack with fixed-response mode:
+Start the normal stack with fixed-response mode:
 
 ```bash
 CHATZ_SHOWCASE_MODE=true docker compose up --build
