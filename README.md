@@ -57,7 +57,7 @@ Open **http://localhost:8080**, then visit **`/setup`** to create the admin.
 The chat works before you configure an LLM, but the model picker stays empty.
 
 `latest` is for a first look. Pin an immutable release tag such as
-`psyb0t/chatz:v0.7.8` for deployment. Copy `.env.example` to `.env`, set
+`psyb0t/chatz:v0.7.9` for deployment. Copy `.env.example` to `.env`, set
 `CHATZ_DB_DRIVER=sqlite`, and add `--env-file .env` to configure upstreams,
 MCP secret storage, or other settings. Chatz exposes `GET /healthz`.
 
@@ -81,21 +81,24 @@ other message uses the selected model and normal MCP-enabled chat path.
 ### Connect a model
 
 Copy `.env.example` to `.env` and set `CHATZ_UPSTREAMS`. Each upstream chooses
-the `openai` driver, which also works with OpenAI-compatible APIs, or the
-`anthropic` driver. `apiKeyEnv` names a variable in `.env`; never put the key
-in the JSON.
+the `openai` driver, which also works with OpenAI-compatible APIs such as
+[AIGate](https://github.com/psyb0t/aigate), or the `anthropic` driver.
+`apiKeyEnv` names a variable in `.env`; never put the key in the JSON.
 
 ```json
 [
   {"name":"openai","provider":"openai","baseUrl":"https://api.openai.com/v1","apiKeyEnv":"OPENAI_API_KEY"},
   {"name":"anthropic","provider":"anthropic","apiKeyEnv":"ANTHROPIC_API_KEY"},
+  {"name":"aigate","provider":"openai","baseUrl":"http://aigate:4000","apiKeyEnv":"AIGATE_TOKEN"},
   {"name":"ollama","provider":"openai","baseUrl":"http://localhost:11434/v1"}
 ]
 ```
 
 Docker Compose loads `.env` automatically. Add `--env-file .env` to the Docker
-command above. The [example environment file](.env.example) documents model
-metadata, timeouts, and every other setting.
+command above. The AIGate example assumes both containers share a Docker
+network. Use AIGate's reachable root URL otherwise. The [example environment
+file](.env.example) documents model metadata, timeouts, and every other
+setting.
 
 Generate a 32-byte base64 key before adding MCP credentials, then set it as
 `CHATZ_SECRETS_KEY`:

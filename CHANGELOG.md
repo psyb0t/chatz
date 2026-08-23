@@ -5,6 +5,13 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.9] - 2026-08-23
+
+### Changed
+
+- Added [AIGate](https://github.com/psyb0t/aigate) as an OpenAI-compatible
+  upstream example, including its Docker-network URL and `AIGATE_TOKEN`.
+
 ## [0.7.8] - 2026-08-22
 
 ### Fixed
