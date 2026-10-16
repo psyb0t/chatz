@@ -22,6 +22,7 @@ research_files
 .backup
 scripts/.post-update-temp
 git-update.sh
+git-update.sh.debot
 .telemetry/
 
 # Codex / agent scratch — never commit
