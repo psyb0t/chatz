@@ -31,3 +31,9 @@ web/ui-lib/node_modules
 .plan-and-delegate/
 .make-video
 .browser-record
+
+# agent scratch and QA output, never part of a build
+.anustimes/
+.brutal_reviews/
+.secaudit/
+.cover/
