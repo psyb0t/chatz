@@ -7,7 +7,7 @@
 # Carries Go (build/test/generate/repogen/oapi), a C toolchain (the -race
 # detector needs cgo), and Node + pnpm (the web/ui-lib .mjs build AND the
 # SvelteKit static build that gets go:embed'ed).
-FROM golang:1.26.6-alpine@sha256:af8d6740070b8906d12eae1c3e3ea0957fb63f492051ea05e354c38ef9fe88df
+FROM golang:1.26.9-alpine@sha256:3082400e369fa24d5fc60bca20edab3f6d604e0c5a690ec66b295eff4dd87ade
 
 # pnpm + the python mcp SDK pinned per supply-chain discipline
 # (managing-dependencies.md). python3 serves the MCP integration tests (which

@@ -5,6 +5,19 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.10] - 2026-10-16
+
+### Changed
+
+- Updated servicepack from v1.9.2 to v1.10.0.
+- Moved the Docker images and `go.mod` to Go 1.26.9.
+
+### Security
+
+- Cleared the vulnerabilities `make sec` reported: the Go 1.26.6 standard
+  library, `golang.org/x/crypto` (now v0.58.0), `golang.org/x/text` (now
+  v0.43.0) and `github.com/moby/go-archive` (now v0.3.3).
+
 ## [0.7.9] - 2026-08-23
 
 ### Changed
