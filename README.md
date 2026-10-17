@@ -56,8 +56,7 @@ docker run --name chatz --detach --restart unless-stopped --init \
 Open **http://localhost:8080**, then visit **`/setup`** to create the admin.
 The chat works before you configure an LLM, but the model picker stays empty.
 
-`latest` is for a first look. Pin an immutable release tag such as
-`psyb0t/chatz:v0.7.10` for deployment. Copy `.env.example` to `.env`, set
+Run `psyb0t/chatz:latest` and pull it again to upgrade. Copy `.env.example` to `.env`, set
 `CHATZ_DB_DRIVER=sqlite`, and add `--env-file .env` to configure upstreams,
 MCP secret storage, or other settings. Chatz exposes `GET /healthz`.
 

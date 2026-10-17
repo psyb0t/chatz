@@ -5,6 +5,10 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.11] - 2026-10-17
+
+- Documentation only. The README runs `psyb0t/chatz:latest` instead of telling deployments to pin a release tag.
+
 ## [0.7.10] - 2026-10-16
 
 ### Changed
