@@ -22,7 +22,7 @@
     "prettier-plugin-svelte": "3.5.2",
     "svelte-check": "4.7.2",
     "typescript": "5.9.3",
-    "vite": "7.3.6"
+    "vite": "7.3.7"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
