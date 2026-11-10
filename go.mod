@@ -14,7 +14,7 @@ tool (
 )
 
 require (
-	github.com/getkin/kin-openapi v0.148.0
+	github.com/getkin/kin-openapi v0.149.0
 	github.com/glebarez/sqlite v1.11.1-0.20260802112547-caa6e2bf4e27
 	github.com/google/uuid v1.6.0
 	github.com/labstack/echo/v5 v5.4.4
