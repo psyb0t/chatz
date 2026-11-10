@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
-	echomiddleware "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/echo/v5"
+	echomiddleware "github.com/labstack/echo/v5/middleware"
 	"github.com/psyb0t/aichteeteapee"
 	"github.com/psyb0t/chatz/internal/pkg/core/auth"
 	"github.com/psyb0t/chatz/internal/pkg/core/chats"
@@ -31,12 +31,13 @@ import (
 
 const (
 	shutdownTimeout      = 10 * time.Second
+	readHeaderTimeout    = 10 * time.Second
 	sessionCookieMaxAge  = 30 * 24 * time.Hour
 	sessionCookieMaxSecs = int(sessionCookieMaxAge / time.Second)
 
 	// maxRequestBody caps request bodies (JSON only — no uploads) so a huge
 	// .mcp.json / message can't exhaust memory.
-	maxRequestBody = "1M"
+	maxRequestBody int64 = 1 << 20
 
 	// apiGroupPrefix mounts the generated API onto the wire. This is where the
 	// /api/v1 URL comes from at runtime — the spec (api/api.yml) only knows
@@ -99,8 +100,6 @@ func New(deps Deps) *Server {
 	registerErrorMappings()
 
 	e := echo.New()
-	e.HideBanner = true
-	e.HidePort = true
 	e.HTTPErrorHandler = errorHandler
 
 	s := &Server{deps: deps, echo: e}
@@ -159,9 +158,9 @@ type skipRouter struct {
 
 func (r *skipRouter) GET(
 	path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc,
-) *echo.Route {
+) echo.RouteInfo {
 	if path == r.skipGET {
-		return &echo.Route{Method: http.MethodGet, Path: path}
+		return echo.RouteInfo{Method: http.MethodGet, Path: path}
 	}
 
 	return r.EchoRouter.GET(path, h, m...)
@@ -173,11 +172,19 @@ func (s *Server) Handler() http.Handler {
 }
 
 // Serve runs the echo server on addr until ctx is cancelled, then drains it.
+// It owns the http.Server instead of using echo's StartConfig, whose default
+// ReadTimeout would cut long-lived SSE chat streams.
 func (s *Server) Serve(ctx context.Context, addr string) error {
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           s.echo,
+		ReadHeaderTimeout: readHeaderTimeout,
+	}
+
 	errCh := make(chan error, 1)
 
 	go func() {
-		if err := s.echo.Start(addr); err != nil &&
+		if err := srv.ListenAndServe(); err != nil &&
 			!errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}
@@ -190,7 +197,7 @@ func (s *Server) Serve(ctx context.Context, addr string) error {
 		)
 		defer cancel()
 
-		if err := s.echo.Shutdown(shutCtx); err != nil {
+		if err := srv.Shutdown(shutCtx); err != nil {
 			return ctxerrors.Wrap(err, "shutdown echo")
 		}
 
@@ -211,7 +218,7 @@ type tokenCtxKey struct{}
 // per-handler checks enforce authz, so public endpoints stay reachable.
 func (s *Server) sessionAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			cookie, err := c.Cookie(auth.CookieName)
 			if err != nil || cookie.Value == "" {
 				return next(c)
@@ -293,25 +300,34 @@ func requireAdmin(ctx context.Context) (*models.User, error) {
 // errorHandler renders every echo-level error as the aichteeteapee-shaped
 // {code, message, details} envelope. Internal (non-HTTPError) failures never
 // leak their message to the client — the real error is on the request log.
-func errorHandler(err error, c echo.Context) {
-	if c.Response().Committed {
+func errorHandler(c *echo.Context, err error) {
+	resp, _ := echo.UnwrapResponse(c.Response())
+	if resp != nil && resp.Committed {
 		return
 	}
 
-	status := http.StatusInternalServerError
-	message := "internal server error"
-
-	var he *echo.HTTPError
-	if errors.As(err, &he) {
-		status = he.Code
-		if m, ok := he.Message.(string); ok {
-			message = m
-		}
-	}
+	status, message := errorStatusAndMessage(err)
 
 	_ = c.JSON(status, envelope(
 		aichteeteapee.ErrorCodeFromHTTPStatus(status), message,
 	))
+}
+
+// errorStatusAndMessage resolves the client-facing status and message for err.
+// echo's predefined errors (ErrNotFound, ErrMethodNotAllowed, wrapped bind
+// errors) carry only a status code, so they get the standard status text.
+func errorStatusAndMessage(err error) (int, string) {
+	status := echo.StatusCode(err)
+	if status == 0 {
+		return http.StatusInternalServerError, "internal server error"
+	}
+
+	var he *echo.HTTPError
+	if errors.As(err, &he) && he.Message != "" {
+		return status, he.Message
+	}
+
+	return status, http.StatusText(status)
 }
 
 // sessionCookie renders the Set-Cookie header value for a new session. Returns
@@ -349,7 +365,7 @@ func sessionCookie(token string) *string {
 // cannot be read back out.
 func requestID() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			id := c.Request().Header.Get(aichteeteapee.HeaderNameXRequestID)
 			if !isValidRequestID(id) {
 				id = uuid.NewString()
@@ -385,20 +401,11 @@ func isValidRequestID(id string) bool {
 // completion at INFO as before.
 func requestLogger() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			start := time.Now()
 			err := next(c)
 
-			status := c.Response().Status
-
-			if err != nil {
-				var he *echo.HTTPError
-				if errors.As(err, &he) {
-					status = he.Code
-				} else {
-					status = http.StatusInternalServerError
-				}
-			}
+			_, status := echo.ResolveResponseStatus(c.Response(), err)
 
 			fields := []any{
 				"method", c.Request().Method,

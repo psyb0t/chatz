@@ -10,4 +10,4 @@
 - `MIN_TEST_COVERAGE` in `Makefile` is a ratchet. Raise it when the measured number clears the next step; never lower it to make a build pass.
 - Under `go test` every upstream resolves to elelem's scripted test double, so no test reaches a real provider by accident. Only `CHATZ_FORCE_REAL_LLM=true`, set in your own `.env` for `make test-real`, turns that off.
 - Tests that touch the database, HTTP server, MCP manager or turn persistence belong in `tests/integration` with the shared `tests/testinfra` harness. A change to an end-to-end user flow gets a driver in `tests/api`.
-- Run the narrowest target first, then `make lint` and `make test-coverage` before handing off. Run `make test-api` after changing a user flow, the SSE stream or the generative UI renderer.
+- Run `make test-api` after changing a user flow, the SSE stream or the generative UI renderer.

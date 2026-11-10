@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -726,94 +726,94 @@ type CreateUserJSONRequestBody = CreateUserRequest
 type ServerInterface interface {
 	// GetAdminReadiness Get the redacted operational readiness snapshot (admin).
 	// (GET /admin/readiness)
-	GetAdminReadiness(ctx echo.Context) error
+	GetAdminReadiness(ctx *echo.Context) error
 	// Login Log in with username + password.
 	// (POST /auth/login)
-	Login(ctx echo.Context) error
+	Login(ctx *echo.Context) error
 	// Logout Revoke the current session.
 	// (POST /auth/logout)
-	Logout(ctx echo.Context) error
+	Logout(ctx *echo.Context) error
 	// Setup Bootstrap the first admin user (one-shot).
 	// (POST /auth/setup)
-	Setup(ctx echo.Context) error
+	Setup(ctx *echo.Context) error
 	// GetAuthStatus Whether setup is needed and whether the caller is authenticated.
 	// (GET /auth/status)
-	GetAuthStatus(ctx echo.Context) error
+	GetAuthStatus(ctx *echo.Context) error
 	// ListChats List the caller's chats, paginated.
 	// (GET /chats)
-	ListChats(ctx echo.Context, params ListChatsParams) error
+	ListChats(ctx *echo.Context, params ListChatsParams) error
 	// CreateChat Create a chat and stream the first assistant turn (SSE).
 	// (POST /chats)
-	CreateChat(ctx echo.Context) error
+	CreateChat(ctx *echo.Context) error
 	// GetOrCreateEmptyChat Get the caller's reusable "empty chat" (no messages yet), creating one if none exists.
 	// (POST /chats/empty)
-	GetOrCreateEmptyChat(ctx echo.Context) error
+	GetOrCreateEmptyChat(ctx *echo.Context) error
 	// DeleteChat Soft-delete one caller-owned chat.
 	// (DELETE /chats/{chatId})
-	DeleteChat(ctx echo.Context, chatId openapi_types.UUID) error
+	DeleteChat(ctx *echo.Context, chatId openapi_types.UUID) error
 	// GetChat Get a chat's metadata (settings, model, title) — no messages.
 	// (GET /chats/{chatId})
-	GetChat(ctx echo.Context, chatId openapi_types.UUID) error
+	GetChat(ctx *echo.Context, chatId openapi_types.UUID) error
 	// RenameChat Rename a chat.
 	// (PATCH /chats/{chatId})
-	RenameChat(ctx echo.Context, chatId openapi_types.UUID) error
+	RenameChat(ctx *echo.Context, chatId openapi_types.UUID) error
 	// ContinueChat Continue a chat and stream the next assistant turn (SSE).
 	// (POST /chats/{chatId})
-	ContinueChat(ctx echo.Context, chatId openapi_types.UUID) error
+	ContinueChat(ctx *echo.Context, chatId openapi_types.UUID) error
 	// PreviewChatContext Preview the exact context selected for an unsent chat message.
 	// (POST /chats/{chatId}/context-preview)
-	PreviewChatContext(ctx echo.Context, chatId openapi_types.UUID) error
+	PreviewChatContext(ctx *echo.Context, chatId openapi_types.UUID) error
 	// ListChatMCPServers List the MCP servers with each one's per-chat enablement + status.
 	// (GET /chats/{chatId}/mcp-servers)
-	ListChatMCPServers(ctx echo.Context, chatId openapi_types.UUID) error
+	ListChatMCPServers(ctx *echo.Context, chatId openapi_types.UUID) error
 	// UpdateChatMCPServer Enable or disable one MCP server for this chat.
 	// (PATCH /chats/{chatId}/mcp-servers/{serverId})
-	UpdateChatMCPServer(ctx echo.Context, chatId openapi_types.UUID, serverId openapi_types.UUID) error
+	UpdateChatMCPServer(ctx *echo.Context, chatId openapi_types.UUID, serverId openapi_types.UUID) error
 	// ListChatMessages List a chat's messages, oldest-first, paginated.
 	// (GET /chats/{chatId}/messages)
-	ListChatMessages(ctx echo.Context, chatId openapi_types.UUID, params ListChatMessagesParams) error
+	ListChatMessages(ctx *echo.Context, chatId openapi_types.UUID, params ListChatMessagesParams) error
 	// UpdateChatSettings Update a chat's model-generation settings.
 	// (PATCH /chats/{chatId}/settings)
-	UpdateChatSettings(ctx echo.Context, chatId openapi_types.UUID) error
+	UpdateChatSettings(ctx *echo.Context, chatId openapi_types.UUID) error
 	// GetHealth Liveness probe.
 	// (GET /healthz)
-	GetHealth(ctx echo.Context) error
+	GetHealth(ctx *echo.Context) error
 	// ImportMCP Import MCP servers from a Claude-style .mcp.json (admin).
 	// (POST /mcp/import)
-	ImportMCP(ctx echo.Context) error
+	ImportMCP(ctx *echo.Context) error
 	// ListMCPServers List configured MCP servers (admin).
 	// (GET /mcp/servers)
-	ListMCPServers(ctx echo.Context) error
+	ListMCPServers(ctx *echo.Context) error
 	// CreateMCPServer Add an MCP server (admin).
 	// (POST /mcp/servers)
-	CreateMCPServer(ctx echo.Context) error
+	CreateMCPServer(ctx *echo.Context) error
 	// DeleteMCPServer Remove an MCP server (admin).
 	// (DELETE /mcp/servers/{serverId})
-	DeleteMCPServer(ctx echo.Context, serverId openapi_types.UUID) error
+	DeleteMCPServer(ctx *echo.Context, serverId openapi_types.UUID) error
 	// UpdateMCPServer Edit an MCP server and reconnect (admin).
 	// (PATCH /mcp/servers/{serverId})
-	UpdateMCPServer(ctx echo.Context, serverId openapi_types.UUID) error
+	UpdateMCPServer(ctx *echo.Context, serverId openapi_types.UUID) error
 	// ReconnectMCPServer Reconnect an MCP server in the background (admin).
 	// (POST /mcp/servers/{serverId}/reconnect)
-	ReconnectMCPServer(ctx echo.Context, serverId openapi_types.UUID) error
+	ReconnectMCPServer(ctx *echo.Context, serverId openapi_types.UUID) error
 	// ListMCPServerTools List a connected MCP server's tools (admin).
 	// (GET /mcp/servers/{serverId}/tools)
-	ListMCPServerTools(ctx echo.Context, serverId openapi_types.UUID) error
+	ListMCPServerTools(ctx *echo.Context, serverId openapi_types.UUID) error
 	// ListModels Merged model list across all configured upstreams.
 	// (GET /models)
-	ListModels(ctx echo.Context) error
+	ListModels(ctx *echo.Context) error
 	// ListUpstreamHealth List redacted LLM upstream health snapshots (admin).
 	// (GET /upstreams)
-	ListUpstreamHealth(ctx echo.Context) error
+	ListUpstreamHealth(ctx *echo.Context) error
 	// ListUsers List users (admin).
 	// (GET /users)
-	ListUsers(ctx echo.Context) error
+	ListUsers(ctx *echo.Context) error
 	// CreateUser Provision a user (admin).
 	// (POST /users)
-	CreateUser(ctx echo.Context) error
+	CreateUser(ctx *echo.Context) error
 	// DeleteUser Delete a user (admin).
 	// (DELETE /users/{userId})
-	DeleteUser(ctx echo.Context, userId openapi_types.UUID) error
+	DeleteUser(ctx *echo.Context, userId openapi_types.UUID) error
 }
 
 // ServerInterfaceWrapper converts echo contexts to parameters.
@@ -822,7 +822,7 @@ type ServerInterfaceWrapper struct {
 }
 
 // GetAdminReadiness converts echo context to params.
-func (w *ServerInterfaceWrapper) GetAdminReadiness(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetAdminReadiness(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -831,7 +831,7 @@ func (w *ServerInterfaceWrapper) GetAdminReadiness(ctx echo.Context) error {
 }
 
 // Login converts echo context to params.
-func (w *ServerInterfaceWrapper) Login(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) Login(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -840,7 +840,7 @@ func (w *ServerInterfaceWrapper) Login(ctx echo.Context) error {
 }
 
 // Logout converts echo context to params.
-func (w *ServerInterfaceWrapper) Logout(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) Logout(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -849,7 +849,7 @@ func (w *ServerInterfaceWrapper) Logout(ctx echo.Context) error {
 }
 
 // Setup converts echo context to params.
-func (w *ServerInterfaceWrapper) Setup(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) Setup(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -858,7 +858,7 @@ func (w *ServerInterfaceWrapper) Setup(ctx echo.Context) error {
 }
 
 // GetAuthStatus converts echo context to params.
-func (w *ServerInterfaceWrapper) GetAuthStatus(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetAuthStatus(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -867,7 +867,7 @@ func (w *ServerInterfaceWrapper) GetAuthStatus(ctx echo.Context) error {
 }
 
 // ListChats converts echo context to params.
-func (w *ServerInterfaceWrapper) ListChats(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListChats(ctx *echo.Context) error {
 	var err error
 
 	// Parameter object where we will unmarshal all parameters from the context
@@ -899,7 +899,7 @@ func (w *ServerInterfaceWrapper) ListChats(ctx echo.Context) error {
 }
 
 // CreateChat converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateChat(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) CreateChat(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -908,7 +908,7 @@ func (w *ServerInterfaceWrapper) CreateChat(ctx echo.Context) error {
 }
 
 // GetOrCreateEmptyChat converts echo context to params.
-func (w *ServerInterfaceWrapper) GetOrCreateEmptyChat(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetOrCreateEmptyChat(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -917,7 +917,7 @@ func (w *ServerInterfaceWrapper) GetOrCreateEmptyChat(ctx echo.Context) error {
 }
 
 // DeleteChat converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteChat(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) DeleteChat(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -933,7 +933,7 @@ func (w *ServerInterfaceWrapper) DeleteChat(ctx echo.Context) error {
 }
 
 // GetChat converts echo context to params.
-func (w *ServerInterfaceWrapper) GetChat(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetChat(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -949,7 +949,7 @@ func (w *ServerInterfaceWrapper) GetChat(ctx echo.Context) error {
 }
 
 // RenameChat converts echo context to params.
-func (w *ServerInterfaceWrapper) RenameChat(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) RenameChat(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -965,7 +965,7 @@ func (w *ServerInterfaceWrapper) RenameChat(ctx echo.Context) error {
 }
 
 // ContinueChat converts echo context to params.
-func (w *ServerInterfaceWrapper) ContinueChat(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ContinueChat(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -981,7 +981,7 @@ func (w *ServerInterfaceWrapper) ContinueChat(ctx echo.Context) error {
 }
 
 // PreviewChatContext converts echo context to params.
-func (w *ServerInterfaceWrapper) PreviewChatContext(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) PreviewChatContext(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -997,7 +997,7 @@ func (w *ServerInterfaceWrapper) PreviewChatContext(ctx echo.Context) error {
 }
 
 // ListChatMCPServers converts echo context to params.
-func (w *ServerInterfaceWrapper) ListChatMCPServers(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListChatMCPServers(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -1013,7 +1013,7 @@ func (w *ServerInterfaceWrapper) ListChatMCPServers(ctx echo.Context) error {
 }
 
 // UpdateChatMCPServer converts echo context to params.
-func (w *ServerInterfaceWrapper) UpdateChatMCPServer(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) UpdateChatMCPServer(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -1037,7 +1037,7 @@ func (w *ServerInterfaceWrapper) UpdateChatMCPServer(ctx echo.Context) error {
 }
 
 // ListChatMessages converts echo context to params.
-func (w *ServerInterfaceWrapper) ListChatMessages(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListChatMessages(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -1069,7 +1069,7 @@ func (w *ServerInterfaceWrapper) ListChatMessages(ctx echo.Context) error {
 }
 
 // UpdateChatSettings converts echo context to params.
-func (w *ServerInterfaceWrapper) UpdateChatSettings(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) UpdateChatSettings(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "chatId" -------------
 	var chatId openapi_types.UUID
@@ -1085,7 +1085,7 @@ func (w *ServerInterfaceWrapper) UpdateChatSettings(ctx echo.Context) error {
 }
 
 // GetHealth converts echo context to params.
-func (w *ServerInterfaceWrapper) GetHealth(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) GetHealth(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1094,7 +1094,7 @@ func (w *ServerInterfaceWrapper) GetHealth(ctx echo.Context) error {
 }
 
 // ImportMCP converts echo context to params.
-func (w *ServerInterfaceWrapper) ImportMCP(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ImportMCP(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1103,7 +1103,7 @@ func (w *ServerInterfaceWrapper) ImportMCP(ctx echo.Context) error {
 }
 
 // ListMCPServers converts echo context to params.
-func (w *ServerInterfaceWrapper) ListMCPServers(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListMCPServers(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1112,7 +1112,7 @@ func (w *ServerInterfaceWrapper) ListMCPServers(ctx echo.Context) error {
 }
 
 // CreateMCPServer converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateMCPServer(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) CreateMCPServer(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1121,7 +1121,7 @@ func (w *ServerInterfaceWrapper) CreateMCPServer(ctx echo.Context) error {
 }
 
 // DeleteMCPServer converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteMCPServer(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) DeleteMCPServer(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "serverId" -------------
 	var serverId openapi_types.UUID
@@ -1137,7 +1137,7 @@ func (w *ServerInterfaceWrapper) DeleteMCPServer(ctx echo.Context) error {
 }
 
 // UpdateMCPServer converts echo context to params.
-func (w *ServerInterfaceWrapper) UpdateMCPServer(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) UpdateMCPServer(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "serverId" -------------
 	var serverId openapi_types.UUID
@@ -1153,7 +1153,7 @@ func (w *ServerInterfaceWrapper) UpdateMCPServer(ctx echo.Context) error {
 }
 
 // ReconnectMCPServer converts echo context to params.
-func (w *ServerInterfaceWrapper) ReconnectMCPServer(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ReconnectMCPServer(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "serverId" -------------
 	var serverId openapi_types.UUID
@@ -1169,7 +1169,7 @@ func (w *ServerInterfaceWrapper) ReconnectMCPServer(ctx echo.Context) error {
 }
 
 // ListMCPServerTools converts echo context to params.
-func (w *ServerInterfaceWrapper) ListMCPServerTools(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListMCPServerTools(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "serverId" -------------
 	var serverId openapi_types.UUID
@@ -1185,7 +1185,7 @@ func (w *ServerInterfaceWrapper) ListMCPServerTools(ctx echo.Context) error {
 }
 
 // ListModels converts echo context to params.
-func (w *ServerInterfaceWrapper) ListModels(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListModels(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1194,7 +1194,7 @@ func (w *ServerInterfaceWrapper) ListModels(ctx echo.Context) error {
 }
 
 // ListUpstreamHealth converts echo context to params.
-func (w *ServerInterfaceWrapper) ListUpstreamHealth(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListUpstreamHealth(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1203,7 +1203,7 @@ func (w *ServerInterfaceWrapper) ListUpstreamHealth(ctx echo.Context) error {
 }
 
 // ListUsers converts echo context to params.
-func (w *ServerInterfaceWrapper) ListUsers(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) ListUsers(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1212,7 +1212,7 @@ func (w *ServerInterfaceWrapper) ListUsers(ctx echo.Context) error {
 }
 
 // CreateUser converts echo context to params.
-func (w *ServerInterfaceWrapper) CreateUser(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) CreateUser(ctx *echo.Context) error {
 	var err error
 
 	// Invoke the callback with all the unmarshaled arguments
@@ -1221,7 +1221,7 @@ func (w *ServerInterfaceWrapper) CreateUser(ctx echo.Context) error {
 }
 
 // DeleteUser converts echo context to params.
-func (w *ServerInterfaceWrapper) DeleteUser(ctx echo.Context) error {
+func (w *ServerInterfaceWrapper) DeleteUser(ctx *echo.Context) error {
 	var err error
 	// ------------- Path parameter "userId" -------------
 	var userId openapi_types.UUID
@@ -1240,15 +1240,15 @@ func (w *ServerInterfaceWrapper) DeleteUser(ctx echo.Context) error {
 // are present on both echo.Echo and echo.Group, since we want to allow using
 // either of them for path registration
 type EchoRouter interface {
-	CONNECT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	DELETE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	GET(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	HEAD(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	OPTIONS(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	PATCH(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	POST(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	PUT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
-	TRACE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) *echo.Route
+	CONNECT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	DELETE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	GET(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	HEAD(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	OPTIONS(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	PATCH(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	POST(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	PUT(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
+	TRACE(path string, h echo.HandlerFunc, m ...echo.MiddlewareFunc) echo.RouteInfo
 }
 
 // RegisterHandlersOptions configures RegisterHandlersWithOptions.
@@ -2631,7 +2631,7 @@ type StrictServerInterface interface {
 	DeleteUser(ctx context.Context, request DeleteUserRequestObject) (DeleteUserResponseObject, error)
 }
 
-type StrictHandlerFunc func(ctx echo.Context, request any) (any, error)
+type StrictHandlerFunc func(ctx *echo.Context, request any) (any, error)
 type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
 
 func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
@@ -2644,10 +2644,10 @@ type strictHandler struct {
 }
 
 // GetAdminReadiness operation middleware
-func (sh *strictHandler) GetAdminReadiness(ctx echo.Context) error {
+func (sh *strictHandler) GetAdminReadiness(ctx *echo.Context) error {
 	var request GetAdminReadinessRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetAdminReadiness(ctx.Request().Context(), request.(GetAdminReadinessRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2667,15 +2667,15 @@ func (sh *strictHandler) GetAdminReadiness(ctx echo.Context) error {
 }
 
 // Login operation middleware
-func (sh *strictHandler) Login(ctx echo.Context) error {
+func (sh *strictHandler) Login(ctx *echo.Context) error {
 	var request LoginRequestObject
 
 	var body LoginJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -2686,7 +2686,7 @@ func (sh *strictHandler) Login(ctx echo.Context) error {
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.Login(ctx.Request().Context(), request.(LoginRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2706,10 +2706,10 @@ func (sh *strictHandler) Login(ctx echo.Context) error {
 }
 
 // Logout operation middleware
-func (sh *strictHandler) Logout(ctx echo.Context) error {
+func (sh *strictHandler) Logout(ctx *echo.Context) error {
 	var request LogoutRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.Logout(ctx.Request().Context(), request.(LogoutRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2729,15 +2729,15 @@ func (sh *strictHandler) Logout(ctx echo.Context) error {
 }
 
 // Setup operation middleware
-func (sh *strictHandler) Setup(ctx echo.Context) error {
+func (sh *strictHandler) Setup(ctx *echo.Context) error {
 	var request SetupRequestObject
 
 	var body SetupJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -2748,7 +2748,7 @@ func (sh *strictHandler) Setup(ctx echo.Context) error {
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.Setup(ctx.Request().Context(), request.(SetupRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2768,10 +2768,10 @@ func (sh *strictHandler) Setup(ctx echo.Context) error {
 }
 
 // GetAuthStatus operation middleware
-func (sh *strictHandler) GetAuthStatus(ctx echo.Context) error {
+func (sh *strictHandler) GetAuthStatus(ctx *echo.Context) error {
 	var request GetAuthStatusRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetAuthStatus(ctx.Request().Context(), request.(GetAuthStatusRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2791,12 +2791,12 @@ func (sh *strictHandler) GetAuthStatus(ctx echo.Context) error {
 }
 
 // ListChats operation middleware
-func (sh *strictHandler) ListChats(ctx echo.Context, params ListChatsParams) error {
+func (sh *strictHandler) ListChats(ctx *echo.Context, params ListChatsParams) error {
 	var request ListChatsRequestObject
 
 	request.Params = params
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListChats(ctx.Request().Context(), request.(ListChatsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2816,15 +2816,15 @@ func (sh *strictHandler) ListChats(ctx echo.Context, params ListChatsParams) err
 }
 
 // CreateChat operation middleware
-func (sh *strictHandler) CreateChat(ctx echo.Context) error {
+func (sh *strictHandler) CreateChat(ctx *echo.Context) error {
 	var request CreateChatRequestObject
 
 	var body CreateChatJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -2835,7 +2835,7 @@ func (sh *strictHandler) CreateChat(ctx echo.Context) error {
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateChat(ctx.Request().Context(), request.(CreateChatRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2855,10 +2855,10 @@ func (sh *strictHandler) CreateChat(ctx echo.Context) error {
 }
 
 // GetOrCreateEmptyChat operation middleware
-func (sh *strictHandler) GetOrCreateEmptyChat(ctx echo.Context) error {
+func (sh *strictHandler) GetOrCreateEmptyChat(ctx *echo.Context) error {
 	var request GetOrCreateEmptyChatRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetOrCreateEmptyChat(ctx.Request().Context(), request.(GetOrCreateEmptyChatRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2878,12 +2878,12 @@ func (sh *strictHandler) GetOrCreateEmptyChat(ctx echo.Context) error {
 }
 
 // DeleteChat operation middleware
-func (sh *strictHandler) DeleteChat(ctx echo.Context, chatId openapi_types.UUID) error {
+func (sh *strictHandler) DeleteChat(ctx *echo.Context, chatId openapi_types.UUID) error {
 	var request DeleteChatRequestObject
 
 	request.ChatId = chatId
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.DeleteChat(ctx.Request().Context(), request.(DeleteChatRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2903,12 +2903,12 @@ func (sh *strictHandler) DeleteChat(ctx echo.Context, chatId openapi_types.UUID)
 }
 
 // GetChat operation middleware
-func (sh *strictHandler) GetChat(ctx echo.Context, chatId openapi_types.UUID) error {
+func (sh *strictHandler) GetChat(ctx *echo.Context, chatId openapi_types.UUID) error {
 	var request GetChatRequestObject
 
 	request.ChatId = chatId
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetChat(ctx.Request().Context(), request.(GetChatRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2928,17 +2928,17 @@ func (sh *strictHandler) GetChat(ctx echo.Context, chatId openapi_types.UUID) er
 }
 
 // RenameChat operation middleware
-func (sh *strictHandler) RenameChat(ctx echo.Context, chatId openapi_types.UUID) error {
+func (sh *strictHandler) RenameChat(ctx *echo.Context, chatId openapi_types.UUID) error {
 	var request RenameChatRequestObject
 
 	request.ChatId = chatId
 
 	var body RenameChatJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -2949,7 +2949,7 @@ func (sh *strictHandler) RenameChat(ctx echo.Context, chatId openapi_types.UUID)
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.RenameChat(ctx.Request().Context(), request.(RenameChatRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -2969,17 +2969,17 @@ func (sh *strictHandler) RenameChat(ctx echo.Context, chatId openapi_types.UUID)
 }
 
 // ContinueChat operation middleware
-func (sh *strictHandler) ContinueChat(ctx echo.Context, chatId openapi_types.UUID) error {
+func (sh *strictHandler) ContinueChat(ctx *echo.Context, chatId openapi_types.UUID) error {
 	var request ContinueChatRequestObject
 
 	request.ChatId = chatId
 
 	var body ContinueChatJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -2990,7 +2990,7 @@ func (sh *strictHandler) ContinueChat(ctx echo.Context, chatId openapi_types.UUI
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ContinueChat(ctx.Request().Context(), request.(ContinueChatRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3010,17 +3010,17 @@ func (sh *strictHandler) ContinueChat(ctx echo.Context, chatId openapi_types.UUI
 }
 
 // PreviewChatContext operation middleware
-func (sh *strictHandler) PreviewChatContext(ctx echo.Context, chatId openapi_types.UUID) error {
+func (sh *strictHandler) PreviewChatContext(ctx *echo.Context, chatId openapi_types.UUID) error {
 	var request PreviewChatContextRequestObject
 
 	request.ChatId = chatId
 
 	var body PreviewChatContextJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -3031,7 +3031,7 @@ func (sh *strictHandler) PreviewChatContext(ctx echo.Context, chatId openapi_typ
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.PreviewChatContext(ctx.Request().Context(), request.(PreviewChatContextRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3051,12 +3051,12 @@ func (sh *strictHandler) PreviewChatContext(ctx echo.Context, chatId openapi_typ
 }
 
 // ListChatMCPServers operation middleware
-func (sh *strictHandler) ListChatMCPServers(ctx echo.Context, chatId openapi_types.UUID) error {
+func (sh *strictHandler) ListChatMCPServers(ctx *echo.Context, chatId openapi_types.UUID) error {
 	var request ListChatMCPServersRequestObject
 
 	request.ChatId = chatId
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListChatMCPServers(ctx.Request().Context(), request.(ListChatMCPServersRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3076,7 +3076,7 @@ func (sh *strictHandler) ListChatMCPServers(ctx echo.Context, chatId openapi_typ
 }
 
 // UpdateChatMCPServer operation middleware
-func (sh *strictHandler) UpdateChatMCPServer(ctx echo.Context, chatId openapi_types.UUID, serverId openapi_types.UUID) error {
+func (sh *strictHandler) UpdateChatMCPServer(ctx *echo.Context, chatId openapi_types.UUID, serverId openapi_types.UUID) error {
 	var request UpdateChatMCPServerRequestObject
 
 	request.ChatId = chatId
@@ -3084,10 +3084,10 @@ func (sh *strictHandler) UpdateChatMCPServer(ctx echo.Context, chatId openapi_ty
 
 	var body UpdateChatMCPServerJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -3098,7 +3098,7 @@ func (sh *strictHandler) UpdateChatMCPServer(ctx echo.Context, chatId openapi_ty
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.UpdateChatMCPServer(ctx.Request().Context(), request.(UpdateChatMCPServerRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3118,13 +3118,13 @@ func (sh *strictHandler) UpdateChatMCPServer(ctx echo.Context, chatId openapi_ty
 }
 
 // ListChatMessages operation middleware
-func (sh *strictHandler) ListChatMessages(ctx echo.Context, chatId openapi_types.UUID, params ListChatMessagesParams) error {
+func (sh *strictHandler) ListChatMessages(ctx *echo.Context, chatId openapi_types.UUID, params ListChatMessagesParams) error {
 	var request ListChatMessagesRequestObject
 
 	request.ChatId = chatId
 	request.Params = params
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListChatMessages(ctx.Request().Context(), request.(ListChatMessagesRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3144,17 +3144,17 @@ func (sh *strictHandler) ListChatMessages(ctx echo.Context, chatId openapi_types
 }
 
 // UpdateChatSettings operation middleware
-func (sh *strictHandler) UpdateChatSettings(ctx echo.Context, chatId openapi_types.UUID) error {
+func (sh *strictHandler) UpdateChatSettings(ctx *echo.Context, chatId openapi_types.UUID) error {
 	var request UpdateChatSettingsRequestObject
 
 	request.ChatId = chatId
 
 	var body UpdateChatSettingsJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -3165,7 +3165,7 @@ func (sh *strictHandler) UpdateChatSettings(ctx echo.Context, chatId openapi_typ
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.UpdateChatSettings(ctx.Request().Context(), request.(UpdateChatSettingsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3185,10 +3185,10 @@ func (sh *strictHandler) UpdateChatSettings(ctx echo.Context, chatId openapi_typ
 }
 
 // GetHealth operation middleware
-func (sh *strictHandler) GetHealth(ctx echo.Context) error {
+func (sh *strictHandler) GetHealth(ctx *echo.Context) error {
 	var request GetHealthRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.GetHealth(ctx.Request().Context(), request.(GetHealthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3208,15 +3208,15 @@ func (sh *strictHandler) GetHealth(ctx echo.Context) error {
 }
 
 // ImportMCP operation middleware
-func (sh *strictHandler) ImportMCP(ctx echo.Context) error {
+func (sh *strictHandler) ImportMCP(ctx *echo.Context) error {
 	var request ImportMCPRequestObject
 
 	var body ImportMCPJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -3227,7 +3227,7 @@ func (sh *strictHandler) ImportMCP(ctx echo.Context) error {
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ImportMCP(ctx.Request().Context(), request.(ImportMCPRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3247,10 +3247,10 @@ func (sh *strictHandler) ImportMCP(ctx echo.Context) error {
 }
 
 // ListMCPServers operation middleware
-func (sh *strictHandler) ListMCPServers(ctx echo.Context) error {
+func (sh *strictHandler) ListMCPServers(ctx *echo.Context) error {
 	var request ListMCPServersRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListMCPServers(ctx.Request().Context(), request.(ListMCPServersRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3270,15 +3270,15 @@ func (sh *strictHandler) ListMCPServers(ctx echo.Context) error {
 }
 
 // CreateMCPServer operation middleware
-func (sh *strictHandler) CreateMCPServer(ctx echo.Context) error {
+func (sh *strictHandler) CreateMCPServer(ctx *echo.Context) error {
 	var request CreateMCPServerRequestObject
 
 	var body CreateMCPServerJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -3289,7 +3289,7 @@ func (sh *strictHandler) CreateMCPServer(ctx echo.Context) error {
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateMCPServer(ctx.Request().Context(), request.(CreateMCPServerRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3309,12 +3309,12 @@ func (sh *strictHandler) CreateMCPServer(ctx echo.Context) error {
 }
 
 // DeleteMCPServer operation middleware
-func (sh *strictHandler) DeleteMCPServer(ctx echo.Context, serverId openapi_types.UUID) error {
+func (sh *strictHandler) DeleteMCPServer(ctx *echo.Context, serverId openapi_types.UUID) error {
 	var request DeleteMCPServerRequestObject
 
 	request.ServerId = serverId
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.DeleteMCPServer(ctx.Request().Context(), request.(DeleteMCPServerRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3334,17 +3334,17 @@ func (sh *strictHandler) DeleteMCPServer(ctx echo.Context, serverId openapi_type
 }
 
 // UpdateMCPServer operation middleware
-func (sh *strictHandler) UpdateMCPServer(ctx echo.Context, serverId openapi_types.UUID) error {
+func (sh *strictHandler) UpdateMCPServer(ctx *echo.Context, serverId openapi_types.UUID) error {
 	var request UpdateMCPServerRequestObject
 
 	request.ServerId = serverId
 
 	var body UpdateMCPServerJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -3355,7 +3355,7 @@ func (sh *strictHandler) UpdateMCPServer(ctx echo.Context, serverId openapi_type
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.UpdateMCPServer(ctx.Request().Context(), request.(UpdateMCPServerRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3375,12 +3375,12 @@ func (sh *strictHandler) UpdateMCPServer(ctx echo.Context, serverId openapi_type
 }
 
 // ReconnectMCPServer operation middleware
-func (sh *strictHandler) ReconnectMCPServer(ctx echo.Context, serverId openapi_types.UUID) error {
+func (sh *strictHandler) ReconnectMCPServer(ctx *echo.Context, serverId openapi_types.UUID) error {
 	var request ReconnectMCPServerRequestObject
 
 	request.ServerId = serverId
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ReconnectMCPServer(ctx.Request().Context(), request.(ReconnectMCPServerRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3400,12 +3400,12 @@ func (sh *strictHandler) ReconnectMCPServer(ctx echo.Context, serverId openapi_t
 }
 
 // ListMCPServerTools operation middleware
-func (sh *strictHandler) ListMCPServerTools(ctx echo.Context, serverId openapi_types.UUID) error {
+func (sh *strictHandler) ListMCPServerTools(ctx *echo.Context, serverId openapi_types.UUID) error {
 	var request ListMCPServerToolsRequestObject
 
 	request.ServerId = serverId
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListMCPServerTools(ctx.Request().Context(), request.(ListMCPServerToolsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3425,10 +3425,10 @@ func (sh *strictHandler) ListMCPServerTools(ctx echo.Context, serverId openapi_t
 }
 
 // ListModels operation middleware
-func (sh *strictHandler) ListModels(ctx echo.Context) error {
+func (sh *strictHandler) ListModels(ctx *echo.Context) error {
 	var request ListModelsRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListModels(ctx.Request().Context(), request.(ListModelsRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3448,10 +3448,10 @@ func (sh *strictHandler) ListModels(ctx echo.Context) error {
 }
 
 // ListUpstreamHealth operation middleware
-func (sh *strictHandler) ListUpstreamHealth(ctx echo.Context) error {
+func (sh *strictHandler) ListUpstreamHealth(ctx *echo.Context) error {
 	var request ListUpstreamHealthRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListUpstreamHealth(ctx.Request().Context(), request.(ListUpstreamHealthRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3471,10 +3471,10 @@ func (sh *strictHandler) ListUpstreamHealth(ctx echo.Context) error {
 }
 
 // ListUsers operation middleware
-func (sh *strictHandler) ListUsers(ctx echo.Context) error {
+func (sh *strictHandler) ListUsers(ctx *echo.Context) error {
 	var request ListUsersRequestObject
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.ListUsers(ctx.Request().Context(), request.(ListUsersRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3494,15 +3494,15 @@ func (sh *strictHandler) ListUsers(ctx echo.Context) error {
 }
 
 // CreateUser operation middleware
-func (sh *strictHandler) CreateUser(ctx echo.Context) error {
+func (sh *strictHandler) CreateUser(ctx *echo.Context) error {
 	var request CreateUserRequestObject
 
 	var body CreateUserJSONRequestBody
 	var err error
-	if binder, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
+	if _, ok := ctx.Echo().Binder.(*echo.DefaultBinder); ok {
 		// Bind only the request body, so that path and query parameters
 		// are not also bound into the body struct.
-		err = binder.BindBody(ctx, &body)
+		err = echo.BindBody(ctx, &body)
 	} else {
 		// A custom binder is installed on the Echo instance; defer to it
 		// entirely, since echo.Binder does not expose body-only binding.
@@ -3513,7 +3513,7 @@ func (sh *strictHandler) CreateUser(ctx echo.Context) error {
 	}
 	request.Body = &body
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.CreateUser(ctx.Request().Context(), request.(CreateUserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {
@@ -3533,12 +3533,12 @@ func (sh *strictHandler) CreateUser(ctx echo.Context) error {
 }
 
 // DeleteUser operation middleware
-func (sh *strictHandler) DeleteUser(ctx echo.Context, userId openapi_types.UUID) error {
+func (sh *strictHandler) DeleteUser(ctx *echo.Context, userId openapi_types.UUID) error {
 	var request DeleteUserRequestObject
 
 	request.UserId = userId
 
-	handler := func(ctx echo.Context, request interface{}) (interface{}, error) {
+	handler := func(ctx *echo.Context, request interface{}) (interface{}, error) {
 		return sh.ssi.DeleteUser(ctx.Request().Context(), request.(DeleteUserRequestObject))
 	}
 	for _, middleware := range sh.middlewares {

@@ -31,7 +31,7 @@ Request path: browser -> session cookie -> handler -> `core/chats` -> elelem dri
 ## Stack
 
 - Go `1.26.9` (`go.mod`, `Dockerfile`, `Dockerfile.dev`), static build with `CGO_ENABLED=0` for the image. The dev image keeps cgo on for `-race`.
-- HTTP: echo v4, oapi-codegen strict server and client from `api/api.yml`, aichteeteapee for header names and error codes.
+- HTTP: echo v5, oapi-codegen strict server and client from `api/api.yml`, aichteeteapee for header names and error codes.
 - LLM: elelem with its `openai` and `anthropic` drivers. MCP: the official Go SDK.
 - Storage: gorm with gorm/gen repositories, Postgres (default) or SQLite through `glebarez/sqlite`.
 - Logging and errors: slogging, ctxscope, ctxerrors, common-go sentinels. Config: gonfiguration.

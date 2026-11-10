@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/psyb0t/aichteeteapee"
 	"github.com/psyb0t/chatz/internal/pkg/db/models"
 	chatzlogging "github.com/psyb0t/chatz/internal/pkg/logging"
@@ -110,7 +110,7 @@ func findRequestCompletedLine(
 func newRequestIDEcho() *echo.Echo {
 	e := echo.New()
 	e.Use(requestID())
-	e.GET("/x", func(c echo.Context) error {
+	e.GET("/x", func(c *echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -200,7 +200,7 @@ func TestRequestLogger_CarriesIdentity(t *testing.T) {
 	e := echo.New()
 	e.Use(requestLogger())
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+		return func(c *echo.Context) error {
 			user := &models.User{Base: models.Base{ID: id}, IsAdmin: true}
 			ctx := getCtxWithIdentity(c.Request().Context(), user)
 			c.SetRequest(c.Request().WithContext(ctx))
@@ -208,7 +208,7 @@ func TestRequestLogger_CarriesIdentity(t *testing.T) {
 			return next(c)
 		}
 	})
-	e.GET("/x", func(c echo.Context) error {
+	e.GET("/x", func(c *echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 
@@ -335,7 +335,7 @@ func TestRequestID_EnrichesDownstreamLogger(t *testing.T) {
 	e := echo.New()
 	e.Use(requestID())
 	e.Use(requestLogger())
-	e.GET("/x", func(c echo.Context) error {
+	e.GET("/x", func(c *echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
 

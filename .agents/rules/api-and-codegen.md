@@ -7,4 +7,3 @@
 - Chat streams are SSE with Anthropic-style frames plus the `chat_status` progress event. A new frame or status value changes `api/api.yml`, `internal/pkg/core/chats` and `web/src/lib/api/sse-events.ts` together.
 - Every generator is declared in its output package's `gen.go` (`//go:generate`), so `go generate ./...` finds it. A new generated package adds a `gen.go`, never a line in `scripts/make/generate.sh`.
 - The GenUI prompt chain stays in lockstep: `web/src/lib/render/catalog.ts`, `web/src/lib/common/render.ts` and the registry feed `web/scripts/gen-ui-instructions.mjs`, and `make genui-prompt` writes `internal/pkg/core/chats/prompts/genui_instructions.gen.txt`. `web/src/lib/render/README.md` has the change workflow.
-- Never hand-edit a `*.gen.go`, `*.gen.txt` or `schema.d.ts` file. CI runs `make generate` and fails on any diff.

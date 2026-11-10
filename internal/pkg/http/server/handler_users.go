@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/psyb0t/aichteeteapee"
 	"github.com/psyb0t/chatz/internal/pkg/core/auth"
 	api "github.com/psyb0t/chatz/internal/pkg/http/api"

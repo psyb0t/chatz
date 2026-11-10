@@ -5,6 +5,24 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.13] - 2026-11-10
+
+v0.7.12 was tagged but never released because its security scan failed. This release ships its changes too.
+
+### Changed
+
+- The HTTP server runs on echo v5.4.4 instead of echo v4, and the generated server code uses oapi-codegen's echo v5 output. Routes, the error envelope and session handling are unchanged.
+- A malformed JSON request body still returns 400 in the error envelope, but its message is now `Bad Request` instead of the parser's error text.
+- The API listener sets a 10 second read header timeout.
+- The Docker images build with Go 1.26.10.
+- The documentation is published at [psyb0t.github.io/chatz](https://psyb0t.github.io/chatz/). Configuration, the architecture, the HTTP API and deployment moved there from the README, which keeps the quick start.
+- Lint, the Go coverage gate with the web unit tests and the security scan run on every branch push, and pull requests no longer start their own runs. A push to `main` also publishes `psyb0t/chatz:sha-<commit>`, and a release tag no longer rebuilds the image: it waits for that commit's `main` run to pass and promotes the same image.
+- The funding links include Buy Me a Coffee, and `AGENTS.md` plus the project rules in `.agents/rules/` for coding agents are committed.
+
+### Security
+
+- Cleared the vulnerabilities `make sec` reported. GO-2026-6872 (rate limiter bypass through a spoofed `X-Forwarded-For`) and GO-2026-6875 (reverse proxy forwarding a client-supplied `X-Real-IP`) have no fix in echo v4, hence the move to v5. `github.com/getkin/kin-openapi` is now v0.148.0 and `github.com/klauspost/compress` v1.20.2.
+
 ## [0.7.12] - 2026-11-10
 
 ### Changed

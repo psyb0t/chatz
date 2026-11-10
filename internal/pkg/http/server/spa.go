@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v5"
 	"github.com/psyb0t/ctxerrors"
 	"github.com/psyb0t/ctxscope"
 )
@@ -29,7 +29,7 @@ func (s *Server) registerSPA() {
 	s.echo.GET("/*", s.serveSPA)
 }
 
-func (s *Server) serveSPA(c echo.Context) error {
+func (s *Server) serveSPA(c *echo.Context) error {
 	req := c.Request()
 	ctx := req.Context()
 	logger := ctxscope.GetLogger(ctx)
@@ -73,7 +73,7 @@ func (s *Server) serveSPA(c echo.Context) error {
 // tryServeFile serves name from the embedded FS if it resolves to a real file,
 // returning (true, nil) when written. A non-existent path or a directory yields
 // (false, nil) so the caller can fall back to index.html.
-func (s *Server) tryServeFile(c echo.Context, name string) (bool, error) {
+func (s *Server) tryServeFile(c *echo.Context, name string) (bool, error) {
 	f, err := s.deps.WebFS.Open(name)
 	if err != nil {
 		// A miss (no such file) is not an error here: the caller falls back to

@@ -144,7 +144,7 @@ linters:
             - github.com/testcontainers/testcontainers-go
             - github.com/prometheus/client_golang
             - golang.org/x/crypto
-            - github.com/labstack/echo/v4
+            - github.com/labstack/echo/v5
             - github.com/oapi-codegen
             - github.com/getkin/kin-openapi
             - github.com/glebarez/sqlite
