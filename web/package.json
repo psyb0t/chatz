@@ -37,6 +37,6 @@
     "svelte": "5.56.4",
     "svelte-exmarkdown": "5.0.2",
     "vitest": "^4.1.10",
-    "zod": "4.4.3"
+    "zod": "4.6.6"
   }
 }
