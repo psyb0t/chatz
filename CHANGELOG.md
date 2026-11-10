@@ -5,6 +5,14 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.12] - 2026-11-10
+
+### Changed
+
+- The documentation is published at [psyb0t.github.io/chatz](https://psyb0t.github.io/chatz/). Configuration, the architecture, the HTTP API and deployment moved there from the README, which keeps the quick start.
+- Lint, the Go coverage gate with the web unit tests and the security scan run on every branch push, and pull requests no longer start their own runs. A push to `main` also publishes `psyb0t/chatz:sha-<commit>`, and a release tag no longer rebuilds the image: it waits for that commit's `main` run to pass and promotes the same image.
+- The funding links include Buy Me a Coffee, and `AGENTS.md` plus the project rules in `.agents/rules/` for coding agents are committed.
+
 ## [0.7.11] - 2026-10-17
 
 - Documentation only. The README runs `psyb0t/chatz:latest` instead of telling deployments to pin a release tag.

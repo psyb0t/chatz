@@ -79,4 +79,10 @@ Dockerfile
 # the framework out of tests/ entirely.
 tests/
 
+# chatz's funding links and repository automation, which the servicepack
+# template also keeps project-owned.
+.github/FUNDING.yml
+.github/workflows/issue-pull.yml
+.github/workflows/mirror-and-archive.yml
+
 # Note: internal/pkg/services/* is always excluded - your services are never touched

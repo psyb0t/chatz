@@ -11,7 +11,6 @@ sec.sarif
 # silently excluded vendor/github.com/moby/moby/api/types/build/ from git —
 # the tree built locally and failed in CI, which checks out what git has.
 /build
-CLAUDE.md
 .env
 .env.local
 .env.*
@@ -25,9 +24,9 @@ git-update.sh
 git-update.sh.debot
 .telemetry/
 
-# Codex / agent scratch — never commit
-AGENTS.md
+# Codex / agent scratch, never commit
 CODEX.local.md
+*.local.json
 .agent_notes/
 .agent_knowledge/
 PLAN.md

@@ -1,3 +1,10 @@
+---
+title: "Services and lifecycle"
+description: "The servicepack service contract chatz runs on: Run and Stop, readiness, retries, allowed failures, SERVICES_ENABLED, hooks and the shutdown path."
+nav_order: 1
+parent: "Architecture"
+---
+
 # Services and lifecycle
 
 Servicepack supervises services that live in the same process. It provides
@@ -7,8 +14,8 @@ network protocol or solve distributed-systems concerns for services you split
 out later.
 
 For the implementation-level rules and test setup, see the
-[service-manager deep dive](../internal/pkg/service-manager/README.md) and
-[runner deep dive](../pkg/runner/README.md).
+[service-manager deep dive](https://github.com/psyb0t/chatz/blob/main/internal/pkg/service-manager/README.md) and
+[runner deep dive](https://github.com/psyb0t/chatz/blob/main/pkg/runner/README.md).
 
 ## The required contract
 

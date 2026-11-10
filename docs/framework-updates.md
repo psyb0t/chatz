@@ -1,3 +1,10 @@
+---
+title: "Framework updates"
+description: "How make servicepack-update brings framework fixes into chatz: the update branch, what it preserves, the ignore file, backups and the checks to run after."
+nav_order: 1
+parent: "Development"
+---
+
 # Framework updates
 
 A project created from Servicepack owns its services and application-specific
@@ -42,28 +49,23 @@ backup in your project. Read its output and review the branch like any other
 framework upgrade before treating it as deployable.
 
 The implementation and per-target override rules live in the
-[framework Make-script README](../scripts/make/servicepack/README.md).
+[framework Make-script README](https://github.com/psyb0t/chatz/blob/main/scripts/make/servicepack/README.md).
 
 ## What is preserved
 
 The framework always excludes application material such as:
 
 - `internal/pkg/services/*`;
+- the `docs/` and `tests/` trees;
 - root `README.md`, `LICENSE`, `CHANGELOG.md`, `.gitignore`, `Makefile`, and
   project Dockerfiles;
 - your `go.mod`, `go.sum`, and vendored graph, which receive dependency-aware
   handling instead of a blind file replacement;
 - build artifacts and Git internals.
 
-The shipped `.servicepackupdateignore` adds project-specific extension points
-such as `cmd/init.go`, `cmd/commands.go`, your dependency policy, Docker build
-context, secret-scanning allowlist, project CI, funding metadata, and agent
-metadata. It also prevents Servicepack's own mirror/archive workflows from
-accidentally publishing a downstream project.
+chatz's [`.servicepackupdateignore`](https://github.com/psyb0t/chatz/blob/main/.servicepackupdateignore) adds its own extension points and customized files: `cmd/init.go`, `cmd/commands.go`, `.golangci.yml`, the Go dependency age-gate script, the Docker build context, the secret-scanning allowlist, Dependabot, the CI pipeline, the funding links, the `issue-pull` and `mirror-and-archive` workflows, the agent rules in `.agents`, and the whole `tests/` tree.
 
-That ignore file belongs to your project after `make own`. New exclusions added
-upstream later are not silently forced into an existing downstream. Compare the
-new template when you update if you want its newer defaults.
+That ignore file belongs to the project. New exclusions added upstream later are not forced into an existing project, so compare the new template when you update if you want its newer defaults.
 
 ## Customize the boundary deliberately
 

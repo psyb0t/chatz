@@ -26,7 +26,7 @@ MIN_TEST_COVERAGE = 85
 
 include Makefile.servicepack
 
-.PHONY: dev-image shell run run-showcase stop migrate lint lint-go lint-web \
+.PHONY: dev-image shell run run-showcase stop migrate lint lint-go lint-web docs \
 	test test-go test-web test-coverage \
 	generate generate-repos generate-api genui-prompt \
 	test-unit test-integration test-real test-api \
@@ -129,6 +129,25 @@ test-real: ## Run the real-LLM tests (dev container, host net, uses the same .en
 
 test-api: ## Run API tests (full app image + browser, Go testcontainers, DIND)
 	@bash "$(call find_script_path,test_api.sh)"
+
+# --- Documentation site -----------------------------------------------------
+
+# GitHub Pages builds docs/ with this image, so the local build matches the
+# published one. Output goes to the gitignored .testing/ directory.
+DOCS_SITE := .testing/docs-site
+
+docs: ## Build the documentation site into .testing/docs-site
+	@mkdir -p "$(DOCS_SITE)"
+	@docker run --rm \
+		--user "$$(id -u):$$(id -g)" \
+		-e HOME=/tmp \
+		-e GITHUB_WORKSPACE=/work \
+		-e GITHUB_REPOSITORY=psyb0t/chatz \
+		-e INPUT_SOURCE=docs \
+		-e INPUT_DESTINATION="$(DOCS_SITE)" \
+		-e INPUT_VERBOSE=false \
+		-v "$(CURDIR):/work" \
+		ghcr.io/actions/jekyll-build-pages:v1.0.13@sha256:6791ebfd912185ed59bfb5fb102664fa872496b79f87ff8b9cfba292a7345041
 
 # --- Go dependencies: age-gated and always vendored -------------------------
 
