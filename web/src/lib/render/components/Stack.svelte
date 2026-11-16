@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_STACK, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_STACK, DATA_JR_TYPE } from "#lib/common/render.js";
 
   type StackProps = {
     id?: string | null;

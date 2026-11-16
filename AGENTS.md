@@ -8,7 +8,7 @@ Instructions for coding agents (Codex, Claude Code and others) and for people ch
 
 ## What it is
 
-A self-hosted AI chat app published as the `psyb0t/chatz` Docker image. One Go binary serves a versioned JSON and SSE API under `/api/v1` (contract in `api/api.yml`) and an embedded SvelteKit single-page app from the same origin. Chats stream from OpenAI-compatible or Anthropic upstreams through [elelem](https://github.com/psyb0t/elelem), call tools on admin-managed MCP servers, and can render generative UI components from fenced `spec` blocks in the model output. Data lives in Postgres or SQLite.
+A self-hosted AI chat app published as the `psyb0t/chatz` Docker image. One Go binary serves a versioned JSON and SSE API under `/api/v1` (contract in `api/api.yml`) and an embedded SvelteKit single-page app from the same origin. Chats stream from OpenAI-compatible, Anthropic or Z.ai Coding upstreams through [elelem](https://github.com/psyb0t/elelem), call tools on admin-managed MCP servers, and can render generative UI components from fenced `spec` blocks in the model output. Data lives in Postgres or SQLite.
 
 The app is built on [servicepack](https://github.com/psyb0t/servicepack), a clone-and-own Go service framework. Servicepack owns part of the tree and overwrites it on `make servicepack-update`; `.agents/rules/servicepack-boundary.md` lists which part.
 
@@ -18,7 +18,7 @@ The app is built on [servicepack](https://github.com/psyb0t/servicepack), a clon
 - `internal/pkg/http/server`: echo router and the handlers over the generated strict server interface (`handler_*.go`), session auth middleware, `requireAdmin`, the error envelope and SPA serving. The API mounts at `/api/v1`; `/healthz` sits at the root.
 - `internal/pkg/core/auth`: bcrypt passwords, opaque session tokens (only the SHA-256 hash is stored), first-run admin setup and passwordless single-user login.
 - `internal/pkg/core/chats`: durable turns. Model or fixed-response selection, per-chat locks, history selection, SSE streaming, checkpoints and persistence. `core/chat` adapts elelem's agent loop to the SSE stream. The turn contract is in `internal/pkg/core/chats/README.md`.
-- `internal/pkg/upstreams`: model discovery across `CHATZ_UPSTREAMS`, routing a model ID to its client, and the redacted health snapshots.
+- `internal/pkg/upstreams`: model discovery across `CHATZ_UPSTREAMS`, routing a model ID to its client, each model's generation `Controls` (from driver capabilities plus config overrides; `ApplyTo` drops settings a model does not accept), and the redacted health snapshots.
 - `internal/pkg/mcp`: stdio and streamable HTTP MCP connections, status, retries, tool routing as `<server>__<tool>`, and `.mcp.json` import. Details in `internal/pkg/mcp/README.md`.
 - `internal/pkg/db`: Postgres and SQLite connections, embedded migrations (`migrations/` and `migrations/sqlite/`), gorm models and the generated repositories.
 - `internal/pkg/secrets`: AES-256-GCM sealing of stored MCP headers and stdio environment maps with `CHATZ_SECRETS_KEY`.
@@ -30,12 +30,12 @@ Request path: browser -> session cookie -> handler -> `core/chats` -> elelem dri
 
 ## Stack
 
-- Go `1.26.9` (`go.mod`, `Dockerfile`, `Dockerfile.dev`), static build with `CGO_ENABLED=0` for the image. The dev image keeps cgo on for `-race`.
+- Go `1.26.11` (`go.mod`, `Dockerfile`, `Dockerfile.dev`), static build with `CGO_ENABLED=0` for the image. The dev image keeps cgo on for `-race`.
 - HTTP: echo v5, oapi-codegen strict server and client from `api/api.yml`, aichteeteapee for header names and error codes.
-- LLM: elelem with its `openai` and `anthropic` drivers. MCP: the official Go SDK.
+- LLM: elelem with its `openai`, `anthropic` and `zaicoding` drivers. MCP: the official Go SDK.
 - Storage: gorm with gorm/gen repositories, Postgres (default) or SQLite through `glebarez/sqlite`.
 - Logging and errors: slogging, ctxscope, ctxerrors, common-go sentinels. Config: gonfiguration.
-- Web: SvelteKit 2, Svelte 5, TypeScript, vitest, prettier, svelte-check, pnpm `10.15.0` only.
+- Web: SvelteKit 3 (configured in `web/vite.config.ts`; there is no `svelte.config.js`), Svelte 5, TypeScript 6, Vite 8, vitest, prettier, svelte-check, pnpm `10.15.0` only. App code imports `#lib/...` with a file extension (`#lib/api/client.js`), resolved through `imports` in `web/package.json`; SvelteKit 3 no longer provides `$lib`.
 - Image: three-stage `Dockerfile` (node build of the SPA, Go build that embeds it, Alpine runtime as a non-root user with `/data` for SQLite).
 - CI: `.github/workflows/pipeline.yml` calling `psyb0t/reusable-github-workflows`.
 

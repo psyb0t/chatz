@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
 
   interface Props {
-    // `shadow` lifts the panel with the hard brutalist drop-shadow (used by the
+    // `shadow` lifts the panel with the elevated drop-shadow (used by the
     // auth gate cards). `pad` picks the interior padding step from the spacing
     // scale — never a raw px value.
     shadow?: boolean;

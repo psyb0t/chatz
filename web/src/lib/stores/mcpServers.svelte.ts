@@ -10,9 +10,9 @@ import {
   type MCPTool,
   type CreateMCPServerRequest,
   type UpdateMCPServerRequest,
-} from "$lib/api/client";
-import { log } from "$lib/log";
-import { MCP_STATUS_CONNECTING, MCP_STATUS_FAILED } from "$lib/common/mcp";
+} from "#lib/api/client.js";
+import { log } from "#lib/log.js";
+import { MCP_STATUS_CONNECTING, MCP_STATUS_FAILED } from "#lib/common/mcp.js";
 import {
   EVENT_ADMIN_MCP_CREATE,
   EVENT_ADMIN_MCP_UPDATE,
@@ -21,7 +21,7 @@ import {
   EVENT_ADMIN_MCP_IMPORT,
   EVENT_MCP_SERVERS_ERROR,
   EVENT_MCP_SERVERS_LOADED,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 // ServerToolsState is a server's lazily-loaded tool cache for the expandable
 // tools view (list is null until fetched).

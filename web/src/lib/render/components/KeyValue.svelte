@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_KEY_VALUE, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_KEY_VALUE, DATA_JR_TYPE } from "#lib/common/render.js";
 
   interface KeyValueItem {
     label: string;

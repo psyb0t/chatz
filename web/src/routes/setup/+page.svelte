@@ -1,10 +1,10 @@
 <script lang="ts">
-  import { ApiError } from "$lib/api/errors";
-  import { auth } from "$lib/stores/auth.svelte";
-  import Panel from "$lib/components/ui/Panel.svelte";
-  import Field from "$lib/components/ui/Field.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import { BUTTON_PRIMARY } from "$lib/components/ui/variants";
+  import { ApiError } from "#lib/api/errors.js";
+  import { auth } from "#lib/stores/auth.svelte.js";
+  import Panel from "#lib/components/ui/Panel.svelte";
+  import Field from "#lib/components/ui/Field.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import { BUTTON_PRIMARY } from "#lib/components/ui/variants.js";
 
   let username = $state("");
   let password = $state("");

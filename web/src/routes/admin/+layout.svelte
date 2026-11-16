@@ -4,18 +4,18 @@
     ROUTE_ADMIN_USERS,
     ROUTE_ADMIN_MCP,
     ROUTE_ADMIN_READINESS,
-  } from "$lib/common/routes";
+  } from "#lib/common/routes.js";
   import {
     NAV_ADMIN_SYSTEM,
     NAV_ADMIN_USERS,
     NAV_ADMIN_MCP,
     NAV_ADMIN_READINESS,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
   import {
     TESTID_NAV_ADMIN_USERS,
     TESTID_NAV_ADMIN_MCP,
     TESTID_NAV_ADMIN_READINESS,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
 
   interface Props {
     children: import("svelte").Snippet;

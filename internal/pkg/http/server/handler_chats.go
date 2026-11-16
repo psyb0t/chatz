@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/psyb0t/aichteeteapee"
 	"github.com/psyb0t/chatz/internal/pkg/core/chats"
@@ -384,7 +385,15 @@ const (
 	maxTemperature = 2.0
 	minTopP        = 0.0
 	maxTopP        = 1.0
+	minTopK        = 1
+	maxTopK        = 1000
+	minPenalty     = -2.0
+	maxPenalty     = 2.0
 	minTokenCount  = 1
+
+	maxStopSequences     = 4
+	maxStopSequenceRunes = 64
+	maxSystemPromptRunes = 16000
 )
 
 // UpdateChatSettings replaces a chat's model-generation settings (full
@@ -461,22 +470,33 @@ func (s *Server) PreviewChatContext(
 // validateChatSettings enforces the per-field bounds, returning a client-facing
 // message and false on the first violation.
 func validateChatSettings(b *api.ChatSettings) (string, bool) {
-	if msg, ok := validateSampling(b); !ok {
-		return msg, false
+	validators := []func(*api.ChatSettings) (string, bool){
+		validateSampling,
+		validatePenalties,
+		validateTokenCaps,
+		validateStop,
+		validateSystemPrompt,
 	}
 
-	if msg, ok := validateTokenCaps(b); !ok {
-		return msg, false
+	for _, validate := range validators {
+		if msg, ok := validate(b); !ok {
+			return msg, false
+		}
 	}
 
-	if b.ReasoningEffort != nil && !validReasoningEffort(*b.ReasoningEffort) {
-		return "reasoningEffort must be minimal, low, medium, or high", false
+	if b.ReasoningEffort != nil && !b.ReasoningEffort.Valid() {
+		return "reasoningEffort must be none, minimal, low, medium, high, " +
+			"xhigh, or max", false
+	}
+
+	if b.Seed != nil && *b.Seed < 0 {
+		return "seed must be zero or a positive integer", false
 	}
 
 	return "", true
 }
 
-// validateSampling bounds the temperature + top_p knobs.
+// validateSampling bounds the temperature, top_p and top_k knobs.
 func validateSampling(b *api.ChatSettings) (string, bool) {
 	if b.Temperature != nil &&
 		(*b.Temperature < minTemperature || *b.Temperature > maxTemperature) {
@@ -487,7 +507,28 @@ func validateSampling(b *api.ChatSettings) (string, bool) {
 		return "topP must be between 0 and 1", false
 	}
 
+	if b.TopK != nil && (*b.TopK < minTopK || *b.TopK > maxTopK) {
+		return "topK must be between 1 and 1000", false
+	}
+
 	return "", true
+}
+
+// validatePenalties bounds the frequency and presence penalties.
+func validatePenalties(b *api.ChatSettings) (string, bool) {
+	if b.FrequencyPenalty != nil && !inPenaltyRange(*b.FrequencyPenalty) {
+		return "frequencyPenalty must be between -2 and 2", false
+	}
+
+	if b.PresencePenalty != nil && !inPenaltyRange(*b.PresencePenalty) {
+		return "presencePenalty must be between -2 and 2", false
+	}
+
+	return "", true
+}
+
+func inPenaltyRange(v float64) bool {
+	return v >= minPenalty && v <= maxPenalty
 }
 
 // validateTokenCaps bounds the max-output + max-history token caps.
@@ -503,30 +544,80 @@ func validateTokenCaps(b *api.ChatSettings) (string, bool) {
 	return "", true
 }
 
-func validReasoningEffort(e api.ChatSettingsReasoningEffort) bool {
-	switch e {
-	case api.ChatSettingsReasoningEffortMinimal,
-		api.ChatSettingsReasoningEffortLow,
-		api.ChatSettingsReasoningEffortMedium,
-		api.ChatSettingsReasoningEffortHigh:
-		return true
-	default:
-		return false
+// validateStop bounds the stop list: at most maxStopSequences entries, each
+// 1 to maxStopSequenceRunes characters.
+func validateStop(b *api.ChatSettings) (string, bool) {
+	if b.Stop == nil {
+		return "", true
 	}
+
+	if len(*b.Stop) > maxStopSequences {
+		return "stop takes at most 4 sequences", false
+	}
+
+	for _, sequence := range *b.Stop {
+		n := utf8.RuneCountInString(sequence)
+		if n < 1 || n > maxStopSequenceRunes {
+			return "each stop sequence must be 1 to 64 characters", false
+		}
+
+		// Anthropic refuses a whitespace-only stop sequence, so storing one
+		// would fail every later turn on those models.
+		if strings.TrimSpace(sequence) == "" {
+			return "a stop sequence must not be only whitespace", false
+		}
+
+		if strings.ContainsRune(sequence, 0) {
+			return "a stop sequence must not contain a NUL character", false
+		}
+	}
+
+	return "", true
+}
+
+func validateSystemPrompt(b *api.ChatSettings) (string, bool) {
+	if b.SystemPrompt == nil {
+		return "", true
+	}
+
+	if utf8.RuneCountInString(*b.SystemPrompt) > maxSystemPromptRunes {
+		return "systemPrompt must be at most 16000 characters", false
+	}
+
+	// Postgres text columns cannot hold NUL, so it is refused here rather
+	// than failing the write.
+	if strings.ContainsRune(*b.SystemPrompt, 0) {
+		return "systemPrompt must not contain a NUL character", false
+	}
+
+	return "", true
 }
 
 // toChatSettings maps the validated request body to the domain settings; a nil
-// pointer / absent field stays unset.
+// pointer / absent field stays unset. A blank system prompt is unset too.
 func toChatSettings(b *api.ChatSettings) chats.Settings {
 	out := chats.Settings{
 		Temperature:      b.Temperature,
 		TopP:             b.TopP,
+		TopK:             b.TopK,
+		FrequencyPenalty: b.FrequencyPenalty,
+		PresencePenalty:  b.PresencePenalty,
+		Seed:             b.Seed,
 		MaxOutputTokens:  b.MaxOutputTokens,
 		MaxHistoryTokens: b.MaxHistoryTokens,
 	}
 
 	if b.ReasoningEffort != nil {
 		out.ReasoningEffort = string(*b.ReasoningEffort)
+	}
+
+	if b.Stop != nil {
+		out.StopSequences = append([]string{}, *b.Stop...)
+	}
+
+	if b.SystemPrompt != nil && strings.TrimSpace(*b.SystemPrompt) != "" {
+		prompt := *b.SystemPrompt
+		out.SystemPrompt = &prompt
 	}
 
 	return out

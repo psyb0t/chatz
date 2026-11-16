@@ -26,7 +26,7 @@ func (s *Service) PreviewContext(
 	}
 
 	preview, err := selectPromptHistory(
-		chatSystemPrompt(),
+		chatSystemPrompt(chat),
 		history,
 		message,
 		historyTokenBudget(chat),

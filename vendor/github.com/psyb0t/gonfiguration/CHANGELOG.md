@@ -2,6 +2,18 @@
 
 All notable changes per release. Versions follow [semver](https://semver.org).
 
+## v1.6.5 — 2026-11-10
+
+- The documentation is published at https://psyb0t.github.io/gonfiguration/.
+  The API reference, supported types, defaults, errors and development notes
+  moved there from the README, which now keeps the overview, install and a
+  short example.
+- A tag push no longer reruns the checks. It waits for the `master` run of the
+  same commit to pass, then cuts the GitHub release from the annotated tag
+  message.
+- Added Buy Me a Coffee to the funding links, and committed `AGENTS.md` plus
+  project rules in `.agents/rules/` for coding agents.
+
 ## v1.6.4 — 2026-08-08
 
 Documentation. No code change.

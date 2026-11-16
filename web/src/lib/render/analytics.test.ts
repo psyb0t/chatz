@@ -18,7 +18,7 @@ import {
   COMP_TIME_SERIES_CHART,
   COMP_TREEMAP,
   DATA_JR_TYPE,
-} from "$lib/common/render";
+} from "#lib/common/render.js";
 import Renderer from "./Renderer.svelte";
 import { ANALYTICAL_COMPONENTS } from "./__fixtures__/analytics";
 

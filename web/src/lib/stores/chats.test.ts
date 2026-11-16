@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { Chat, ChatSummary, ChatList } from "$lib/api/client";
+import type { Chat, ChatSummary, ChatList } from "#lib/api/client.js";
 // The vitest config aliases $app/navigation to this same mock module, so the
 // store's goto() calls land in this array. Imported by relative path (not the
 // $app alias) so svelte-check resolves the real SvelteKit types elsewhere.
@@ -25,7 +25,7 @@ const {
   renameChatMock: vi.fn(),
 }));
 
-vi.mock("$lib/api/client", () => ({
+vi.mock("#lib/api/client.js", () => ({
   deleteChat: deleteChatMock,
   getOrCreateEmptyChat: getOrCreateEmptyChatMock,
   listChats: listChatsMock,

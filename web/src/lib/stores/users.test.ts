@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { User } from "$lib/api/client";
+import type { User } from "#lib/api/client.js";
 
 // Mock the API client so the store exercises its load/create/remove logic
 // against controllable fakes — no network, no real openapi-fetch. vi.mock is
@@ -10,7 +10,7 @@ const { listUsersMock, createUserMock, deleteUserMock } = vi.hoisted(() => ({
   deleteUserMock: vi.fn(),
 }));
 
-vi.mock("$lib/api/client", () => ({
+vi.mock("#lib/api/client.js", () => ({
   listUsers: listUsersMock,
   createUser: createUserMock,
   deleteUser: deleteUserMock,

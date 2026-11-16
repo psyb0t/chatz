@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_HEATMAP, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_HEATMAP, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     CHART_VIEWBOX_HEIGHT,
     CHART_VIEWBOX_WIDTH,
@@ -9,7 +9,7 @@
     finiteNumber,
     formatChartNumber,
     scaleLinear,
-  } from "$lib/render/charts/math";
+  } from "#lib/render/charts/math.js";
 
   type HeatmapProps = {
     id?: string | null;

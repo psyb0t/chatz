@@ -2,6 +2,103 @@
 
 All notable changes per release. Versions follow [semver](https://semver.org).
 
+## v1.16.1, 2026-11-10
+
+- The documentation is now published at https://psyb0t.github.io/aichteeteapee/, and the reference material moved there from the README.
+- A tag no longer reruns the checks. It waits for the default branch run of the same commit to pass, cuts the GitHub release from the tag message, and the badges use that run's coverage.
+- Updated the development image to Go 1.26.10, `ca-certificates` 20261020 and Python 3.14.10.
+- Added Buy Me a Coffee to the funding links. `AGENTS.md` is now the real file with `CLAUDE.md` linking to it, and the project rules for coding agents are committed in `.agents/rules/`.
+
+## v1.16.0, 2026-10-19
+
+- Added `ErrorCodePayloadTooLarge` (`PAYLOAD_TOO_LARGE`) and `ErrorResponsePayloadTooLarge`. `ErrorCodeFromHTTPStatus(413)` now returns `PAYLOAD_TOO_LARGE`; it used to fall back to `INTERNAL_SERVER_ERROR`, so a client could not tell an oversized request from a server failure.
+- Updated Semgrep in the development image to 1.181.0. It accepts the newer pyjwt and urllib3 releases that 1.173.0 held back, and the requirements now hash every published file, so the development image also builds on arm64.
+
+## v1.15.1, 2026-10-16
+
+- Fixed the CI secret scan. CI scans a shallow clone, so the commit-bound fingerprints in `.gitleaksignore` never matched and the two request-id fixtures in `serbewr/middleware/recovery_test.go` failed the job. `.gitleaks.toml` now allows exactly those two values for `generic-api-key` in that file.
+- Pinned `shfmt` to 3.13.1-r3 in the development image, because Alpine removed the earlier revision.
+- `AGENTS.md` is now tracked.
+
+## v1.15.0, 2026-10-12
+
+- Updated the development toolchain to Go 1.26.9 and `golang.org/x/net` to v0.60.0 for security fixes. Fixed the Alpine Python and CA certificate package pins and removed deleted package paths from the security scanner targets.
+- Breaking: removed `echo`, `echo/middleware`, `oapi-codegen/middleware`, and `DefaultEchoListenAddress`. The library no longer provides an Echo server wrapper, Swagger UI, or Echo-specific OpenAPI validation. Echo users must stay on an earlier release or wire those features directly with their chosen framework. The `serbewr` server, its `net/http` middleware, WebSockets, HTTP client, and shared error responses are unchanged.
+- Removed the direct Echo, Echo OpenAPI validator, OpenAPI schema, and Swagger UI dependencies, and regenerated the module checksums and vendor tree.
+
+## v1.14.0, 2026-09-10
+
+- Added `klhayyent`, a concurrent-safe HTTP client with common method helpers,
+  JSON and raw body handling, bounded responses, request options, request ID
+  propagation, same-origin redirects, status sentinels, error envelopes, and a
+  public-suffix-aware cookie jar.
+- Stopped proxy logs and transport errors from exposing upstream URLs or custom
+  cache keys. Proxy caching now skips unsafe methods, authenticated requests,
+  request and response cache-bypass directives, configured cookie jars,
+  private responses, varying responses, and responses that set cookies. Cache
+  and response-close failures are checked without dropping the upstream
+  response.
+- Hardened timeout response writes, added a separate 100MB default total upload
+  limit without changing the multipart memory spill threshold, preserved
+  wrapped error chains in upload and timeout paths, and moved validation logs
+  onto request context.
+- Added Docker-backed Go and shell formatting, shell linting, hash-locked
+  security tooling, current-tree and history secret scanning, and hardened
+  development-container privileges. Race-enabled test coverage now has a 90%
+  minimum. The CI and mirror workflows use the current shared workflow layout,
+  stale pipeline comments are gone, and the PR gate now declares its minimum
+  permissions.
+
+## v1.13.1 — 2026-08-22
+
+CI change. No change to the library's public API.
+
+- Restored the GitHub Release on tag pushes. The move to `code-workflow` dropped
+  the release step that `go-workflow` ran inline; a `release` job now calls the
+  reusable `release-workflow` once the checks pass on a tag.
+
+## v1.13.0 — 2026-08-21
+
+Development tooling and a security fix. No change to the library's public API.
+
+- All make targets now run inside a pinned dev image (Go 1.26.6) that also
+  carries the linter and the security scanners, so a local run and CI use the
+  exact same toolchain. CI runs `make lint`, `make test-coverage`, `make sec`
+  (govulncheck + semgrep) and `make generate` (codegen-drift gate) in that image,
+  through the generic code-workflow rather than the Go-specific one.
+- Bumped `github.com/getkin/kin-openapi` from v0.135.0 to v0.144.0, which fixes a
+  reachable vulnerability (GO-2026-6112) govulncheck flagged in `openapi3filter`.
+  The bump drops several transitive dependencies but does not change this
+  library's API.
+- Marked five semgrep findings as false positives with a bare `// nosemgrep` and
+  a one-line rationale each: the static-file traversal guard uses `filepath.Clean`
+  as one layer of a multi-layer check, three `path.Clean` calls normalize URL
+  paths for a skip-list lookup rather than sanitizing a filesystem path, and the
+  unix-socket websocket bridge wires origin policy to config, not a hardcoded
+  check.
+
+## v1.12.1 — 2026-08-14
+
+Documentation. No code change.
+
+- List `BearerAuth` in the README middleware set and add its section to
+  `docs/middleware.md` (it shipped in v1.12.0), and note that `BasicAuth` /
+  `BearerAuth` answer the JSON error envelope on failure.
+
+## v1.12.0 — 2026-08-14
+
+- **New:** `middleware.BearerAuth(...)` — bearer-token auth for APIs, the
+  companion to `BasicAuth`. It validates `Authorization: Bearer <token>`
+  against a set of accepted tokens (`WithBearerAuthTokens` — the common
+  single-API-key-from-an-env-var case) or a custom `WithBearerAuthValidator`,
+  with constant-time comparison by default, `WithBearerAuthSkipPaths`, and a
+  configurable unauthorized message. It answers the standard JSON error
+  envelope on failure.
+- **Behavior change:** `BasicAuth` now answers `401` with the standard JSON
+  error envelope (`{code, message}`) instead of a plain-text body, so it
+  matches the rest of the library. The status code and the `WWW-Authenticate`
+  challenge header are unchanged, so browser Basic-auth popups still work.
+
 ## v1.11.1 — 2026-08-13
 
 CI: pin the build/scan toolchain to go1.26.6.

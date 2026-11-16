@@ -1,4 +1,6 @@
+import adapter from "@sveltejs/adapter-static";
 import { sveltekit } from "@sveltejs/kit/vite";
+import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import { defineConfig, loadEnv } from "vite";
 
 const DEFAULT_API_TARGET = "http://localhost:8080";
@@ -10,7 +12,15 @@ export default defineConfig(({ mode }) => {
   const target = env.CHATZ_API_TARGET || DEFAULT_API_TARGET;
 
   return {
-    plugins: [sveltekit()],
+    // SvelteKit 3 takes its configuration here; svelte.config.js is gone. The
+    // static adapter's fallback page makes every route a client-side route
+    // served by the Go binary.
+    plugins: [
+      sveltekit({
+        adapter: adapter({ fallback: "index.html" }),
+        preprocess: vitePreprocess(),
+      }),
+    ],
     // @json-render/svelte ships pre-bundled ESM with Svelte 5 runes; excluding it
     // from Vite's dep pre-bundling avoids double-compiling its .svelte files (per
     // the json-render svelte-chat example).

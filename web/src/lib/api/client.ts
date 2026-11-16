@@ -1,12 +1,12 @@
 import createClient from "openapi-fetch";
 import type { components, paths } from "./schema";
 import { ApiError, toApiError } from "./errors";
-import { log } from "$lib/log";
+import { log } from "#lib/log.js";
 import {
   EVENT_API_ERROR,
   EVENT_API_REQUEST,
   EVENT_API_RESPONSE,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 type Credentials = components["schemas"]["Credentials"];
 type User = components["schemas"]["User"];
@@ -16,6 +16,8 @@ type ChatSummary = components["schemas"]["ChatSummary"];
 type ChatList = components["schemas"]["ChatList"];
 type Chat = components["schemas"]["Chat"];
 type ChatSettings = components["schemas"]["ChatSettings"];
+type ModelControls = components["schemas"]["ModelControls"];
+type ReasoningEffort = components["schemas"]["ReasoningEffort"];
 type PromptContextPreview = components["schemas"]["PromptContextPreview"];
 type Message = components["schemas"]["Message"];
 type MessageList = components["schemas"]["MessageList"];
@@ -72,6 +74,8 @@ export type {
   ChatList,
   Chat,
   ChatSettings,
+  ModelControls,
+  ReasoningEffort,
   PromptContextPreview,
   Message,
   MessageList,

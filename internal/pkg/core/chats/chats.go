@@ -12,6 +12,7 @@ import (
 	"github.com/psyb0t/ctxerrors"
 	"github.com/psyb0t/ctxerrors/commerr"
 	"github.com/psyb0t/elelem"
+	"gorm.io/datatypes"
 	"gorm.io/gen/field"
 	"gorm.io/gorm"
 )
@@ -376,14 +377,21 @@ func (s *Service) Rename(
 	return chat, nil
 }
 
-// Settings is the mutable per-chat generation config. A nil pointer / empty
-// ReasoningEffort leaves that setting unset (provider default / no cap).
+// Settings is the mutable per-chat generation config. A nil pointer, empty
+// ReasoningEffort or empty StopSequences leaves that setting unset (provider
+// default / no cap).
 type Settings struct {
 	Temperature      *float64
 	TopP             *float64
+	TopK             *int
+	FrequencyPenalty *float64
+	PresencePenalty  *float64
+	Seed             *int64
+	StopSequences    []string
 	ReasoningEffort  string
 	MaxOutputTokens  *int
 	MaxHistoryTokens *int
+	SystemPrompt     *string
 }
 
 // UpdateSettings replaces the chat's generation settings and returns the
@@ -402,9 +410,17 @@ func (s *Service) UpdateSettings(
 
 	chat.Temperature = settings.Temperature
 	chat.TopP = settings.TopP
+	chat.TopK = settings.TopK
+	chat.FrequencyPenalty = settings.FrequencyPenalty
+	chat.PresencePenalty = settings.PresencePenalty
+	chat.Seed = settings.Seed
+	chat.StopSequences = datatypes.JSONSlice[string](
+		append([]string{}, settings.StopSequences...),
+	)
 	chat.ReasoningEffort = settings.ReasoningEffort
 	chat.MaxOutputTokens = settings.MaxOutputTokens
 	chat.MaxHistoryTokens = settings.MaxHistoryTokens
+	chat.SystemPrompt = settings.SystemPrompt
 
 	// Select the settings columns explicitly so nil pointers persist as NULL
 	// (Updates skips zero-value fields otherwise, which would silently ignore a
@@ -415,9 +431,15 @@ func (s *Service) UpdateSettings(
 		Select(
 			repo.Temperature,
 			repo.TopP,
+			repo.TopK,
+			repo.FrequencyPenalty,
+			repo.PresencePenalty,
+			repo.Seed,
+			repo.StopSequences,
 			repo.ReasoningEffort,
 			repo.MaxOutputTokens,
 			repo.MaxHistoryTokens,
+			repo.SystemPrompt,
 		).
 		Updates(chat); err != nil {
 		return nil, ctxerrors.Wrap(err, "update chat settings")

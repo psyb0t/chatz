@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_TIMELINE, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_TIMELINE, DATA_JR_TYPE } from "#lib/common/render.js";
 
   interface TimelineItem {
     time: string;

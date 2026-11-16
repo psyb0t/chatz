@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
-  import { LABEL_CLOSE } from "$lib/common/labels";
+  import { LABEL_CLOSE } from "#lib/common/labels.js";
 
   interface Props {
     title: string;

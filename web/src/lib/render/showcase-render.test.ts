@@ -3,8 +3,8 @@ import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/svelte";
 import { parseMessageSegments, SEGMENT_SPEC, type SpecSegment } from "./fence";
 import Renderer from "./Renderer.svelte";
-import { DATA_JR_TYPE, GENUI_COMPONENT_NAMES } from "$lib/common/render";
-import { TESTID_SPEC_ERROR } from "$lib/common/test-ids";
+import { DATA_JR_TYPE, GENUI_COMPONENT_NAMES } from "#lib/common/render.js";
+import { TESTID_SPEC_ERROR } from "#lib/common/test-ids.js";
 
 // The backend ships deterministic showcase responses (fixedresponses/*.txt),
 // matched verbatim in showcase mode. Each holds a hand-authored ```spec block.

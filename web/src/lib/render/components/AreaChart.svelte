@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_AREA_CHART, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_AREA_CHART, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     CHART_MARGIN_BOTTOM,
     CHART_MARGIN_LEFT,
@@ -16,13 +16,13 @@
     scaleLinear,
     ticks,
     type NumericPoint,
-  } from "$lib/render/charts/math";
+  } from "#lib/render/charts/math.js";
   import {
     CHART_GRID_COLOR,
     CHART_PALETTE,
     chartColor,
-  } from "$lib/render/charts/palette";
-  import type { TimeSeries } from "$lib/render/charts/types";
+  } from "#lib/render/charts/palette.js";
+  import type { TimeSeries } from "#lib/render/charts/types.js";
 
   type AreaChartProps = {
     id?: string | null;

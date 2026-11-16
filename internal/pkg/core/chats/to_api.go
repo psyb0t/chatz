@@ -70,19 +70,34 @@ func MessageToAPI(m *models.Message) (api.Message, error) {
 }
 
 // ChatSettingsToAPI projects a chat's stored generation settings to the API
-// shape. Unset numeric settings stay nil; an empty ReasoningEffort maps to a
-// nil pointer (the wire omits it) rather than an invalid empty enum value.
+// shape. Unset numeric settings stay nil; an empty ReasoningEffort, stop list
+// or system prompt maps to a nil pointer (the wire omits it) rather than an
+// invalid empty value.
 func ChatSettingsToAPI(c *models.Chat) *api.ChatSettings {
 	out := &api.ChatSettings{
 		Temperature:      c.Temperature,
 		TopP:             c.TopP,
+		TopK:             c.TopK,
+		FrequencyPenalty: c.FrequencyPenalty,
+		PresencePenalty:  c.PresencePenalty,
+		Seed:             c.Seed,
 		MaxOutputTokens:  c.MaxOutputTokens,
 		MaxHistoryTokens: c.MaxHistoryTokens,
 	}
 
 	if c.ReasoningEffort != "" {
-		effort := api.ChatSettingsReasoningEffort(c.ReasoningEffort)
+		effort := api.ReasoningEffort(c.ReasoningEffort)
 		out.ReasoningEffort = &effort
+	}
+
+	if len(c.StopSequences) > 0 {
+		stop := append([]string{}, c.StopSequences...)
+		out.Stop = &stop
+	}
+
+	if c.SystemPrompt != nil && *c.SystemPrompt != "" {
+		prompt := *c.SystemPrompt
+		out.SystemPrompt = &prompt
 	}
 
 	return out

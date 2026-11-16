@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_TABLE, DATA_JR_TYPE } from "$lib/common/render";
-  import Table from "$lib/components/ui/Table.svelte";
+  import { COMP_TABLE, DATA_JR_TYPE } from "#lib/common/render.js";
+  import Table from "#lib/components/ui/Table.svelte";
 
   type TableProps = {
     id?: string | null;

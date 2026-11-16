@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_BAR_CHART, DATA_JR_TYPE } from "$lib/common/render";
-  import type { CategorySeries } from "$lib/render/charts/types";
+  import { COMP_BAR_CHART, DATA_JR_TYPE } from "#lib/common/render.js";
+  import type { CategorySeries } from "#lib/render/charts/types.js";
   import {
     CHART_MARGIN_BOTTOM,
     CHART_MARGIN_LEFT,
@@ -15,13 +15,13 @@
     formatChartNumber,
     scaleLinear,
     ticks,
-  } from "$lib/render/charts/math";
+  } from "#lib/render/charts/math.js";
   import {
     CHART_GRID_COLOR,
     CHART_PALETTE,
     CHART_TEXT_COLOR,
     chartColor,
-  } from "$lib/render/charts/palette";
+  } from "#lib/render/charts/palette.js";
 
   type BarChartProps = {
     id?: string | null;

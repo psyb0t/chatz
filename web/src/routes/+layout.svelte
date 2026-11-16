@@ -1,28 +1,28 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import "../app.css";
-  import "$lib/fonts";
+  import "#lib/fonts.js";
   import { goto } from "$app/navigation";
   import { page } from "$app/state";
-  import Sidebar from "$lib/components/Sidebar.svelte";
-  import { auth } from "$lib/stores/auth.svelte";
-  import { chats } from "$lib/stores/chats.svelte";
-  import { models } from "$lib/stores/models.svelte";
-  import { mcpServers } from "$lib/stores/mcpServers.svelte";
+  import Sidebar from "#lib/components/Sidebar.svelte";
+  import { auth } from "#lib/stores/auth.svelte.js";
+  import { chats } from "#lib/stores/chats.svelte.js";
+  import { models } from "#lib/stores/models.svelte.js";
+  import { mcpServers } from "#lib/stores/mcpServers.svelte.js";
   import {
     PHASE_ANON,
     PHASE_AUTHED,
     PHASE_LOADING,
     PHASE_SETUP,
-  } from "$lib/common/auth";
-  import { ROUTE_HOME, ROUTE_LOGIN, ROUTE_SETUP } from "$lib/common/routes";
-  import { log } from "$lib/log";
-  import { EVENT_APP_BOOT, EVENT_ROUTE_GUARD } from "$lib/common/log-events";
+  } from "#lib/common/auth.js";
+  import { ROUTE_HOME, ROUTE_LOGIN, ROUTE_SETUP } from "#lib/common/routes.js";
+  import { log } from "#lib/log.js";
+  import { EVENT_APP_BOOT, EVENT_ROUTE_GUARD } from "#lib/common/log-events.js";
   import {
     TESTID_SIDEBAR_OPEN,
     TESTID_SIDEBAR_BACKDROP,
-  } from "$lib/common/test-ids";
-  import { A11Y_SIDEBAR_OPEN, A11Y_SIDEBAR_CLOSE } from "$lib/common/labels";
+  } from "#lib/common/test-ids.js";
+  import { A11Y_SIDEBAR_OPEN, A11Y_SIDEBAR_CLOSE } from "#lib/common/labels.js";
   import { onMount } from "svelte";
 
   // Phone breakpoint — kept in sync with the `max-width: 640px` media queries in
@@ -207,8 +207,18 @@
         onclick={openDrawer}
         aria-label={A11Y_SIDEBAR_OPEN}
         aria-expanded={drawerOpen}
-        data-testid={TESTID_SIDEBAR_OPEN}>&#9776;</button
+        data-testid={TESTID_SIDEBAR_OPEN}
       >
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+          <path
+            d="M4 7h16M4 12h16M4 17h10"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+          />
+        </svg>
+      </button>
       {@render children()}
     </main>
     {#if mobile && drawerOpen}
@@ -310,13 +320,14 @@
       top: var(--space-2);
       left: var(--space-2);
       z-index: 30;
-      line-height: 1;
-      padding: var(--space-2) var(--space-3);
-      background: var(--panel);
-      border: var(--border-width) solid var(--border-strong);
+      width: var(--control);
+      height: var(--control);
+      padding: 0;
+      background: color-mix(in srgb, var(--bg) 85%, transparent);
+      backdrop-filter: blur(8px);
+      border: none;
       border-radius: var(--radius);
       color: var(--ink);
-      box-shadow: var(--shadow-sm);
     }
 
     /* Full-viewport dim below the drawer (z 50) and above the hamburger (z 30). */

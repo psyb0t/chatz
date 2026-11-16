@@ -1,6 +1,16 @@
-# Generated Windows-only modernc.org/sqlite bindings.  Both source files are
-# byte-identical and contain a BCrypt type name that trips generic-api-key;
-# the fingerprint pins this exception to that exact rule and line, while the
-# rest of the committed vendor tree remains scanned.
-/repo/vendor/modernc.org/sqlite/lib/sqlite_windows_amd64.go:generic-api-key:41264
-/repo/vendor/modernc.org/sqlite/lib/sqlite_windows_arm64.go:generic-api-key:41264
+# Generated Windows-only modernc.org/sqlite bindings. The file is merged from
+# the per-target sources and holds BCrypt and NCrypt type names (KEY_BLOB,
+# PRIVKEY) that trip generic-api-key; each fingerprint pins one exact rule and
+# line, while the rest of the committed vendor tree stays scanned.
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:1213
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:1295
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:9351
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:30511
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:32779
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:76617
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:78242
+/repo/vendor/modernc.org/sqlite/lib/sqlite_g_0000000000060000.go:generic-api-key:86592
+# The gzipped, base64-encoded OpenAPI spec that oapi-codegen embeds in the
+# generated server. One line of the blob matches generic-api-key; regenerating
+# the server moves the blob, so update this line after `make generate`.
+/repo/internal/pkg/http/api/api.gen.go:generic-api-key:3614

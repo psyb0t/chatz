@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_BOX_PLOT, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_BOX_PLOT, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     CHART_MARGIN_BOTTOM,
     CHART_MARGIN_LEFT,
@@ -14,9 +14,9 @@
     formatChartNumber,
     scaleLinear,
     ticks,
-  } from "$lib/render/charts/math";
-  import { CHART_GRID_COLOR, chartColor } from "$lib/render/charts/palette";
-  import type { BoxSummary } from "$lib/render/charts/types";
+  } from "#lib/render/charts/math.js";
+  import { CHART_GRID_COLOR, chartColor } from "#lib/render/charts/palette.js";
+  import type { BoxSummary } from "#lib/render/charts/types.js";
 
   type BoxPlotProps = {
     id?: string | null;

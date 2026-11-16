@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_GRID, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_GRID, DATA_JR_TYPE } from "#lib/common/render.js";
 
   type GridProps = {
     id?: string | null;

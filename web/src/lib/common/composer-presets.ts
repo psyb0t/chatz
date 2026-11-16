@@ -1,6 +1,6 @@
-import type { ChatSettings } from "$lib/api/client";
-import { log } from "$lib/log";
-import { EVENT_COMPOSER_PRESET_STORAGE_ERROR } from "$lib/common/log-events";
+import type { ChatSettings } from "#lib/api/client.js";
+import { log } from "#lib/log.js";
+import { EVENT_COMPOSER_PRESET_STORAGE_ERROR } from "#lib/common/log-events.js";
 
 const STORAGE_KEY = "chatz-composer-presets";
 const MAX_SAVED_PRESETS = 12;
@@ -10,12 +10,19 @@ const MIN_TEMPERATURE = 0;
 const MAX_TEMPERATURE = 2;
 const MIN_TOP_P = 0;
 const MAX_TOP_P = 1;
+const MIN_TOP_K = 1;
+const MAX_TOP_K = 1000;
+const MIN_PENALTY = -2;
+const MAX_PENALTY = 2;
+const MAX_STOP_SEQUENCES = 4;
+const MAX_STOP_SEQUENCE_LENGTH = 64;
+const MAX_SYSTEM_PROMPT_LENGTH = 16000;
 export const COMPOSER_PRESET_NAME_MAX_LENGTH = 48;
 export const MAX_SAVED_COMPOSER_PRESETS = MAX_SAVED_PRESETS;
 export const SAVED_COMPOSER_PRESET_ID_PREFIX = "saved-";
 
 const REASONING_EFFORTS = new Set<NonNullable<ChatSettings["reasoningEffort"]>>(
-  ["minimal", "low", "medium", "high"],
+  ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
 );
 
 export const PRESET_ID_PRECISE = "built-in-precise";
@@ -180,6 +187,43 @@ function normalizeSettings(
     settings.topP = raw.topP;
   }
 
+  if (
+    isPositiveInteger(raw.topK) &&
+    isNumberWithin(raw.topK, MIN_TOP_K, MAX_TOP_K)
+  ) {
+    settings.topK = raw.topK;
+  }
+
+  if (isNumberWithin(raw.frequencyPenalty, MIN_PENALTY, MAX_PENALTY)) {
+    settings.frequencyPenalty = raw.frequencyPenalty;
+  }
+
+  if (isNumberWithin(raw.presencePenalty, MIN_PENALTY, MAX_PENALTY)) {
+    settings.presencePenalty = raw.presencePenalty;
+  }
+
+  if (
+    isFiniteNumber(raw.seed) &&
+    Number.isSafeInteger(raw.seed) &&
+    raw.seed >= 0
+  ) {
+    settings.seed = raw.seed;
+  }
+
+  const stop = normalizeStop(raw.stop);
+  if (stop !== undefined) {
+    settings.stop = stop;
+  }
+
+  if (
+    typeof raw.systemPrompt === "string" &&
+    raw.systemPrompt.trim() !== "" &&
+    !raw.systemPrompt.includes("\u0000") &&
+    raw.systemPrompt.length <= MAX_SYSTEM_PROMPT_LENGTH
+  ) {
+    settings.systemPrompt = raw.systemPrompt;
+  }
+
   if (isPositiveInteger(raw.maxOutputTokens)) {
     settings.maxOutputTokens = raw.maxOutputTokens;
   }
@@ -200,6 +244,22 @@ function normalizeSettings(
   }
 
   return settings;
+}
+
+function normalizeStop(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const stop = value.filter(
+    (entry): entry is string =>
+      typeof entry === "string" &&
+      entry.trim() !== "" &&
+      !entry.includes("\u0000") &&
+      entry.length <= MAX_STOP_SEQUENCE_LENGTH,
+  );
+
+  return stop.length > 0 ? stop.slice(0, MAX_STOP_SEQUENCES) : undefined;
 }
 
 function normalizeName(value: string): string | null {

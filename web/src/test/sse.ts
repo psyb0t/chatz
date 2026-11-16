@@ -11,7 +11,7 @@ import {
   BLOCK_TOOL_RESULT,
   BLOCK_INPUT_JSON_DELTA,
   BLOCK_JSON_PARTIAL,
-} from "$lib/api/sse-events";
+} from "#lib/api/sse-events.js";
 
 // frame renders the canonical wire bytes for one event, matching the server's
 // FrameLines (internal/pkg/sse/sink.go): `event: <name>\ndata: <json>\n\n`.

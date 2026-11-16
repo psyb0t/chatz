@@ -1,7 +1,9 @@
 package openai
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"math"
 	"strings"
 
@@ -32,7 +34,35 @@ type (
 )
 
 func toOpenAIParams(req elelem.DriverRequest) (chatCompletionParams, error) {
-	messages, err := toOpenAIMessages(req.Messages)
+	return toOpenAIParamsWithAssistantMessageExtra(
+		context.Background(),
+		req,
+		nil,
+	)
+}
+
+func (d *Driver) toOpenAIParams(
+	ctx context.Context,
+	req elelem.DriverRequest,
+) (chatCompletionParams, error) {
+	return toOpenAIParamsWithAssistantMessageExtra(
+		ctx,
+		req,
+		d.assistantMessageExtra,
+	)
+}
+
+func toOpenAIParamsWithAssistantMessageExtra(
+	ctx context.Context,
+	req elelem.DriverRequest,
+	assistantMessageExtra AssistantMessageExtra,
+) (chatCompletionParams, error) {
+	messages, err := toOpenAIMessagesWithAssistantMessageExtra(
+		ctx,
+		req.Model,
+		req.Messages,
+		assistantMessageExtra,
+	)
 	if err != nil {
 		return chatCompletionParams{}, err
 	}
@@ -450,20 +480,87 @@ func toFunctionParameters(raw json.RawMessage) (functionParameters, error) {
 }
 
 func toOpenAIMessages(messages []elelem.Message) ([]messageParam, error) {
+	return toOpenAIMessagesWithAssistantMessageExtra(
+		context.Background(),
+		elelem.Model{},
+		messages,
+		nil,
+	)
+}
+
+func toOpenAIMessagesWithAssistantMessageExtra(
+	ctx context.Context,
+	model elelem.Model,
+	messages []elelem.Message,
+	assistantMessageExtra AssistantMessageExtra,
+) ([]messageParam, error) {
 	out := make([]messageParam, 0, len(messages))
+
+	// withImages holds the current run's tool results that carry images.
+	// A tool message takes text only, so their images follow the run in one
+	// user message: a user message between two tool results would split the
+	// answer to one assistant turn.
+	withImages := make([]elelem.Message, 0)
+
 	for _, message := range messages {
-		translated, err := toOpenAIMessage(message)
+		if message.Role != elelem.RoleTool && len(withImages) > 0 {
+			out = append(out, toolImagesMessage(withImages))
+			withImages = withImages[:0]
+		}
+
+		translated, err := toOpenAIMessageWithAssistantMessageExtra(
+			ctx,
+			model,
+			message,
+			assistantMessageExtra,
+		)
 		if err != nil {
 			return nil, err
 		}
 
 		out = append(out, translated)
+
+		if len(message.ToolImages()) > 0 {
+			withImages = append(withImages, message)
+		}
+	}
+
+	if len(withImages) > 0 {
+		out = append(out, toolImagesMessage(withImages))
 	}
 
 	return out, nil
 }
 
-func toOpenAIMessage(message elelem.Message) (messageParam, error) {
+// toolImagesIntroFormat introduces the images one tool call returned, so the
+// model can tell which result each image belongs to.
+const toolImagesIntroFormat = "Images returned by tool call %s:"
+
+// toolImagesMessage is the user message carrying the images of a run of tool
+// results, each group introduced by its tool call ID.
+func toolImagesMessage(results []elelem.Message) messageParam {
+	parts := make([]openaisdk.ChatCompletionContentPartUnionParam, 0,
+		len(results)*2) //nolint:mnd // An intro and usually one image each.
+
+	for _, result := range results {
+		parts = append(parts, openaisdk.TextContentPart(
+			fmt.Sprintf(toolImagesIntroFormat, result.ToolCallID),
+		))
+
+		for _, image := range result.ToolImages() {
+			parts = append(parts, toImagePart(image))
+		}
+	}
+
+	return openaisdk.UserMessage(parts)
+}
+
+func toOpenAIMessageWithAssistantMessageExtra(
+	ctx context.Context,
+	model elelem.Model,
+	message elelem.Message,
+	assistantMessageExtra AssistantMessageExtra,
+) (messageParam, error) {
 	switch message.Role {
 	case elelem.RoleSystem:
 		// OpenAI's system message takes text only — the spec's
@@ -477,7 +574,12 @@ func toOpenAIMessage(message elelem.Message) (messageParam, error) {
 			message.ToolCallID,
 		), nil
 	case elelem.RoleAssistant:
-		return assistantMessage(message), nil
+		return assistantMessage(
+			ctx,
+			model,
+			message,
+			assistantMessageExtra,
+		)
 	default:
 		return messageParam{}, ctxerrors.Wrap(
 			elelem.ErrInvalidTranscript,
@@ -514,13 +616,14 @@ func toolResultContent(message elelem.Message) string {
 	return toolErrorPrefix + text
 }
 
-func assistantMessage(message elelem.Message) messageParam {
-	if len(message.ToolCalls) == 0 {
-		return openaisdk.AssistantMessage(message.Text())
-	}
-
+func assistantMessage(
+	ctx context.Context,
+	model elelem.Model,
+	message elelem.Message,
+	assistantMessageExtra AssistantMessageExtra,
+) (messageParam, error) {
 	assistant := openaisdk.ChatCompletionAssistantMessageParam{}
-	if text := message.Text(); text != "" {
+	if text := message.Text(); text != "" || len(message.ToolCalls) == 0 {
 		assistant.Content.OfString = openaisdk.String(text)
 	}
 
@@ -531,7 +634,19 @@ func assistantMessage(message elelem.Message) messageParam {
 		)
 	}
 
-	return openaisdk.ChatCompletionMessageParamUnion{OfAssistant: &assistant}
+	extra, err := assistantReasoningExtra(ctx, model, message,
+		assistantMessageExtra)
+	if err != nil {
+		return messageParam{}, err
+	}
+
+	if len(extra) > 0 {
+		assistant.SetExtraFields(extra)
+	}
+
+	return openaisdk.ChatCompletionMessageParamUnion{
+		OfAssistant: &assistant,
+	}, nil
 }
 
 func functionToolCallParam(call elelem.ToolCall) messageToolCallParam {
@@ -834,6 +949,10 @@ func usageFromChunk(
 	// reachable.
 	if chunk.Model != "" {
 		usage.Model = chunk.Model
+	}
+
+	if chunk.ID != "" {
+		usage.ResponseID = chunk.ID
 	}
 
 	// Gate on ANY token field, not on TotalTokens. Total is the DERIVED one,

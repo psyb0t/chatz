@@ -40,7 +40,7 @@ func TestChatSettingsToAPI(t *testing.T) {
 		require.NotNil(t, got.ReasoningEffort)
 		assert.Equal(
 			t,
-			api.ChatSettingsReasoningEffort("high"),
+			api.ReasoningEffort("high"),
 			*got.ReasoningEffort,
 		)
 	})

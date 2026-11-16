@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import type { ChatMCPServer } from "$lib/api/client";
+import type { ChatMCPServer } from "#lib/api/client.js";
 import {
   MCP_STATUS_CONNECTED,
   MCP_STATUS_CONNECTING,
   MCP_STATUS_FAILED,
   MCP_STATUS_DISABLED,
-} from "$lib/common/mcp";
+} from "#lib/common/mcp.js";
 
 // Mock the API client so the store exercises its load/refresh/setEnabled logic
 // against controllable fakes — no network. vi.mock is hoisted, so the spies are
@@ -15,7 +15,7 @@ const { listChatMCPServersMock, updateChatMCPServerMock } = vi.hoisted(() => ({
   updateChatMCPServerMock: vi.fn(),
 }));
 
-vi.mock("$lib/api/client", () => ({
+vi.mock("#lib/api/client.js", () => ({
   listChatMCPServers: listChatMCPServersMock,
   updateChatMCPServer: updateChatMCPServerMock,
 }));

@@ -1,15 +1,15 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_TREEMAP, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_TREEMAP, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     CHART_VIEWBOX_HEIGHT,
     CHART_VIEWBOX_WIDTH,
     chartHeight,
     finiteNumber,
     formatChartNumber,
-  } from "$lib/render/charts/math";
-  import { chartColor } from "$lib/render/charts/palette";
-  import type { TreemapItem } from "$lib/render/charts/types";
+  } from "#lib/render/charts/math.js";
+  import { chartColor } from "#lib/render/charts/palette.js";
+  import type { TreemapItem } from "#lib/render/charts/types.js";
 
   type TreemapProps = {
     id?: string | null;

@@ -1,12 +1,12 @@
 ---
 title: "Models and upstreams"
-description: "How chatz connects OpenAI-compatible and Anthropic upstreams: the CHATZ_UPSTREAMS JSON, model metadata, fallbacks, the default model and health."
+description: "How chatz connects OpenAI-compatible, Anthropic and Z.ai Coding upstreams: the CHATZ_UPSTREAMS JSON, model metadata, generation controls and fallbacks."
 nav_order: 4
 ---
 
 # Models and upstreams
 
-An upstream is one model endpoint: OpenAI, an OpenAI-compatible server such as Ollama, vLLM or a gateway like [AIGate](https://github.com/psyb0t/aigate), or Anthropic. chatz talks to them through the [elelem](https://github.com/psyb0t/elelem) drivers, asks each one for its model list at startup, and merges the lists into the model picker.
+An upstream is one model endpoint: OpenAI, an OpenAI-compatible server such as Ollama, vLLM or a gateway like [AIGate](https://github.com/psyb0t/aigate), Anthropic, or the Z.ai Coding Plan. chatz talks to them through the [elelem](https://github.com/psyb0t/elelem) drivers, asks each one for its model list at startup, and merges the lists into the model picker.
 
 ## The CHATZ_UPSTREAMS format
 
@@ -35,6 +35,11 @@ An upstream is one model endpoint: OpenAI, an OpenAI-compatible server such as O
     "name": "ollama",
     "provider": "openai",
     "baseUrl": "http://localhost:11434/v1"
+  },
+  {
+    "name": "zai",
+    "provider": "zaicoding",
+    "apiKeyEnv": "ZAI_API_KEY"
   }
 ]
 ```
@@ -44,7 +49,7 @@ In `.env` the whole array goes on one line after `CHATZ_UPSTREAMS=`.
 | Field | Required | Meaning |
 | --- | --- | --- |
 | `name` | yes | A label for the upstream, unique in the array. It shows up in the model list and in health reports. |
-| `provider` | yes | `openai` for OpenAI and every OpenAI-compatible API, or `anthropic`. |
+| `provider` | yes | `openai` for OpenAI and every OpenAI-compatible API, `anthropic`, or `zaicoding` for the Z.ai Coding Plan's OpenAI-shaped endpoint. `zaicoding` knows GLM 5.3's reasoning levels and output limit; GLM through `openai` or `anthropic` gets only what those drivers can tell. |
 | `baseUrl` | no | The API root. Leave it out to use the provider's own default endpoint. |
 | `apiKeyEnv` | no | The name of the environment variable that holds the API key. Leave it out for keyless endpoints such as a local Ollama. |
 | `models` | no | Extra metadata for models this upstream lists. See below. |
@@ -106,8 +111,39 @@ The optional `models` array attaches display names, limits, capabilities and pri
 | `expectedFirstTokenLatencyMs` | A latency hint shown with the model. Must not be negative. |
 | `inputPricePerMillionTokens`, `outputPricePerMillionTokens` | `amountSmallestUnit` is an integer in the currency's smallest unit (cents for USD), never a float. `currency` is a three-letter uppercase code. |
 | `fallbackModels` | Model IDs to try, in order, when this model fails before streaming starts. |
+| `reasoningEfforts` | The exact reasoning effort levels the model takes, from `none`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`. Replaces what the driver reports. See below. |
+| `supportsTopK`, `supportsStop` | Whether the model takes `topK` or stop sequences. Overrides the driver default. |
 
 Prices are display data. chatz records token counts per call but does not compute cost.
+
+## Generation controls
+
+Each model in `GET /api/v1/models` carries a `controls` object listing the chat settings it accepts. The settings panel and the composer's reasoning chip read it, and a turn drops any setting the model does not accept instead of failing.
+
+| Field | Meaning |
+| --- | --- |
+| `reasoningEfforts` | Effort levels the model takes, lowest first. `none` turns thinking off. Empty means no reasoning control. |
+| `supportsSampling` | Whether `temperature` and `topP` are accepted. |
+| `supportsPenalties` | Whether `frequencyPenalty` and `presencePenalty` are accepted. |
+| `supportsSeed`, `supportsTopK`, `supportsStop` | Whether `seed`, `topK` and `stop` are accepted. |
+
+The values come from the elelem driver's capabilities for that model ID. A driver can only describe models it knows: for an ID it does not recognize, the OpenAI driver offers `none` through `high` and the sampling settings, and the Anthropic driver offers thinking on or off. `topK` is on by default only for Anthropic models that take sampling settings, and stop sequences are off for the OpenAI reasoning models the driver knows, which refuse them.
+
+When you know better, set `reasoningEfforts`, `supportsTopK` or `supportsStop` in the model's metadata. For example, a reasoning model behind an OpenAI-compatible gateway that takes only three levels:
+
+```json
+{
+  "name": "gateway",
+  "provider": "openai",
+  "baseUrl": "http://gateway:4000/v1",
+  "apiKeyEnv": "GATEWAY_TOKEN",
+  "models": [
+    { "id": "some-reasoning-model", "reasoningEfforts": ["none", "low", "high"] }
+  ]
+}
+```
+
+An unknown level, or one listed twice, stops startup.
 
 ## Fallback models
 

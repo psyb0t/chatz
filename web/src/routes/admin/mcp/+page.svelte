@@ -1,19 +1,19 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ApiError } from "$lib/api/errors";
-  import { auth } from "$lib/stores/auth.svelte";
-  import { mcpServers } from "$lib/stores/mcpServers.svelte";
+  import { ApiError } from "#lib/api/errors.js";
+  import { auth } from "#lib/stores/auth.svelte.js";
+  import { mcpServers } from "#lib/stores/mcpServers.svelte.js";
   import type {
     CreateMCPServerRequest,
     UpdateMCPServerRequest,
     MCPServer,
-  } from "$lib/api/client";
-  import Panel from "$lib/components/ui/Panel.svelte";
-  import Field from "$lib/components/ui/Field.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Badge from "$lib/components/ui/Badge.svelte";
-  import StateBlock from "$lib/components/ui/StateBlock.svelte";
-  import Modal from "$lib/components/ui/Modal.svelte";
+  } from "#lib/api/client.js";
+  import Panel from "#lib/components/ui/Panel.svelte";
+  import Field from "#lib/components/ui/Field.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import Badge from "#lib/components/ui/Badge.svelte";
+  import StateBlock from "#lib/components/ui/StateBlock.svelte";
+  import Modal from "#lib/components/ui/Modal.svelte";
   import {
     BUTTON_PRIMARY,
     BUTTON_DANGER,
@@ -25,7 +25,7 @@
     STATE_LOADING,
     STATE_EMPTY,
     STATE_ERROR,
-  } from "$lib/components/ui/variants";
+  } from "#lib/components/ui/variants.js";
   import {
     MCP_STATUS_CONNECTED,
     MCP_STATUS_CONNECTING,
@@ -33,7 +33,7 @@
     mcpHealthDetails,
     mcpStatusLabel,
     mcpReasonLabel,
-  } from "$lib/common/mcp";
+  } from "#lib/common/mcp.js";
   import {
     ADMIN_MCP_TITLE,
     ADMIN_MCP_CREATE_TITLE,
@@ -53,7 +53,7 @@
     MCP_TOOLS_REQUIRED,
     STATE_LOADING as COPY_LOADING,
     EMPTY_MCP,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
   import {
     TESTID_ADMIN_FORBIDDEN,
     TESTID_ADMIN_LOADING,
@@ -79,7 +79,7 @@
     TESTID_MCP_IMPORT_TOGGLE,
     TESTID_MCP_IMPORT_SUBMIT,
     TESTID_MCP_IMPORT_CONTENT,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
 
   const isAdmin = $derived(auth.user?.isAdmin === true);
 
@@ -481,8 +481,7 @@
                 <textarea
                   class="admin__input admin__textarea"
                   data-testid={TESTID_MCP_CREATE_ARGS}
-                  bind:value={argsText}
-                ></textarea>
+                  bind:value={argsText}></textarea>
               {/snippet}
             </Field>
 
@@ -491,8 +490,7 @@
                 <textarea
                   class="admin__input admin__textarea admin__textarea--tall"
                   data-testid={TESTID_MCP_CREATE_ENV}
-                  bind:value={envText}
-                ></textarea>
+                  bind:value={envText}></textarea>
               {/snippet}
             </Field>
           {:else}
@@ -514,8 +512,7 @@
                 <textarea
                   class="admin__input admin__textarea admin__textarea--tall"
                   data-testid={TESTID_MCP_CREATE_HEADERS}
-                  bind:value={headersText}
-                ></textarea>
+                  bind:value={headersText}></textarea>
               {/snippet}
             </Field>
           {/if}
@@ -565,8 +562,7 @@
                 class="admin__input admin__textarea admin__textarea--tall"
                 data-testid={TESTID_MCP_IMPORT_CONTENT}
                 bind:value={importText}
-                required
-              ></textarea>
+                required></textarea>
             {/snippet}
           </Field>
 

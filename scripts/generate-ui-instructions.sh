@@ -50,18 +50,42 @@ CLEANED="$(printf '%s\n' "${RAW}" | awk '
 # Line-level trims within the kept sections: drop the standalone UI-generator
 # role line (chatz sets its own role), the repeat/state worked example, the
 # /state clause, and the RULES entries about state/repeat/visible/on/sample-data.
+# RULES entries are matched by their text, never their number: a library
+# upgrade that adds a rule renumbers everything after it.
+RULE='^[0-9]+\. '
 CLEANED="$(printf '%s\n' "${CLEANED}" |
 	sed '/^You are a UI generator that outputs JSON\.$/d' |
 	sed '/^Example output (each line is a separate JSON object):$/,/^Note: state patches appear/d' |
 	sed 's/, then stream \/elements and \/state patches interleaved so the UI fills in progressively as it streams/, then stream \/elements patches/' |
-	sed '/^5\. Output \/state patches/d' |
-	sed '/^11\. CRITICAL: The "visible" field/d' |
-	sed '/^12\. CRITICAL: The "on" field/d' |
-	sed '/^13\. When the user asks for a UI that displays data/d' |
-	sed '/^14\. When building repeating content/d' |
-	sed '/^16\. For data-rich UIs, use multi-column/d' |
-	sed '/^17\. Always include realistic, professional-looking sample data/d' |
+	sed -E "/${RULE}Output \/state patches/d" |
+	sed -E "/${RULE}CRITICAL: The \"visible\" field/d" |
+	sed -E "/${RULE}CRITICAL: The \"on\" field/d" |
+	sed -E "/${RULE}When the user asks for a UI that displays data/d" |
+	sed -E "/${RULE}When building repeating content/d" |
+	sed -E "/${RULE}For data-rich UIs, use multi-column/d" |
+	sed -E "/${RULE}Always include realistic, professional-looking sample data/d" |
 	awk 'NF { blank=0; print; next } !blank { blank=1; print }')"
+
+# Fail instead of shipping a prompt that still teaches a feature the renderer
+# cannot show or tells the model to invent data. Each pattern is a phrase only
+# the stripped library text uses.
+# shellcheck disable=SC2016 # the patterns are literal regexes, not expansions
+FORBIDDEN=(
+	'realistic sample data'
+	'realistic, professional-looking sample data'
+	'"repeat"'
+	'\$bindState'
+	'\$bindItem'
+	'/state patches'
+	'"visible" field'
+	'"on" field'
+)
+for pattern in "${FORBIDDEN[@]}"; do
+	if printf '%s\n' "${CLEANED}" | grep -qE -- "${pattern}"; then
+		log ERROR "generated prompt still contains forbidden text pattern=${pattern}"
+		exit 1
+	fi
+done
 
 printf '%s\n' "${CLEANED}" >"${OUT}"
 log info "generated ${OUT} ($(wc -c <"${OUT}") bytes, $(wc -l <"${OUT}") lines)"

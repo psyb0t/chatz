@@ -14,9 +14,6 @@ const (
 	StandardAPIOASPath       = "/openapi.yaml"
 	StandardAPISwaggerUIPath = "/docs/*"
 
-	// Echo server defaults.
-	DefaultEchoListenAddress = "0.0.0.0:8080"
-
 	// Server defaults.
 	DefaultHTTPServerListenAddress     = "127.0.0.1:8080"
 	DefaultHTTPServerReadTimeout       = 15 * time.Second
@@ -55,7 +52,8 @@ const (
 	DefaultUnauthorizedMessage = "Unauthorized"
 
 	// File upload defaults.
-	DefaultFileUploadMaxMemory = int64(32 << 20) // 32MB
+	DefaultFileUploadMaxMemory = int64(32 << 20)  // 32MB
+	DefaultFileUploadMaxSize   = int64(100 << 20) // 100MB
 
 	// WebSocket Client Configuration Defaults.
 	DefaultWebSocketClientSendBufferSize  = 256

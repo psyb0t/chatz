@@ -126,3 +126,20 @@ func TestValidateFallbackModels(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateReasoningEfforts(t *testing.T) {
+	t.Parallel()
+
+	assert.NoError(t, validateReasoningEfforts("up", Model{
+		ID:               "m",
+		ReasoningEfforts: []string{"none", "low", "max"},
+	}))
+	assert.ErrorIs(t, validateReasoningEfforts("up", Model{
+		ID:               "m",
+		ReasoningEfforts: []string{"turbo"},
+	}), ErrInvalidUpstream)
+	assert.ErrorIs(t, validateReasoningEfforts("up", Model{
+		ID:               "m",
+		ReasoningEfforts: []string{"low", "low"},
+	}), ErrInvalidUpstream)
+}

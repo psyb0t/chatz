@@ -10,20 +10,20 @@
   // render layer a pure function of message.text. The raw JSONL of a ```spec
   // block is NEVER shown as text; a spec that is still open at stream end keeps
   // rendering whatever patches already parsed.
-  import { parseMessageSegments, SEGMENT_SPEC } from "$lib/render/fence";
-  import Renderer from "$lib/render/Renderer.svelte";
-  import Markdown from "$lib/components/markdown/Markdown.svelte";
-  import { log } from "$lib/log";
+  import { parseMessageSegments, SEGMENT_SPEC } from "#lib/render/fence.js";
+  import Renderer from "#lib/render/Renderer.svelte";
+  import Markdown from "#lib/components/markdown/Markdown.svelte";
+  import { log } from "#lib/log.js";
   import {
     EVENT_SPEC_OPEN,
     EVENT_SPEC_PATCH,
     EVENT_SPEC_RENDER,
     EVENT_SPEC_ERROR,
-  } from "$lib/common/log-events";
+  } from "#lib/common/log-events.js";
   import {
     TESTID_ASSISTANT_TEXT,
     TESTID_SPEC_BLOCK,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
 
   interface Props {
     text: string;
@@ -121,8 +121,8 @@
         md={segment.text}
       />{#if streaming && i === segments.length - 1}<span
           class="assistant__caret"
-          aria-hidden="true">█</span
-        >{/if}
+          aria-hidden="true"
+        ></span>{/if}
     </div>
   {/if}
 {/each}
@@ -131,7 +131,7 @@
      whose last segment is a spec block (no trailing prose to carry the caret). -->
 {#if streaming && (segments.length === 0 || segments[segments.length - 1]?.kind === SEGMENT_SPEC)}
   <p class="assistant__text" data-testid={TESTID_ASSISTANT_TEXT}>
-    <span class="assistant__caret" aria-hidden="true">█</span>
+    <span class="assistant__caret" aria-hidden="true"></span>
   </p>
 {/if}
 
@@ -150,17 +150,26 @@
 
   .assistant__text {
     margin: 0;
+    line-height: 1.7;
     word-break: break-word;
   }
 
+  /* A small pulsing dot where the next text will land. */
   .assistant__caret {
-    color: var(--accent);
-    animation: blink 1s steps(1) infinite;
+    display: inline-block;
+    width: 9px;
+    height: 9px;
+    margin-left: 2px;
+    border-radius: 50%;
+    background: var(--ink);
+    vertical-align: baseline;
+    animation: caret-pulse 1s ease-in-out infinite;
   }
 
-  @keyframes blink {
+  @keyframes caret-pulse {
     50% {
-      opacity: 0;
+      opacity: 0.25;
+      transform: scale(0.8);
     }
   }
 

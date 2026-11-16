@@ -14,6 +14,7 @@ import (
 	"github.com/psyb0t/chatz/internal/pkg/operations"
 	"github.com/psyb0t/chatz/internal/pkg/secrets"
 	"github.com/psyb0t/ctxerrors"
+	"github.com/psyb0t/elelem"
 	"github.com/psyb0t/gonfiguration"
 )
 
@@ -30,7 +31,21 @@ type UpstreamProvider string
 const (
 	UpstreamProviderOpenAI    UpstreamProvider = "openai"
 	UpstreamProviderAnthropic UpstreamProvider = "anthropic"
+	UpstreamProviderZAICoding UpstreamProvider = "zaicoding"
 )
+
+// reasoningEffortNames is elelem's reasoning effort vocabulary.
+//
+//nolint:gochecknoglobals // a set literal; Go has no const map.
+var reasoningEffortNames = map[elelem.ReasoningEffort]struct{}{
+	elelem.ReasoningEffortNone:    {},
+	elelem.ReasoningEffortMinimal: {},
+	elelem.ReasoningEffortLow:     {},
+	elelem.ReasoningEffortMedium:  {},
+	elelem.ReasoningEffortHigh:    {},
+	elelem.ReasoningEffortXHigh:   {},
+	elelem.ReasoningEffortMax:     {},
+}
 
 var (
 	// ErrInvalidUpstream marks an invalid CHATZ_UPSTREAMS entry.
@@ -116,6 +131,13 @@ type Model struct {
 	FirstTokenLatencyMs int64       `json:"expectedFirstTokenLatencyMs"`
 	InputTokenPrice     *TokenPrice `json:"inputPricePerMillionTokens"`
 	OutputTokenPrice    *TokenPrice `json:"outputPricePerMillionTokens"`
+	// ReasoningEfforts, when set, is the exact list of reasoning effort levels
+	// the model takes, replacing what the driver reports.
+	ReasoningEfforts []string `json:"reasoningEfforts"`
+	// SupportsTopK, when set, says whether the model takes top_k.
+	SupportsTopK *bool `json:"supportsTopK"`
+	// SupportsStop, when set, says whether the model takes stop sequences.
+	SupportsStop *bool `json:"supportsStop"`
 }
 
 // TokenPrice is the configured price for one million input or output tokens.
@@ -276,7 +298,9 @@ func validateConfiguredUpstream(
 	}
 
 	switch upstream.Provider {
-	case UpstreamProviderOpenAI, UpstreamProviderAnthropic:
+	case UpstreamProviderOpenAI,
+		UpstreamProviderAnthropic,
+		UpstreamProviderZAICoding:
 	default:
 		return Upstream{}, ctxerrors.Wrapf(
 			ErrInvalidUpstream,
@@ -355,6 +379,10 @@ func validateModel(upstreamName string, model Model, modelIndex int) error {
 		)
 	}
 
+	if err := validateReasoningEfforts(upstreamName, model); err != nil {
+		return err
+	}
+
 	if err := validateTokenPrice(
 		upstreamName,
 		model.ID,
@@ -374,6 +402,39 @@ func validateModel(upstreamName string, model Model, modelIndex int) error {
 	}
 
 	return validateFallbackModels(upstreamName, model)
+}
+
+// validateReasoningEfforts accepts elelem's effort vocabulary only, each
+// level at most once.
+func validateReasoningEfforts(upstreamName string, model Model) error {
+	seen := make(map[string]struct{}, len(model.ReasoningEfforts))
+
+	for _, effort := range model.ReasoningEfforts {
+		_, known := reasoningEffortNames[effort]
+		if !known {
+			return ctxerrors.Wrapf(
+				ErrInvalidUpstream,
+				"upstream %q model %q has unknown reasoning effort %q",
+				upstreamName,
+				model.ID,
+				effort,
+			)
+		}
+
+		if _, dup := seen[effort]; dup {
+			return ctxerrors.Wrapf(
+				ErrInvalidUpstream,
+				"upstream %q model %q lists reasoning effort %q twice",
+				upstreamName,
+				model.ID,
+				effort,
+			)
+		}
+
+		seen[effort] = struct{}{}
+	}
+
+	return nil
 }
 
 func validateTokenPrice(

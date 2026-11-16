@@ -17,17 +17,29 @@ Each chat belongs to one user and keeps its own model, settings and MCP server c
 
 ## Settings
 
-The composer's settings panel controls how the model generates. Every setting is optional; one you leave empty uses the provider's default.
+The sliders button at the left of the composer opens the settings panel. Every change saves to the chat after a short pause, so the panel has no Save button. Each numeric setting has a switch: off means chatz does not send it and the provider's default applies; switching it back on restores the last value.
 
 | Setting | Allowed values | What it does |
 | --- | --- | --- |
+| `reasoningEffort` | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` | How long the model thinks before answering. `none` turns thinking off. Unset leaves it to the provider. |
+| `systemPrompt` | up to 16,000 characters, no NUL characters | Instructions for this chat, added after chatz's own system prompt on every turn. |
 | `temperature` | 0 to 2 | Sampling temperature. |
 | `topP` | 0 to 1 | Nucleus sampling. |
-| `reasoningEffort` | `minimal`, `low`, `medium`, `high` | Reasoning depth for models that support it. |
-| `maxOutputTokens` | positive integer | Cap on the reply length. |
+| `topK` | 1 to 1000 | Samples only from this many of the most likely tokens. |
+| `frequencyPenalty` | -2 to 2 | Positive values discourage repeating the same words. |
+| `presencePenalty` | -2 to 2 | Positive values push the model toward new topics. |
+| `seed` | 0 or a positive integer | Makes replies more repeatable where the provider supports it. |
+| `stop` | up to 4 strings, 1 to 64 characters each, not only whitespace | The reply ends when the model writes one of them. |
+| `maxOutputTokens` | positive integer | Cap on the reply length, reasoning included. |
 | `maxHistoryTokens` | positive integer | Token budget for the prompt chatz sends. Default 100,000. Not passed to the provider. |
 
-Saving settings replaces the whole set, so a field you clear goes back to the provider default. A value out of range is refused with `VALIDATION_FAILED`.
+Saving replaces the whole set, so a field you clear goes back to the provider default. A value out of range is refused with `VALIDATION_FAILED`.
+
+The panel and the composer read each model's accepted settings from `controls` in `GET /api/v1/models` (see [Models and upstreams](models.md#generation-controls)). Settings the model does not accept are marked "Not supported by this model". chatz keeps them on the chat but does not send them, so switching a chat to another model never makes its turns fail.
+
+The brain chip next to the settings button shows the chat's reasoning effort and changes it in one click. It appears only for models that have reasoning control, and lists only the levels the model takes.
+
+Presets (Precise, Balanced, Creative and any you save) live in the browser. Choosing one applies it to the open chat.
 
 ## What the model receives
 
@@ -37,12 +49,12 @@ Every model request is built in the same order:
 system message -> newest history that fits -> current message
 ```
 
-- The system message holds the base instructions and the generative UI guide. It is not shown in the chat but always counts against the budget.
+- The system message holds the base instructions, the generative UI guide and the chat's own `systemPrompt` when it has one. It is not shown in the chat but always counts against the budget.
 - The current message is always included.
 - History fills the rest of `maxHistoryTokens`, newest first. When it does not fit, chatz drops the oldest complete turns. An assistant tool call and its results are dropped together, so the model never sees a tool result without its call.
 - Tokens are counted with the `o200k_base` tokenizer built into the binary.
 
-Before you send, the composer shows how much of the budget the system message, history and draft take and how many turns would be left out. It gets those numbers from `POST /api/v1/chats/{chatId}/context-preview`, which runs the same selection on your unsent draft and saves nothing.
+Before you send, the ring next to the model picker shows how much of the budget the next turn uses; hovering it shows how much the system message, history and draft take and how many turns would be left out. It gets those numbers from `POST /api/v1/chats/{chatId}/context-preview`, which runs the same selection on your unsent draft and saves nothing.
 
 ## Streaming and status
 

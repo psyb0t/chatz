@@ -25,6 +25,7 @@ import (
 	"github.com/psyb0t/elelem"
 	"github.com/psyb0t/elelem/drivers/anthropic"
 	"github.com/psyb0t/elelem/drivers/openai"
+	"github.com/psyb0t/elelem/drivers/zaicoding"
 	"github.com/psyb0t/essessey"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -101,6 +102,14 @@ func realLLM(t *testing.T) (*elelem.Client, elelem.Model) {
 		require.NotEmpty(t, knownModels)
 
 		return elelem.New(driver), knownModels[0]
+	case config.UpstreamProviderZAICoding:
+		if configuredModelID == "" {
+			knownModels := zaicoding.KnownModels()
+			require.NotEmpty(t, knownModels)
+			configuredModelID = knownModels[0].ID
+		}
+
+		return elelem.New(driver), zaicoding.LookupModel(configuredModelID)
 	default:
 		require.FailNow(t, "unsupported parsed upstream provider", up.Provider)
 
@@ -143,6 +152,13 @@ func realDriverFor(t *testing.T, up config.Upstream) elelem.Driver {
 		}
 
 		return anthropic.NewDriver(options...)
+	case config.UpstreamProviderZAICoding:
+		options := []zaicoding.DriverOption{zaicoding.WithAPIKey(apiKey)}
+		if up.BaseURL != "" {
+			options = append(options, zaicoding.WithBaseURL(up.BaseURL))
+		}
+
+		return zaicoding.NewDriver(options...)
 	default:
 		require.FailNow(t, "unsupported upstream provider", up.Provider)
 

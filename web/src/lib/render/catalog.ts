@@ -37,7 +37,7 @@ import {
   COMP_TIME_SERIES_CHART,
   COMP_TIMELINE,
   COMP_TREEMAP,
-} from "$lib/common/render";
+} from "#lib/common/render.js";
 
 const id = z.string().nullable();
 

@@ -1,14 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ApiError } from "$lib/api/errors";
-  import { auth } from "$lib/stores/auth.svelte";
-  import { users } from "$lib/stores/users.svelte";
-  import Card from "$lib/components/ui/Card.svelte";
-  import Panel from "$lib/components/ui/Panel.svelte";
-  import Field from "$lib/components/ui/Field.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Badge from "$lib/components/ui/Badge.svelte";
-  import StateBlock from "$lib/components/ui/StateBlock.svelte";
+  import { ApiError } from "#lib/api/errors.js";
+  import { auth } from "#lib/stores/auth.svelte.js";
+  import { users } from "#lib/stores/users.svelte.js";
+  import Card from "#lib/components/ui/Card.svelte";
+  import Panel from "#lib/components/ui/Panel.svelte";
+  import Field from "#lib/components/ui/Field.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import Badge from "#lib/components/ui/Badge.svelte";
+  import StateBlock from "#lib/components/ui/StateBlock.svelte";
   import {
     BUTTON_PRIMARY,
     BUTTON_DANGER,
@@ -17,7 +17,7 @@
     STATE_LOADING,
     STATE_EMPTY,
     STATE_ERROR,
-  } from "$lib/components/ui/variants";
+  } from "#lib/components/ui/variants.js";
   import {
     ADMIN_USERS_TITLE,
     ADMIN_USERS_CREATE_TITLE,
@@ -27,7 +27,7 @@
     LABEL_DELETE,
     STATE_LOADING as COPY_LOADING,
     EMPTY_USERS,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
   import {
     TESTID_ADMIN_FORBIDDEN,
     TESTID_ADMIN_LOADING,
@@ -38,7 +38,7 @@
     TESTID_USER_CREATE_PASSWORD,
     TESTID_USER_CREATE_ADMIN,
     TESTID_USER_DELETE,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
 
   const isAdmin = $derived(auth.user?.isAdmin === true);
 

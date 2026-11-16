@@ -688,3 +688,55 @@ func TestServer_Continue_CompletionFailureRetainsVisibleUserMessage(
 	require.Equal(t, http.StatusOK, status)
 	assert.InDelta(t, float64(1), chatsEnv["total"], 0)
 }
+
+// TestServer_Continue_SendsAcceptedSettingsOnly stores every generation
+// control on a chat and checks what reaches the driver: accepted settings
+// arrive, the ones the model does not take (seed, an effort above its
+// ceiling) are dropped instead of failing the turn, and the chat's system
+// prompt rides after chatz's own.
+func TestServer_Continue_SendsAcceptedSettingsOnly(t *testing.T) {
+	resetDB(t)
+
+	llm := &fakeLLM{}
+	ts := newTestServerWithLLM(t, false, llm)
+
+	client, adminID := newAuthedClient(t, ts)
+	chat := &models.Chat{
+		UserID:           uuid.MustParse(adminID),
+		Title:            "settings reach the driver",
+		ModelID:          testModel,
+		Temperature:      new(0.3),
+		FrequencyPenalty: new(0.5),
+		Seed:             new(int64(7)),
+		StopSequences:    []string{"END"},
+		ReasoningEffort:  "max",
+		SystemPrompt:     new("Answer in French."),
+	}
+	require.NoError(
+		t,
+		repositories.Chat.WithContext(t.Context()).Create(chat),
+	)
+
+	status, _, body := requestStream(
+		t,
+		client,
+		ts.URL+pathChatsPrefix+chat.ID.String(),
+		map[string]string{"model": testModel, "message": "hello"},
+	)
+	require.Equal(t, http.StatusOK, status)
+	assert.Contains(t, body, fakeReply)
+
+	requests := llm.Requests()
+	require.Len(t, requests, 1)
+
+	params := requests[0].Params
+	assert.Equal(t, new(0.3), params.Temperature)
+	assert.Equal(t, new(0.5), params.FrequencyPenalty)
+	assert.Equal(t, []string{"END"}, params.Stop)
+	assert.Nil(t, params.Seed, "the model does not take a seed")
+	assert.Empty(t, params.ReasoningEffort, "max is above the model's ceiling")
+
+	system := requests[0].Messages[0]
+	require.Equal(t, elelem.RoleSystem, system.Role)
+	assert.Contains(t, system.Text(), "Answer in French.")
+}

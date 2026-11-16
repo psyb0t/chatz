@@ -2,14 +2,14 @@ import {
   listChatMCPServers,
   updateChatMCPServer,
   type ChatMCPServer,
-} from "$lib/api/client";
-import { log } from "$lib/log";
-import { MCP_STATUS_CONNECTING, MCP_STATUS_FAILED } from "$lib/common/mcp";
+} from "#lib/api/client.js";
+import { log } from "#lib/log.js";
+import { MCP_STATUS_CONNECTING, MCP_STATUS_FAILED } from "#lib/common/mcp.js";
 import {
   EVENT_CHAT_MCP_LOADED,
   EVENT_CHAT_MCP_ERROR,
   EVENT_CHAT_MCP_TOGGLE,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 // ChatMcpServersStore holds the MCP servers as they apply to ONE chat: identity,
 // live global status, and per-chat enablement. Enabling/disabling here is a

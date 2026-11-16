@@ -2,9 +2,24 @@
 package elelem
 
 import (
+	"bytes"
 	"encoding/json"
 	"slices"
 )
+
+// jsonNull is what encoding/json writes for a nil json.RawMessage, so a
+// Message without reasoning that went through a JSON round trip carries it.
+const jsonNull = "null"
+
+// HasProviderReasoning reports whether raw carries a provider reasoning
+// envelope. Empty, blank and JSON null values count as absent: a Message has
+// no JSON tags, so a caller that stores one as JSON reads a missing envelope
+// back as the bytes "null".
+func HasProviderReasoning(raw json.RawMessage) bool {
+	trimmed := bytes.TrimSpace(raw)
+
+	return len(trimmed) > 0 && string(trimmed) != jsonNull
+}
 
 // Role is the author of a message.
 type Role = string
@@ -55,8 +70,9 @@ type Message struct {
 
 	// Content is an ordered list of parts. Build the text-only case with
 	// Text("..."); read it back with Message.Text() when a string is what you
-	// need. Only user messages carry non-text parts on either provider — see
-	// Capabilities for what each one accepts.
+	// need. User messages carry non-text parts, and so do tool messages,
+	// which may carry images after their text (see ToolResult.Images). See
+	// Capabilities for what each provider accepts.
 	Content Content
 
 	ToolCalls         []ToolCall
@@ -132,10 +148,13 @@ func (m Message) clone() Message {
 	cloned.Content = m.Content.Clone()
 	cloned.ToolCalls = cloneToolCalls(m.ToolCalls)
 
-	cloned.ProviderReasoning = append(
-		json.RawMessage(nil),
-		m.ProviderReasoning...,
-	)
+	cloned.ProviderReasoning = nil
+	if HasProviderReasoning(m.ProviderReasoning) {
+		cloned.ProviderReasoning = append(
+			json.RawMessage(nil),
+			m.ProviderReasoning...,
+		)
+	}
 
 	if m.Injection != nil {
 		injection := *m.Injection

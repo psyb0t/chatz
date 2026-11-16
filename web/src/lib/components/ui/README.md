@@ -1,4 +1,4 @@
-# UI primitives: the brutalist design-system layer
+# UI primitives: the design-system layer
 
 Every visual primitive in the chatz frontend is a real, reusable Svelte 5
 component that lives here and is driven **only** by the shared design tokens in
@@ -7,14 +7,26 @@ identical everywhere.
 
 ## The tokens-only rule (hard requirement)
 
-These primitives **never** hardcode a hex color, a px border, or a px
-spacing/type value. Color, spacing, borders, type, and the drop-shadow come
-exclusively from the `:root` custom properties in `app.css`:
+These primitives **never** hardcode a hex color or a spacing/type value.
+Color, spacing, borders, type, radii and shadows come from the `:root` custom
+properties in `app.css`, which `:root[data-theme="dark"]` redefines:
 
-- Color: `--bg --panel --ink --accent --on-accent --muted --border --ok --warn --crit`
-- Type: `--font-display --font-mono`, scale `--text-xs … --text-2xl`, `--letter-spacing-label`
+- Surfaces: `--bg --panel --panel-2 --surface --code-bg --bubble`
+- Text, strongest to weakest: `--ink --muted --faint --disabled`
+- Lines and washes: `--border --border-strong --fill-hover --fill-active`
+- Accent (links, focus, selection): `--accent --accent-hover --accent-soft --on-accent`
+- Primary action (ink on paper): `--primary --primary-hover --on-primary`
+- Status: `--ok --warn --crit --ok-soft --crit-soft`
+- Type: `--font-sans` (Geist), `--font-mono` (Geist Mono), scale `--text-xs … --text-2xl`, `--text-prose` for message text
 - Space: `--space-1 … --space-8`
-- Structure: `--border-width` (2px), `--shadow` (hard offset), `border-radius: 0`
+- Structure: `--border-width` (1px), `--radius-sm … --radius-2xl`, `--radius-pill`, `--control-sm`, `--control`, `--reading-width`
+- Elevation and motion: `--shadow-sm --shadow --shadow-lg --shadow-composer`, `--ease --dur-fast --dur`
+
+`Icon.svelte` is the closed inline-SVG icon set (stroke icons on a 24px grid,
+drawn in `currentColor`); add a path there rather than pasting SVG into a
+component. `Spinner.svelte` is the loading indicator. `app.css` also provides
+the `.shimmer` class for live text, the `spin` and `fade-in` keyframes, and
+`.sr-only`.
 
 A component reaches a semantic color through a **variant** prop (see
 `variants.ts`), never by typing the hex. If you need a new color/size, add a
@@ -38,7 +50,7 @@ own bounded scroll/clip surface, never in a layout that widens the document.
 | `Card`       | Bordered, shadowed panel with optional `title`/`description` header + `children` body.                                                    |
 | `Panel`      | Bordered container block. `shadow` for the hard drop-shadow, `pad`: `md \| lg`.                                                           |
 | `Field`      | Labeled form-control wrapper: label + `control` snippet + optional `error`.                                                               |
-| `Table`      | Brutalist data table from `columns` + `rows`. Reusable by admin lists.                                                                    |
+| `Table`      | Data table from `columns` + `rows`. Reusable by admin lists.                                                                              |
 | `Modal`      | Focus-trapped dialog overlay: `title`, `onClose`, `children` body. Escape and scrim click both close; autofocuses the first form control. |
 | `StateBlock` | Loading/empty/error scaffold. `variant`: `loading \| empty \| error`. `label`, optional `actions` snippet for dismiss/retry affordances.  |
 

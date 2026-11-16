@@ -1,14 +1,14 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_SPARKLINE, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_SPARKLINE, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     extent,
     finiteValues,
     formatChartNumber,
     linePath,
     scaleLinear,
-  } from "$lib/render/charts/math";
-  import { chartColor } from "$lib/render/charts/palette";
+  } from "#lib/render/charts/math.js";
+  import { chartColor } from "#lib/render/charts/palette.js";
 
   type Trend = "up" | "down" | "flat";
 

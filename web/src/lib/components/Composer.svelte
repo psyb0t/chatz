@@ -1,30 +1,36 @@
 <script lang="ts">
-  import { models } from "$lib/stores/models.svelte";
-  import { conversation } from "$lib/stores/conversation.svelte";
+  import { models } from "#lib/stores/models.svelte.js";
+  import { conversation } from "#lib/stores/conversation.svelte.js";
   import {
     previewChatContext,
     type Model,
     type PromptContextPreview,
-  } from "$lib/api/client";
+  } from "#lib/api/client.js";
   import {
     TESTID_COMPOSER,
     TESTID_COMPOSER_SEND,
     TESTID_COMPOSER_STOP,
     TESTID_CHAT_SETTINGS_TOGGLE,
     TESTID_CONTEXT_METER,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
   import {
     A11Y_COMPOSER_INPUT,
     A11Y_CHAT_SETTINGS,
+    A11Y_SEND,
+    A11Y_STOP,
+    COMPOSER_PLACEHOLDER,
+    COMPOSER_HINT,
+    COMPOSER_NO_MODELS,
+    COMPOSER_NO_UPSTREAM,
     contextBreakdown,
     contextMeter,
     contextOmitted,
-  } from "$lib/common/labels";
-  import Button from "$lib/components/ui/Button.svelte";
-  import ChatSettings from "$lib/components/ChatSettings.svelte";
-  import ChatMcpPicker from "$lib/components/ChatMcpPicker.svelte";
-  import ModelPicker from "$lib/components/ModelPicker.svelte";
-  import { BUTTON_PRIMARY, BUTTON_DANGER } from "$lib/components/ui/variants";
+  } from "#lib/common/labels.js";
+  import ChatSettings from "#lib/components/ChatSettings.svelte";
+  import ChatMcpPicker from "#lib/components/ChatMcpPicker.svelte";
+  import ModelPicker from "#lib/components/ModelPicker.svelte";
+  import ReasoningPicker from "#lib/components/ReasoningPicker.svelte";
+  import Icon from "#lib/components/ui/Icon.svelte";
 
   let selectedModel = $state("");
   let draft = $state("");
@@ -32,6 +38,10 @@
   let settingsOpen = $state(false);
   let contextPreview = $state<PromptContextPreview | null>(null);
   const CONTEXT_PREVIEW_DELAY_MS = 150;
+  const TOKENS_PER_K = 1000;
+  const METER_RADIUS = 7;
+  const METER_CIRCUMFERENCE = 2 * Math.PI * METER_RADIUS;
+  const METER_WARN_RATIO = 0.8;
   // Plain (non-reactive): which chat `contextPreview` was computed for, so the
   // meter is only blanked on a real chat switch. See the preview effect below.
   let previewChatId: string | null = null;
@@ -61,9 +71,9 @@
     }
   });
 
-  // Auto-grow the textarea from one row up to the CSS max-height (~4 rows, then
-  // it scrolls). Reset to `auto` first so it can shrink when text is deleted or
-  // the draft is cleared after send. Runs on every draft change (typing + clear).
+  // Auto-grow the textarea from one row up to the CSS max-height, then it
+  // scrolls. Reset to `auto` first so it can shrink when text is deleted or
+  // the draft is cleared after send. Runs on every draft change.
   $effect(() => {
     void draft;
     const el = inputEl;
@@ -79,27 +89,36 @@
   const selectedModelInfo = $derived<Model | undefined>(
     models.list.find((model) => model.id === selectedModel),
   );
-  // Non-null chat id for the MCP picker prop (the {#if} guard narrows it).
   const activeChatId = $derived(conversation.chatId);
   const streaming = $derived(conversation.streaming);
   const trimmed = $derived(draft.trim());
   const canSend = $derived(
     !streaming && trimmed !== "" && hasModels && selectedModel !== "",
   );
+  const contextRatio = $derived(
+    contextPreview === null || contextPreview.budgetTokens === 0
+      ? 0
+      : Math.min(contextPreview.totalTokens / contextPreview.budgetTokens, 1),
+  );
+
+  function compactTokens(tokens: number): string {
+    return tokens >= TOKENS_PER_K
+      ? `${(tokens / TOKENS_PER_K).toFixed(1).replace(/\.0$/, "")}k`
+      : String(tokens);
+  }
 
   // The meter deliberately asks the backend after a short idle delay. Only the
   // backend has the durable transcript and the same tokenizer/selection path
   // the next streamed turn uses.
   //
-  // The in-flight value is deliberately KEPT rather than cleared. The bar is
-  // gated on `contextPreview !== null`, so nulling it on every keystroke made
-  // the whole meter vanish while typing and reappear on idle. A slightly stale
-  // count is better than no count. It is only discarded when the chat changes,
-  // where the old numbers would be wrong rather than merely late.
+  // The in-flight value is deliberately KEPT rather than cleared, so the meter
+  // does not vanish on every keystroke. It is only discarded when the chat
+  // changes, where the old numbers would be wrong rather than merely late.
   $effect(() => {
     const chatId = conversation.chatId;
     const message = draft;
     void conversation.streaming;
+    void conversation.settings;
 
     if (chatId !== previewChatId) {
       previewChatId = chatId;
@@ -139,9 +158,10 @@
     await conversation.send(text, selectedModel);
   }
 
-  // Enter sends; Shift+Enter inserts a newline (default textarea behavior).
+  // Enter sends; Shift+Enter inserts a newline. An IME composition's Enter
+  // confirms the composition and must not send.
   function onKeydown(event: KeyboardEvent): void {
-    if (event.key === "Enter" && !event.shiftKey) {
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {
       event.preventDefault();
       void submit();
     }
@@ -163,6 +183,12 @@
   export function focusInput(): void {
     inputEl?.focus();
   }
+
+  // setDraft fills the message box, for the empty-state suggestions.
+  export function setDraft(text: string): void {
+    draft = text;
+    queueMicrotask(() => inputEl?.focus());
+  }
 </script>
 
 <form
@@ -171,118 +197,162 @@
   data-testid={TESTID_COMPOSER}
   onsubmit={onSubmit}
 >
-  <!-- One bordered box, grid-laid-out so mobile can reflow it: desktop is one
-       row (input flexes, the four controls ride the right edge); mobile is two
-       rows (options row: gear/mcp/model; input row: textarea + send/stop) so
-       the textarea keeps a usable width on narrow phones instead of the
-       controls crowding it out. See the mobile media query below. -->
   <div class="composer__box">
     <textarea
       class="composer__input"
       id="composer-input"
       bind:this={inputEl}
       aria-label={A11Y_COMPOSER_INPUT}
-      placeholder="type&hellip;"
+      placeholder={COMPOSER_PLACEHOLDER}
       rows="1"
       bind:value={draft}
       onkeydown={onKeydown}
-      disabled={streaming}
-    ></textarea>
+      disabled={streaming}></textarea>
 
-    <!-- Settings are available even before a chat exists: on a new chat they
-         buffer and get pushed to the chat the first message creates. -->
-    <div class="composer__opt composer__opt--gear composer__settings-anchor">
-      <button
-        class="composer__gear"
-        type="button"
-        onclick={toggleSettings}
-        aria-label={A11Y_CHAT_SETTINGS}
-        aria-pressed={settingsOpen}
-        data-testid={TESTID_CHAT_SETTINGS_TOGGLE}>&#9881;</button
-      >
-      {#if settingsOpen}
-        <ChatSettings
-          model={selectedModelInfo}
-          onClose={() => (settingsOpen = false)}
-        />
-      {/if}
-    </div>
+    <div class="composer__bar">
+      <div class="composer__group">
+        <!-- Settings open even before the first message; the panel saves to
+             the chat the route already created. -->
+        <div class="composer__settings-anchor">
+          <button
+            class="composer__icon-btn"
+            type="button"
+            onclick={toggleSettings}
+            aria-label={A11Y_CHAT_SETTINGS}
+            aria-pressed={settingsOpen}
+            title={A11Y_CHAT_SETTINGS}
+            data-testid={TESTID_CHAT_SETTINGS_TOGGLE}
+          >
+            <Icon name="sliders" size={17} />
+          </button>
+          {#if settingsOpen}
+            <ChatSettings
+              model={selectedModelInfo}
+              onClose={() => (settingsOpen = false)}
+            />
+          {/if}
+        </div>
 
-    {#if activeChatId !== null}
-      <div class="composer__opt composer__opt--mcp">
-        <ChatMcpPicker chatId={activeChatId} />
+        <ReasoningPicker model={selectedModelInfo} disabled={streaming} />
+
+        {#if activeChatId !== null}
+          <ChatMcpPicker chatId={activeChatId} />
+        {/if}
       </div>
-    {/if}
 
-    <div class="composer__opt composer__opt--model">
-      {#if hasModels}
-        <ModelPicker
-          models={models.list}
-          bind:value={selectedModel}
-          disabled={streaming}
-        />
-      {:else}
-        <span class="composer__nomodel">no models</span>
-      {/if}
-    </div>
+      <div class="composer__group composer__group--end">
+        {#if contextPreview !== null}
+          <span
+            class="composer__meter"
+            class:composer__meter--warn={contextRatio >= METER_WARN_RATIO}
+            data-testid={TESTID_CONTEXT_METER}
+            title={[
+              contextMeter(
+                contextPreview.totalTokens,
+                contextPreview.budgetTokens,
+                contextPreview.availableTokens,
+              ),
+              contextBreakdown(
+                contextPreview.systemTokens,
+                contextPreview.historyTokens,
+                contextPreview.currentMessageTokens,
+              ),
+              contextPreview.omittedTurns > 0
+                ? contextOmitted(
+                    contextPreview.omittedTurns,
+                    contextPreview.omittedMessages,
+                  )
+                : "",
+            ]
+              .filter((line) => line !== "")
+              .join("\n")}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <circle
+                cx="9"
+                cy="9"
+                r={METER_RADIUS}
+                fill="none"
+                stroke="var(--border-strong)"
+                stroke-width="2"
+              />
+              <circle
+                cx="9"
+                cy="9"
+                r={METER_RADIUS}
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-dasharray={METER_CIRCUMFERENCE}
+                stroke-dashoffset={METER_CIRCUMFERENCE * (1 - contextRatio)}
+                transform="rotate(-90 9 9)"
+              />
+            </svg>
+            <span class="composer__meter-text">
+              {compactTokens(contextPreview.totalTokens)} / {compactTokens(
+                contextPreview.budgetTokens,
+              )}
+            </span>
+            <span class="sr-only">
+              {contextMeter(
+                contextPreview.totalTokens,
+                contextPreview.budgetTokens,
+                contextPreview.availableTokens,
+              )}
+            </span>
+          </span>
+        {/if}
 
-    <div class="composer__opt composer__opt--send">
-      {#if streaming}
-        <Button
-          variant={BUTTON_DANGER}
-          type="button"
-          onclick={stop}
-          testid={TESTID_COMPOSER_STOP}>Stop</Button
-        >
-      {:else}
-        <Button
-          variant={BUTTON_PRIMARY}
-          type="submit"
-          disabled={!canSend}
-          testid={TESTID_COMPOSER_SEND}>Send</Button
-        >
-      {/if}
+        {#if hasModels}
+          <ModelPicker
+            models={models.list}
+            bind:value={selectedModel}
+            disabled={streaming}
+          />
+        {:else}
+          <span class="composer__nomodel">{COMPOSER_NO_MODELS}</span>
+        {/if}
+
+        {#if streaming}
+          <button
+            class="composer__send composer__send--stop"
+            type="button"
+            onclick={stop}
+            aria-label={A11Y_STOP}
+            title={A11Y_STOP}
+            data-testid={TESTID_COMPOSER_STOP}
+          >
+            <Icon name="stop" size={14} strokeWidth={2.4} />
+          </button>
+        {:else}
+          <button
+            class="composer__send"
+            type="submit"
+            disabled={!canSend}
+            aria-label={A11Y_SEND}
+            title={A11Y_SEND}
+            data-testid={TESTID_COMPOSER_SEND}
+          >
+            <Icon name="arrow-up" size={17} strokeWidth={2.2} />
+          </button>
+        {/if}
+      </div>
     </div>
   </div>
 
-  {#if contextPreview !== null}
-    <div class="composer__context" data-testid={TESTID_CONTEXT_METER}>
-      <span>
-        {contextMeter(
-          contextPreview.totalTokens,
-          contextPreview.budgetTokens,
-          contextPreview.availableTokens,
-        )}
-      </span>
-      <span class="composer__context-detail">
-        {contextBreakdown(
-          contextPreview.systemTokens,
-          contextPreview.historyTokens,
-          contextPreview.currentMessageTokens,
-        )}
-      </span>
-      {#if contextPreview.omittedTurns > 0}
-        <span class="composer__context-omitted">
-          {contextOmitted(
-            contextPreview.omittedTurns,
-            contextPreview.omittedMessages,
-          )}
-        </span>
-      {/if}
-    </div>
-  {/if}
-
-  {#if !hasModels}
-    <span class="composer__hint"
-      >no upstream configured &mdash; wire one up to chat</span
-    >
-  {/if}
+  <p class="composer__hint">
+    {hasModels ? COMPOSER_HINT : COMPOSER_NO_UPSTREAM}
+  </p>
 </form>
 
 <style>
   .composer {
     position: relative;
-    padding: var(--space-4);
+    width: 100%;
+    max-width: calc(var(--reading-width) + 2 * var(--space-4));
+    margin: 0 auto;
+    padding: 0 var(--space-4) var(--space-3);
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
@@ -290,40 +360,41 @@
 
   .composer__box {
     display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    padding-right: var(--space-2);
+    flex-direction: column;
     border: var(--border-width) solid var(--border-strong);
-    border-radius: var(--radius);
-    background: var(--panel);
-    box-shadow: var(--shadow-sm);
+    border-radius: var(--radius-2xl);
+    background: var(--surface);
+    box-shadow: var(--shadow-composer);
+    transition:
+      border-color var(--dur-fast) var(--ease),
+      box-shadow var(--dur-fast) var(--ease);
   }
 
   .composer__box:focus-within {
-    border-color: var(--accent);
+    border-color: color-mix(in srgb, var(--ink) 25%, var(--border-strong));
   }
 
   .composer__input {
-    flex: 1;
+    width: 100%;
     min-width: 0;
-    box-sizing: border-box;
     border: none;
     background: transparent;
     resize: none;
     overflow-y: auto;
-    /* One row by default, growing to four before it scrolls (JS sets height;
-       this clamps it): 4 lines at line-height 1.5 = 6em, plus the padding. */
+    /* One row by default, growing to about eight before it scrolls (JS sets
+       the height; this clamps it). */
     line-height: 1.5;
-    max-height: calc(6em + var(--space-3) * 2);
-    padding: var(--space-3);
-    font-family: var(--font-display);
-    font-size: var(--text-sm);
+    max-height: calc(12em + var(--space-4));
+    padding: var(--space-4) var(--space-4) var(--space-2);
+    font-size: var(--text-prose);
   }
 
-  /* The global input/textarea focus styles (outline + border + accent-soft
-     box-shadow glow) would light up the textarea itself, poking past the box's
-     rounded border. Suppress all of them and let .composer__box:focus-within
-     highlight the whole box border instead. */
+  .composer__input::placeholder {
+    color: var(--faint);
+  }
+
+  /* The global focus ring would light up the textarea inside the rounded box;
+     the box's own focus-within border does that job. */
   .composer__input:focus,
   .composer__input:focus-visible {
     outline: none;
@@ -331,39 +402,24 @@
     box-shadow: none;
   }
 
-  /* Each option (gear/mcp/model/send) is a direct .composer__box child so
-     the mobile media query below can independently place them via
-     grid-area — a flat sibling list, not a nested controls wrapper. */
-  .composer__opt {
-    display: inline-flex;
+  .composer__bar {
+    display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: var(--space-1) var(--space-2) var(--space-2);
+    min-width: 0;
   }
 
-  .composer__gear {
-    display: inline-flex;
+  .composer__group {
+    display: flex;
     align-items: center;
-    justify-content: center;
-    background: transparent;
-    border: var(--border-width) solid transparent;
-    border-radius: var(--radius);
-    color: var(--muted);
-    cursor: pointer;
-    line-height: 1;
-    padding: var(--space-1) var(--space-2);
-    font-size: var(--text-sm);
-    transition:
-      background-color 0.12s ease,
-      color 0.12s ease;
+    gap: 2px;
+    min-width: 0;
   }
 
-  .composer__gear:hover {
-    background: var(--panel-2);
-    color: var(--ink);
-  }
-
-  .composer__gear[aria-pressed="true"] {
-    background: var(--panel-2);
-    color: var(--accent);
+  .composer__group--end {
+    gap: var(--space-1);
   }
 
   .composer__settings-anchor {
@@ -371,74 +427,84 @@
     display: inline-flex;
   }
 
-  .composer__nomodel {
+  .composer__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-sm);
+    height: var(--control-sm);
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-pill);
+    color: var(--muted);
+  }
+
+  .composer__icon-btn:hover:not(:disabled),
+  .composer__icon-btn[aria-pressed="true"] {
+    background: var(--fill-hover);
+    color: var(--ink);
+  }
+
+  .composer__meter {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 var(--space-1);
+    color: var(--muted);
     font-family: var(--font-mono);
     font-size: var(--text-xs);
-    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    cursor: default;
   }
 
-  .composer__hint {
-    font-size: var(--text-xs);
-    color: var(--muted);
-  }
-
-  .composer__context {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-1) var(--space-2);
-    color: var(--muted);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
-  }
-
-  .composer__context-detail {
-    color: var(--muted);
-  }
-
-  .composer__context-omitted {
+  .composer__meter--warn {
     color: var(--warn);
   }
 
-  @media (max-width: 1020px) {
-    /* Two rows instead of one: an options row (gear/mcp/model) above an input
-       row (textarea + send/stop) — below this width, cramming all four
-       controls onto the textarea's row left almost no room to type. Grid
-       areas let each control be placed independently per row without
-       touching the component markup. Wider than the sidebar's own 640px
-       mobile breakpoint on purpose: the composer gets cramped well before the
-       sidebar needs to collapse into a drawer. */
-    .composer__box {
-      display: grid;
-      grid-template-columns: auto auto 1fr auto;
-      grid-template-areas:
-        "gear mcp model model"
-        "input input input send";
-      align-items: center;
-      gap: var(--space-2);
-      padding: var(--space-2);
+  .composer__send {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+
+  .composer__send:hover:not(:disabled) {
+    background: var(--primary-hover);
+  }
+
+  .composer__send:disabled {
+    background: var(--panel-2);
+    color: var(--disabled);
+    opacity: 1;
+  }
+
+  .composer__nomodel {
+    color: var(--faint);
+    font-size: var(--text-sm);
+  }
+
+  .composer__hint {
+    color: var(--faint);
+    font-size: var(--text-xs);
+    text-align: center;
+  }
+
+  @media (max-width: 640px) {
+    .composer {
+      padding: 0 var(--space-2) var(--space-2);
     }
 
-    .composer__input {
-      grid-area: input;
-      padding: var(--space-2);
-    }
-
-    .composer__opt--gear {
-      grid-area: gear;
-    }
-
-    .composer__opt--mcp {
-      grid-area: mcp;
-    }
-
-    .composer__opt--model {
-      grid-area: model;
-      min-width: 0;
-      justify-self: stretch;
-    }
-
-    .composer__opt--send {
-      grid-area: send;
+    .composer__meter-text,
+    .composer__hint {
+      display: none;
     }
   }
 </style>

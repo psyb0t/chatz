@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import type { Chat, MessageList } from "$lib/api/client";
+import type { Chat, MessageList } from "#lib/api/client.js";
 import {
   conversation,
   messageText,
@@ -24,8 +24,8 @@ import {
   SSE_ERROR,
   BLOCK_TEXT,
   BLOCK_TEXT_DELTA,
-} from "$lib/api/sse-events";
-import { CHAT_TURN_STATUS_CONNECTING } from "$lib/common/turn-status";
+} from "#lib/api/sse-events.js";
+import { CHAT_TURN_STATUS_CONNECTING } from "#lib/common/turn-status.js";
 import {
   frame,
   messageStart as sseMessageStart,
@@ -52,7 +52,7 @@ const {
   renameChatMock: vi.fn(),
 }));
 
-vi.mock("$lib/api/client", () => ({
+vi.mock("#lib/api/client.js", () => ({
   getChat: getChatMock,
   listChatMessages: listChatMessagesMock,
   updateChatSettings: updateChatSettingsMock,

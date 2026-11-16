@@ -2,10 +2,10 @@
   import { Renderer, JsonUIProvider } from "@json-render/svelte";
   import type { Spec } from "@json-render/svelte";
   import { validateSpec } from "@json-render/core";
-  import StateBlock from "$lib/components/ui/StateBlock.svelte";
-  import { STATE_ERROR } from "$lib/components/ui/variants";
-  import { SPEC_INVALID_LABEL, specIssueLine } from "$lib/common/labels";
-  import { TESTID_SPEC_ERROR } from "$lib/common/test-ids";
+  import StateBlock from "#lib/components/ui/StateBlock.svelte";
+  import { STATE_ERROR } from "#lib/components/ui/variants.js";
+  import { SPEC_INVALID_LABEL, specIssueLine } from "#lib/common/labels.js";
+  import { TESTID_SPEC_ERROR } from "#lib/common/test-ids.js";
   import { registry } from "./registry";
   import { stampSpecIds } from "./stamp";
   import { recoverRoot } from "./recover-root";

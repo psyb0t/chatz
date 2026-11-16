@@ -19,7 +19,7 @@ import {
   LOG_LEVEL_STORAGE_KEY,
   LOG_PREFIX,
   type LogLevel,
-} from "$lib/common/log";
+} from "#lib/common/log.js";
 
 type LogFields = Record<string, string | number | boolean | null | undefined>;
 

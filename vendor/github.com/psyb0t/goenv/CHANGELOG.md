@@ -2,6 +2,20 @@
 
 All notable changes per release. Versions follow [semver](https://semver.org).
 
+## v1.0.12, 2026-11-10
+
+Documentation and CI. No code change.
+
+- The documentation now lives at https://psyb0t.github.io/goenv/, and the reference material moved there from the README.
+- A tag no longer reruns the checks. It waits for the main run of the same commit to pass, cuts the GitHub release from the tag message, then publishes the skill to ClawHub, and the badges use that run's coverage.
+- Added Buy Me a Coffee to the funding links, and committed `AGENTS.md` plus the project rules in `.agents/rules/` for coding agents.
+
+## v1.0.11, 2026-10-10
+
+Documentation only. No code change.
+
+- The README's agent integrations section names [peen](https://github.com/psyb0t/peen) as an example of an agent that reads `.agents/skills/`.
+
 ## v1.0.10 — 2026-08-08
 
 Documentation. No code change.

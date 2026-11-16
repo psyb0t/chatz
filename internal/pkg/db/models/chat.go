@@ -7,9 +7,9 @@ import (
 
 // Chat is one conversation, owned by a user. ModelID names the model profile
 // (from chatz.yaml) the chat runs against. The generation settings are
-// per-chat overrides: a nil pointer / empty ReasoningEffort means "unset" — the
-// provider default applies (temperature/top_p/reasoning) or no cap is imposed
-// (max_output/max_history tokens).
+// per-chat overrides: a nil pointer, empty ReasoningEffort or empty
+// StopSequences means "unset", so the provider default applies or no cap is
+// imposed (max_output/max_history tokens).
 type Chat struct {
 	Base
 
@@ -19,9 +19,17 @@ type Chat struct {
 
 	Temperature      *float64
 	TopP             *float64
+	TopK             *int
+	FrequencyPenalty *float64
+	PresencePenalty  *float64
+	Seed             *int64
+	StopSequences    datatypes.JSONSlice[string]
 	ReasoningEffort  string
 	MaxOutputTokens  *int
 	MaxHistoryTokens *int
+	// SystemPrompt holds chat-specific instructions added after chatz's own
+	// system prompt. Nil or empty means none.
+	SystemPrompt *string
 
 	// DisabledMCPServerIDs is the per-chat set of MCP server IDs whose tools
 	// are withheld from this chat's turns. Empty (the default) means every

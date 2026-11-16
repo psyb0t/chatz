@@ -1,11 +1,11 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_GAUGE, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_GAUGE, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     clamp,
     finiteNumber,
     formatChartNumber,
-  } from "$lib/render/charts/math";
+  } from "#lib/render/charts/math.js";
 
   type GaugeProps = {
     id?: string | null;

@@ -1,13 +1,13 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_FUNNEL_CHART, DATA_JR_TYPE } from "$lib/common/render";
-  import type { LabelValue } from "$lib/render/charts/types";
+  import { COMP_FUNNEL_CHART, DATA_JR_TYPE } from "#lib/common/render.js";
+  import type { LabelValue } from "#lib/render/charts/types.js";
   import {
     chartHeight,
     finiteNumber,
     formatChartNumber,
-  } from "$lib/render/charts/math";
-  import { CHART_PALETTE, chartColor } from "$lib/render/charts/palette";
+  } from "#lib/render/charts/math.js";
+  import { CHART_PALETTE, chartColor } from "#lib/render/charts/palette.js";
 
   type FunnelChartProps = {
     id?: string | null;

@@ -40,6 +40,7 @@ type Model struct {
 	InputTokenPrice     *TokenPrice
 	OutputTokenPrice    *TokenPrice
 	Default             bool `json:"default"`
+	Controls            Controls
 }
 
 // TokenPrice is a model's configured price per million input or output tokens.
@@ -53,8 +54,10 @@ type TokenPrice struct {
 // CandidatesFor always returns the selected model first, followed by its
 // explicitly configured fallback order.
 type Candidate struct {
-	ModelID string
-	Client  *elelem.Client
+	ModelID  string
+	Client   *elelem.Client
+	Model    elelem.Model
+	Controls Controls
 }
 
 // ClientFactory builds the elelem client for an upstream. Injected so tests can
@@ -65,6 +68,7 @@ type ClientFactory func(u config.Upstream) *elelem.Client
 // clients, so a chosen model routes to its owner.
 type Registry struct {
 	models    []Model
+	resolved  map[string]elelem.Model // model id -> model a turn runs against
 	clients   map[string]*elelem.Client
 	owner     map[string]string // model id -> upstream name
 	fallbacks map[string][]string
@@ -86,6 +90,7 @@ func Discover(
 	logger := ctxscope.GetLogger(ctx)
 
 	reg := &Registry{
+		resolved:  make(map[string]elelem.Model),
 		clients:   make(map[string]*elelem.Client, len(ups)),
 		owner:     make(map[string]string),
 		fallbacks: make(map[string][]string),
@@ -123,7 +128,7 @@ func Discover(
 			time.Since(startedAt),
 		)
 
-		reg.merge(ctx, u, ids)
+		reg.merge(ctx, u, client, ids)
 	}
 
 	sort.Slice(reg.models, func(i, j int) bool {
@@ -230,6 +235,7 @@ func listModels(
 func (r *Registry) merge(
 	ctx context.Context,
 	upstream config.Upstream,
+	client *elelem.Client,
 	ids []string,
 ) {
 	logger := ctxscope.GetLogger(ctx)
@@ -252,10 +258,18 @@ func (r *Registry) merge(
 		}
 
 		r.owner[id] = upstream.Name
-		r.models = append(
-			r.models,
-			modelFromConfig(id, upstream.Name, metadata[id]),
+
+		resolved := resolveModel(upstream.Provider, id, metadata[id])
+		r.resolved[id] = resolved
+
+		model := modelFromConfig(id, upstream.Name, metadata[id])
+		model.Controls = controlsFor(
+			upstream.Provider,
+			resolved,
+			client.Capabilities(resolved),
+			metadata[id],
 		)
+		r.models = append(r.models, model)
 	}
 }
 
@@ -361,6 +375,28 @@ func (r *Registry) ClientFor(
 	return client, ok
 }
 
+// resolvedModel returns the elelem model a turn runs against, falling back to
+// a bare ID for a model the registry did not resolve.
+func (r *Registry) resolvedModel(modelID string) elelem.Model {
+	if model, ok := r.resolved[modelID]; ok {
+		return model
+	}
+
+	return elelem.Model{ID: modelID}
+}
+
+// controlsFor returns the controls of an advertised model, or
+// UnknownModelControls for one the registry does not list.
+func (r *Registry) controlsFor(modelID string) Controls {
+	for _, model := range r.models {
+		if model.ID == modelID {
+			return model.Controls
+		}
+	}
+
+	return UnknownModelControls()
+}
+
 // CandidatesFor resolves a selected model into its primary client followed by
 // its validated fallbacks. It returns no candidates when the selected model is
 // not currently routable.
@@ -375,8 +411,10 @@ func (r *Registry) CandidatesFor(modelID string) []Candidate {
 		}
 
 		candidates = append(candidates, Candidate{
-			ModelID: candidateModelID,
-			Client:  client,
+			ModelID:  candidateModelID,
+			Client:   client,
+			Model:    r.resolvedModel(candidateModelID),
+			Controls: r.controlsFor(candidateModelID),
 		})
 	}
 

@@ -43,7 +43,26 @@ func ModelToAPI(m Model) api.Model {
 		m.OutputTokenPrice,
 	)
 
+	controls := controlsToAPI(m.Controls)
+	out.Controls = &controls
+
 	return out
+}
+
+func controlsToAPI(c Controls) api.ModelControls {
+	efforts := make([]api.ReasoningEffort, 0, len(c.ReasoningEfforts))
+	for _, effort := range c.ReasoningEfforts {
+		efforts = append(efforts, api.ReasoningEffort(effort))
+	}
+
+	return api.ModelControls{
+		ReasoningEfforts:  efforts,
+		SupportsSampling:  c.SupportsSampling,
+		SupportsPenalties: c.SupportsPenalties,
+		SupportsSeed:      c.SupportsSeed,
+		SupportsTopK:      c.SupportsTopK,
+		SupportsStop:      c.SupportsStop,
+	}
 }
 
 func tokenPriceToAPI(price *TokenPrice) *api.TokenPrice {

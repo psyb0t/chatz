@@ -126,6 +126,10 @@ func (s *runState) runOne(
 
 	response := s.responseFromAssistant(assistant)
 	if len(assistant.ToolCalls) == 0 {
+		if s.request.autoToolCalls && s.acceptQueuedUserMessages() {
+			return s.runOne(ctx, s.shouldWithholdTools(s.round+1))
+		}
+
 		return s.finish(ctx, response)
 	}
 
@@ -192,6 +196,8 @@ func (s *runState) attachToolExecutor(
 			return s.partialResponse(), err
 		}
 
+		s.acceptQueuedUserMessages()
+
 		withhold := s.shouldWithholdTools(s.round + 1)
 
 		// The tail must fire too. Every OTHER exit above reports, so leaving
@@ -207,6 +213,25 @@ func (s *runState) attachToolExecutor(
 
 		return response, err
 	}
+}
+
+// acceptQueuedUserMessages transfers a FIFO batch into this run at a provider
+// round boundary. A run at its cap leaves the batch queued for a later Run,
+// rather than starting a request the configured limit forbids.
+func (s *runState) acceptQueuedUserMessages() bool {
+	if s.request.userMessageQueue == nil ||
+		s.round >= s.request.maxRounds {
+		return false
+	}
+
+	messages := s.request.userMessageQueue.drain()
+	if len(messages) == 0 {
+		return false
+	}
+
+	s.messages = append(s.messages, messages...)
+
+	return true
 }
 
 // shouldWithholdTools reports whether the round ABOUT TO RUN is the last one,
@@ -225,6 +250,13 @@ func (s *runState) prepareTools(
 ) ([]Tool, error) {
 	tools, err := s.resolveTools(ctx, withholdTools)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := s.request.validateMessageContentCapabilities(
+		s.messages,
+		s.request.client.Capabilities(s.model),
+	); err != nil {
 		return nil, err
 	}
 
@@ -507,7 +539,8 @@ func (s *runState) driverParams(tools []Tool) GenerationParams {
 	// extension point and a third-party driver may answer
 	// non-deterministically — stripping an unsupported param beats shipping it.
 	capabilities := s.request.client.Capabilities(s.model)
-	if !capabilities.SupportsReasoningEffort {
+	if !capabilities.SupportsReasoningEffort &&
+		!capabilities.SupportsDisablingReasoning {
 		params.ReasoningEffort = ReasoningEffortUnset
 	}
 
@@ -1031,8 +1064,13 @@ func (s *runState) recordToolOutcomes(
 // handler — and a bound enforced on only some of them is not a bound.
 func (s *runState) recordToolResultMessage(call ToolCall, result ToolResult) {
 	s.messages = append(s.messages, Message{
-		Role:              RoleTool,
-		Content:           Text(s.truncateToolResult(result.Content)),
+		Role: RoleTool,
+		Content: toolResultMessageContent(
+			s.truncateToolResult(result.Content),
+			result.Images,
+			s.request.client.Capabilities(s.model).SupportsImageInput,
+			s.model.ID,
+		),
 		ToolCallID:        call.ID,
 		ToolResultIsError: result.IsError,
 		Origin:            MessageOriginTurn,
@@ -1770,7 +1808,7 @@ func hasAssistantOutput(assistant Message) bool {
 	return assistant.Text() != "" ||
 		assistant.Reasoning != "" ||
 		len(assistant.ToolCalls) > 0 ||
-		len(assistant.ProviderReasoning) > 0
+		HasProviderReasoning(assistant.ProviderReasoning)
 }
 
 func (s *runState) fireError(ctx context.Context, err error) {

@@ -1,4 +1,4 @@
-// Shared variant vocabularies for the brutalist UI primitives. Kept out of the
+// Shared variant vocabularies for the UI primitives. Kept out of the
 // .svelte files so callers reference the same strings the components switch on
 // (never spelled inline). Each variant maps to a semantic color token in
 // app.css (--ok / --warn / --crit / --accent) — a variant is the ONLY knob a

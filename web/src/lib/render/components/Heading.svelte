@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_HEADING, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_HEADING, DATA_JR_TYPE } from "#lib/common/render.js";
 
   type HeadingProps = {
     id?: string | null;

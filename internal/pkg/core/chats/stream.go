@@ -15,6 +15,7 @@ import (
 	"github.com/psyb0t/chatz/internal/pkg/db/models"
 	"github.com/psyb0t/chatz/internal/pkg/db/repositories"
 	"github.com/psyb0t/chatz/internal/pkg/tiktoken"
+	"github.com/psyb0t/chatz/internal/pkg/upstreams"
 	"github.com/psyb0t/chatz/internal/pkg/usage"
 	"github.com/psyb0t/ctxerrors"
 	"github.com/psyb0t/ctxscope"
@@ -31,6 +32,10 @@ const (
 	// markdown/HTML.
 	baseSystemPrompt = "You are chatz, a helpful AI assistant. " +
 		"Answer concisely and use the available tools when they help."
+
+	// chatInstructionsHeading introduces a chat's own system prompt, so the
+	// model can tell it apart from chatz's base instructions.
+	chatInstructionsHeading = "Instructions for this chat:"
 
 	persistTimeout = 10 * time.Second
 	maxTitleRunes  = 60
@@ -59,9 +64,18 @@ const (
 )
 
 // chatSystemPrompt returns the effective system prompt for a chat turn: the
-// base instruction with the generated GenUI guide appended.
-func chatSystemPrompt() string {
-	return baseSystemPrompt + "\n\n" + prompts.GenUIInstructions()
+// base instruction with the generated GenUI guide appended, then the chat's
+// own instructions when it has any.
+func chatSystemPrompt(chat *models.Chat) string {
+	prompt := baseSystemPrompt + "\n\n" + prompts.GenUIInstructions()
+
+	if chat != nil && chat.SystemPrompt != nil {
+		if custom := strings.TrimSpace(*chat.SystemPrompt); custom != "" {
+			prompt += "\n\n" + chatInstructionsHeading + "\n" + custom
+		}
+	}
+
+	return prompt
 }
 
 // streamTurn runs one chat turn in a goroutine, streaming SSE frames into a
@@ -195,28 +209,39 @@ func (s *Service) runStreamCandidates(
 }
 
 type streamCandidate struct {
-	modelID string
-	client  *elelem.Client
+	modelID  string
+	client   *elelem.Client
+	model    elelem.Model
+	controls upstreams.Controls
 }
 
 func (s *Service) streamCandidates(
 	modelID string,
 	client *elelem.Client,
 ) []streamCandidate {
+	direct := []streamCandidate{{
+		modelID:  modelID,
+		client:   client,
+		model:    elelem.Model{ID: modelID},
+		controls: upstreams.UnknownModelControls(),
+	}}
+
 	if s.models == nil {
-		return []streamCandidate{{modelID: modelID, client: client}}
+		return direct
 	}
 
 	registryCandidates := s.models.CandidatesFor(modelID)
 	if len(registryCandidates) == 0 {
-		return []streamCandidate{{modelID: modelID, client: client}}
+		return direct
 	}
 
 	candidates := make([]streamCandidate, 0, len(registryCandidates))
 	for _, candidate := range registryCandidates {
 		candidates = append(candidates, streamCandidate{
-			modelID: candidate.ModelID,
-			client:  candidate.Client,
+			modelID:  candidate.ModelID,
+			client:   candidate.Client,
+			model:    candidate.Model,
+			controls: candidate.Controls,
 		})
 	}
 
@@ -241,10 +266,10 @@ func (s *Service) runStreamCandidate(
 	}, chatcore.Request{
 		MessageID:        newMessageID(),
 		ConversationID:   chat.ID.String(),
-		Model:            elelem.Model{ID: candidate.modelID},
+		Model:            candidate.model,
 		Prompt:           seed,
 		MaxContextTokens: historyTokenBudget(chat),
-		Params:           genParams(chat),
+		Params:           genParams(chat, candidate.controls),
 		OnAssistantDelta: onAssistantDelta,
 		OnFirstDelta: func(_ context.Context) error {
 			return publishTurnStatus(pub, turnStatusStreaming)
@@ -337,7 +362,7 @@ func (s *Service) firstTurnBody(
 	defer releaseUntransferredChatTurn(&unlockTurn)
 
 	seed := buildPrompt(
-		chatSystemPrompt(),
+		chatSystemPrompt(chat),
 		nil,
 		userMessage,
 	)
@@ -381,7 +406,7 @@ func (s *Service) nextTurnBody(
 		return nil, ctxerrors.Wrap(err, "load history")
 	}
 
-	systemMessage := chatSystemPrompt()
+	systemMessage := chatSystemPrompt(chat)
 
 	promptContext, err := selectPromptHistory(
 		systemMessage,
@@ -919,9 +944,13 @@ func chunkRunes(s string, size int) []string {
 }
 
 // genParams builds the LLM generation knobs from a chat's stored settings,
-// widening the max-output-tokens cap to the client's int64 field. An unset
-// setting stays a nil pointer / empty string so the client omits it.
-func genParams(chat *models.Chat) elelem.GenerationParams {
+// widening the max-output-tokens cap to the client's int64 field, then drops
+// what the model does not accept. An unset setting stays a nil pointer /
+// empty value so the client omits it.
+func genParams(
+	chat *models.Chat,
+	controls upstreams.Controls,
+) elelem.GenerationParams {
 	var maxTokens *int64
 
 	if chat.MaxOutputTokens != nil {
@@ -929,12 +958,21 @@ func genParams(chat *models.Chat) elelem.GenerationParams {
 		maxTokens = &v
 	}
 
-	return elelem.GenerationParams{
-		Temperature:     chat.Temperature,
-		TopP:            chat.TopP,
-		ReasoningEffort: chat.ReasoningEffort,
-		MaxOutputTokens: maxTokens,
+	params := elelem.GenerationParams{
+		Temperature:      chat.Temperature,
+		TopP:             chat.TopP,
+		FrequencyPenalty: chat.FrequencyPenalty,
+		PresencePenalty:  chat.PresencePenalty,
+		Seed:             chat.Seed,
+		ReasoningEffort:  chat.ReasoningEffort,
+		MaxOutputTokens:  maxTokens,
 	}
+
+	if len(chat.StopSequences) > 0 {
+		params.Stop = append([]string{}, chat.StopSequences...)
+	}
+
+	return controls.ApplyTo(params, chat.TopK)
 }
 
 // persistTurn writes the completed turn atomically and bumps the chat's

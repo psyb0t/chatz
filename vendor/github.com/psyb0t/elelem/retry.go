@@ -2,16 +2,17 @@ package elelem
 
 import (
 	"context"
+	cryptorand "crypto/rand"
+	"encoding/binary"
 	"errors"
 	"io"
-	"math/rand/v2"
 	"net"
 	"net/http"
 	"strconv"
 	"time"
 
-	commonerrors "github.com/psyb0t/common-go/errors"
 	"github.com/psyb0t/ctxerrors"
+	"github.com/psyb0t/ctxerrors/commerr"
 	"github.com/psyb0t/ctxscope"
 )
 
@@ -20,6 +21,10 @@ const (
 	defaultRetryInitialDelay = 250 * time.Millisecond
 	defaultRetryMaxDelay     = 5 * time.Second
 	retryHalfDivisor         = 2
+	retryRandomByteCount     = 8
+	retryRandomMantissaShift = 11
+	retryRandomFloatDivisor  = 1 << 53
+	fallbackRetryRandomFloat = 0.5
 )
 
 // maxParsedRetryAfter caps what an upstream can ask us to wait. The header is
@@ -73,6 +78,7 @@ const (
 	ProviderErrorCodeOverloaded            = "overloaded_error"
 	ProviderErrorCodeAPIError              = "api_error"
 	ProviderErrorCodeRateLimit             = "rate_limit_error"
+	ProviderErrorCodeInsufficientQuota     = "insufficient_quota"
 )
 
 type RetryReason = string
@@ -128,7 +134,7 @@ type HTTPStatusError interface {
 
 // ProviderError is a normalized upstream failure: the provider's own error
 // code plus the HTTP status and any Retry-After, wrapped over a
-// commonerrors sentinel so errors.Is works without knowing the provider.
+// commerr sentinel so errors.Is works without knowing the provider.
 type ProviderError struct {
 	Cause           error
 	StatusCode      int
@@ -145,7 +151,7 @@ func (e *ProviderError) Error() string {
 }
 
 // Unwrap exposes the underlying sentinel so errors.Is(err,
-// commonerrors.ErrRateLimited) holds across the wrap layers.
+// commerr.ErrRateLimited) holds across the wrap layers.
 func (e *ProviderError) Unwrap() error {
 	if e == nil {
 		return nil
@@ -191,6 +197,18 @@ type realRetryClock struct{}
 
 func (realRetryClock) After(delay time.Duration) <-chan time.Time {
 	return time.After(delay)
+}
+
+func defaultRetryRandomFloat() float64 {
+	var randomBytes [retryRandomByteCount]byte
+	if _, err := cryptorand.Read(randomBytes[:]); err != nil {
+		return fallbackRetryRandomFloat
+	}
+
+	randomBits := binary.BigEndian.Uint64(randomBytes[:])
+	randomValue := randomBits >> retryRandomMantissaShift
+
+	return float64(randomValue) / float64(retryRandomFloatDivisor)
 }
 
 type retryDriver struct {
@@ -248,7 +266,7 @@ func WithRetry(driver Driver, config RetryConfig) Driver {
 		config:      config,
 		configErr:   configErr,
 		clock:       realRetryClock{},
-		randomFloat: rand.Float64,
+		randomFloat: defaultRetryRandomFloat,
 	}
 }
 
@@ -619,11 +637,11 @@ func mapProviderError(err error, status int) error {
 
 	switch status {
 	case http.StatusUnauthorized, http.StatusForbidden:
-		return ctxerrors.Wrap(commonerrors.ErrNotAuthenticated, err.Error())
+		return ctxerrors.Wrap(commerr.ErrNotAuthenticated, err.Error())
 	case http.StatusNotFound:
-		return ctxerrors.Wrap(commonerrors.ErrNotFound, err.Error())
+		return ctxerrors.Wrap(commerr.ErrNotFound, err.Error())
 	case http.StatusTooManyRequests:
-		return ctxerrors.Wrap(commonerrors.ErrRateLimited, err.Error())
+		return ctxerrors.Wrap(commerr.ErrRateLimited, err.Error())
 	default:
 		return ctxerrors.Wrap(err, "provider request")
 	}
@@ -635,7 +653,13 @@ func classifyRetry(err error) (RetryReason, int, bool) {
 		return "", 0, false
 	}
 
-	if errors.Is(err, commonerrors.ErrRateLimited) {
+	// Checked before the rate limit: providers report a spent quota with 429,
+	// and a driver may have joined both sentinels onto the same error.
+	if errors.Is(err, ErrQuotaExhausted) {
+		return "", http.StatusTooManyRequests, false
+	}
+
+	if errors.Is(err, commerr.ErrRateLimited) {
 		return RetryReasonRateLimited, http.StatusTooManyRequests, true
 	}
 
@@ -694,8 +718,10 @@ func classifyProviderErrorCode(code string) (RetryReason, bool, bool) {
 		return RetryReasonServerError, true, true
 	case ProviderErrorCodeRateLimit:
 		return RetryReasonRateLimited, true, true
-	case ProviderErrorCodeContextLengthExceeded:
-		// Permanent: the same transcript will not fit on a second attempt.
+	case ProviderErrorCodeContextLengthExceeded,
+		ProviderErrorCodeInsufficientQuota:
+		// Permanent: the same transcript will not fit on a second attempt, and
+		// a spent quota does not refill within the backoff window.
 		return "", false, true
 	default:
 		return "", false, false

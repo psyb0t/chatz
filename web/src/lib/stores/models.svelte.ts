@@ -1,9 +1,9 @@
-import { listModels, type Model } from "$lib/api/client";
-import { log } from "$lib/log";
+import { listModels, type Model } from "#lib/api/client.js";
+import { log } from "#lib/log.js";
 import {
   EVENT_MODELS_ERROR,
   EVENT_MODELS_LOADED,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 // ModelsStore holds the merged upstream model list for the composer picker.
 // Empty when no upstream key is configured.

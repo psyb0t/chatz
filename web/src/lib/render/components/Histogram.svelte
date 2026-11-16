@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_HISTOGRAM, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_HISTOGRAM, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     CHART_MARGIN_BOTTOM,
     CHART_MARGIN_LEFT,
@@ -14,9 +14,9 @@
     formatChartNumber,
     scaleLinear,
     ticks,
-  } from "$lib/render/charts/math";
-  import { CHART_GRID_COLOR } from "$lib/render/charts/palette";
-  import type { LabelValue } from "$lib/render/charts/types";
+  } from "#lib/render/charts/math.js";
+  import { CHART_GRID_COLOR } from "#lib/render/charts/palette.js";
+  import type { LabelValue } from "#lib/render/charts/types.js";
 
   type HistogramProps = {
     id?: string | null;

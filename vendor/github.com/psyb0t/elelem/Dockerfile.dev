@@ -1,0 +1,25 @@
+# Development and CI tools only. The source tree is mounted at runtime by the
+# Makefile, so this image is reusable and does not bake project files in.
+FROM golang:1.26.10-alpine@sha256:27f2d3b83cfc5803c8078f8e730af0f7c431bf067afaec8f60a36fb763187cba
+
+# gcc and musl-dev are required by the race detector. The scanner target uses
+# govulncheck, semgrep, and jq to merge their SARIF reports.
+RUN apk add --no-cache \
+	bash \
+	ca-certificates \
+	gcc \
+	git \
+	jq \
+	make \
+	musl-dev \
+	python3 \
+	py3-pip
+
+RUN go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
+
+ARG SEMGREP_VERSION=1.173.0
+RUN python3 -m venv /opt/semgrep \
+	&& /opt/semgrep/bin/pip install --no-cache-dir "semgrep==${SEMGREP_VERSION}" \
+	&& ln -sf /opt/semgrep/bin/semgrep /usr/local/bin/semgrep
+
+WORKDIR /work

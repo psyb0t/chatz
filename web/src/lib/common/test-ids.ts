@@ -104,3 +104,13 @@ export const TESTID_MCP_IMPORT_CONTENT = "mcp-import-content";
 
 // Rendered in place of a generative-UI block whose spec failed validation.
 export const TESTID_SPEC_ERROR = "spec-error";
+
+// Composer reasoning-effort chip and its options.
+export const TESTID_REASONING_PICKER = "reasoning-picker";
+export const TESTID_REASONING_OPTION = "reasoning-option";
+
+// Model settings panel controls.
+export const TESTID_CHAT_SETTINGS_SYSTEM_PROMPT = "chat-settings-system-prompt";
+export const TESTID_CHAT_SETTINGS_RESET = "chat-settings-reset";
+export const TESTID_CHAT_SETTINGS_STATUS = "chat-settings-status";
+export const TESTID_EMPTY_SUGGESTION = "empty-suggestion";

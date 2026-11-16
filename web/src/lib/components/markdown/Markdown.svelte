@@ -9,7 +9,10 @@
   // char the tree re-renders; remark parses partial/unterminated markdown to a
   // best-effort tree without throwing.
   //
-  // The `plugins` prop overrides a few tag renderers with token-styled brutalist
+  // Images render as links (MdImage) and links keep only http, https and
+  // mailto URLs (MdLink), so model output cannot load or run anything.
+  //
+  // The `plugins` prop overrides a few tag renderers with token-styled
   // components (links, inline/block code, blockquote). gfmPlugin adds GitHub
   // tables/strikethrough/task-lists.
   import Markdown from "svelte-exmarkdown";
@@ -19,6 +22,7 @@
   import MdCode from "./MdCode.svelte";
   import MdPre from "./MdPre.svelte";
   import MdBlockquote from "./MdBlockquote.svelte";
+  import MdImage from "./MdImage.svelte";
 
   interface Props {
     md: string;
@@ -34,6 +38,7 @@
         code: MdCode,
         pre: MdPre,
         blockquote: MdBlockquote,
+        img: MdImage,
       },
     },
   ];

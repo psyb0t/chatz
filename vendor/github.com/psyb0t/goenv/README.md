@@ -4,7 +4,7 @@
 [![CI](https://github.com/psyb0t/goenv/actions/workflows/pipeline.yml/badge.svg?branch=main)](https://github.com/psyb0t/goenv/actions/workflows/pipeline.yml)
 [![coverage](https://raw.githubusercontent.com/psyb0t/goenv/badges/coverage.svg)](https://github.com/psyb0t/goenv/actions/workflows/pipeline.yml)
 [![version](https://raw.githubusercontent.com/psyb0t/goenv/badges/version.svg)](https://github.com/psyb0t/goenv/tags)
-[![license](https://raw.githubusercontent.com/psyb0t/goenv/badges/license.svg)](LICENSE)
+[![license](https://raw.githubusercontent.com/psyb0t/goenv/badges/license.svg)](https://github.com/psyb0t/goenv/blob/main/LICENSE)
 [![imported by](https://raw.githubusercontent.com/psyb0t/goenv/badges/importers.svg)](https://github.com/psyb0t/goenv/blob/badges/importers.md)
 
 The most over-engineered environment variable reader in the history of Go programming. A full-blown, battle-tested, enterprise-grade package that reads ONE environment variable and tells you if you're in prod or dev.
@@ -18,8 +18,16 @@ Because `os.Getenv("ENV")` is 16 characters and sometimes you just need a whole 
 - Reads the `ENV` environment variable. That's it. That's the feature.
 - Defaults to `prod` because production is where dreams go to die and that's where you probably are.
 - Can tell you if you're in `dev`. Revolutionary.
-- Zero dependencies. Not even `fmt`. We don't need that shit.
-- 100% test coverage because we're professionals.
+- Zero dependencies. Not even `fmt`. I don't need that shit.
+- 100% test coverage because I'm a professional.
+
+## Install
+
+```bash
+go get github.com/psyb0t/goenv
+```
+
+Needs Go 1.26 or newer.
 
 ## Usage
 
@@ -49,7 +57,7 @@ func main() {
 }
 ```
 
-## Environment Variable
+## Environment variable
 
 ```bash
 export ENV=dev   # you're developing
@@ -57,51 +65,21 @@ export ENV=prod  # you're in production
 export ENV=      # also production, because paranoia is a feature
 ```
 
-## API Reference
-
-| Function | What it does | What it's basically doing |
-|---|---|---|
-| `Get()` | Returns `"prod"` or `"dev"` | `if os.Getenv("ENV") == "dev" { return "dev" } else { return "prod" }` |
-| `IsProd()` | Returns `true` if prod | `Get() == "prod"` |
-| `IsDev()` | Returns `true` if dev | `Get() == "dev"` |
-
-## Constants
-
-| Constant | Value | Surprise level |
-|---|---|---|
-| `EnvVarName` | `"ENV"` | None |
-| `Prod` | `"prod"` | None |
-| `Dev` | `"dev"` | None |
+Only the exact, lowercase `dev` counts as dev. `DEV`, `development`, `staging`, a typo: all prod. The full table of values, every function and constant, and the `Type` alias are in the [API reference](https://psyb0t.github.io/goenv/api/).
 
 ## Agent integrations
 
-The [skill](.agents/skills/goenv) works in any agent that reads `.agents/skills/`, and installs natively in the clients below.
+The [skill](https://github.com/psyb0t/goenv/tree/main/.agents/skills/goenv) works in any agent that reads `.agents/skills/` (such as [peen](https://github.com/psyb0t/peen)), installs in Claude Code and Codex from the `psyb0t/agents` marketplace, and lands on ClawHub for OpenClaw on every release. The install commands are on [Agent integrations](https://psyb0t.github.io/goenv/agent-integrations/).
 
-### Claude Code
+## Documentation
 
-```bash
-claude plugin marketplace add psyb0t/agents
-claude plugin install goenv@psyb0t
-```
+The full docs live at **[psyb0t.github.io/goenv](https://psyb0t.github.io/goenv/)**.
 
-### Codex
-
-```bash
-codex plugin marketplace add psyb0t/agents
-codex plugin add goenv@psyb0t
-```
-
-Installed via the marketplace, the skill invokes as `$goenv:goenv`. Codex also
-picks the skill up automatically, with no install, in any repo containing
-`.agents/skills/` — there it invokes as plain `$goenv`.
-
-### OpenClaw
-
-The skill is published to ClawHub on every release:
-
-```bash
-openclaw skills install @psyb0t/goenv
-```
+| Page | What's in it |
+| --- | --- |
+| [API reference](https://psyb0t.github.io/goenv/api/) | `Get`, `IsProd`, `IsDev`, the constants, the `Type` alias and which `ENV` values mean dev |
+| [Agent integrations](https://psyb0t.github.io/goenv/agent-integrations/) | Installing the skill in Claude Code, Codex and OpenClaw |
+| [Development](https://psyb0t.github.io/goenv/development/) | Make targets, the coverage gate, CI and releases |
 
 ## FAQ
 
@@ -109,7 +87,7 @@ openclaw skills install @psyb0t/goenv
 A: No. But here we are.
 
 **Q: What if I set ENV to "staging"?**
-A: You get prod. Because if it's not explicitly dev, it's prod. We don't trust you.
+A: You get prod. Because if it's not explicitly dev, it's prod. I don't trust you.
 
 **Q: What about ENV=test?**
 A: Also prod. See above.
@@ -119,6 +97,10 @@ A: It calls `os.Getenv()`. Take that however you want.
 
 **Q: Why not just use os.Getenv directly?**
 A: Because then you'd have to remember the variable name, write a switch statement, handle the default case, and before you know it you've written this package anyway.
+
+## Sponsor
+
+<a href="https://www.buymeacoffee.com/psyb0t"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me a Coffee" height="60" width="217"></a>
 
 ## License
 

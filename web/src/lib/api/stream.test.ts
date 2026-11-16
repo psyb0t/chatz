@@ -16,7 +16,7 @@ import {
   BLOCK_JSON_PARTIAL,
   type SSEEvent,
 } from "./sse-events";
-import { CHAT_TURN_STATUS_CONNECTING } from "$lib/common/turn-status";
+import { CHAT_TURN_STATUS_CONNECTING } from "#lib/common/turn-status.js";
 import { frame } from "../../test/sse";
 
 // streamFromChunks builds a ReadableStream emitting the given string chunks in

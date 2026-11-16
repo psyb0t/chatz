@@ -4,6 +4,54 @@ All notable changes per release. Versions follow [semver](https://semver.org)
 pre-1.0 conventions: minor bumps may include breaking API changes (called out
 explicitly), patch bumps are docs / build / fixes only.
 
+## v0.7.7 — 2026-11-10
+
+- The development image moves to Go 1.26.10, which fixes standard library vulnerabilities the security scan reported. v0.7.6 never published because that scan failed; its changes ship in this release.
+
+## v0.7.6 — 2026-11-10
+
+Documentation and CI. No API change.
+
+- The documentation now lives at https://psyb0t.github.io/essessey/, and the reference material moved there from the README and the package READMEs.
+- A tag no longer reruns the checks. It waits for the main run of the same commit to pass, cuts the GitHub release from the tag message, and the badges use that run's coverage.
+- Added Buy Me a Coffee to the funding links, and committed `AGENTS.md` plus the project rules in `.agents/rules/` for coding agents.
+
+## v0.7.5 — 2026-09-09
+
+Bug fix. No breaking API change.
+
+- `Reassemble` now retains streamed `thinking` blocks and their deltas in
+  `ParsedStream.Thinking`, instead of dropping them as unknown content.
+- The reassembly timeline now emits `TimelineKindThinking`, preserving the
+  order of reasoning, text, and completed tool executions.
+
+## v0.7.4 — 2026-08-22
+
+CI change. No API change.
+
+- Restored the GitHub Release on tag pushes. The move to `code-workflow` dropped
+  the release step that `go-workflow` ran inline; a `release` job now calls the
+  reusable `release-workflow` once the checks pass on a tag.
+- Removed the leftover `actions: read` grant, which the reusable `code-workflow`
+  no longer requests.
+
+## v0.7.3 — 2026-08-21
+
+Build and CI change. No API change.
+
+Moves the pipeline to the container-backed `code-workflow` and pins the Go
+toolchain in a dev image, which clears the stale-toolchain standard-library
+vulnerability (GO-2026-5972) that the loose `setup-go` pin exposed on the
+scheduled scan.
+
+- Added `Dockerfile.dev` (Go 1.26.6, govulncheck, semgrep) and routed
+  `make lint`, `make test-coverage`, and the new `make sec` through it.
+- `pipeline.yml` now calls `code-workflow` with a govulncheck plus semgrep
+  security gate and SARIF upload, replacing `go-workflow`.
+- Anchored the coverage ignore rule to the repository root so it no longer hid
+  `scripts/test-coverage.sh` or the vendored `x/text` `coverage.go` files; those
+  files are now tracked, so a vendored build is complete.
+
 ## v0.7.2 — 2026-08-08
 
 Dependency migration. No API change.

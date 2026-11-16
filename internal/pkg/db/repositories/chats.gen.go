@@ -40,9 +40,15 @@ func newChat(db *gorm.DB, opts ...gen.DOOption) chat {
 	_chat.ModelID = field.NewString(tableName, "model_id")
 	_chat.Temperature = field.NewFloat64(tableName, "temperature")
 	_chat.TopP = field.NewFloat64(tableName, "top_p")
+	_chat.TopK = field.NewInt(tableName, "top_k")
+	_chat.FrequencyPenalty = field.NewFloat64(tableName, "frequency_penalty")
+	_chat.PresencePenalty = field.NewFloat64(tableName, "presence_penalty")
+	_chat.Seed = field.NewInt64(tableName, "seed")
+	_chat.StopSequences = field.NewField(tableName, "stop_sequences")
 	_chat.ReasoningEffort = field.NewString(tableName, "reasoning_effort")
 	_chat.MaxOutputTokens = field.NewInt(tableName, "max_output_tokens")
 	_chat.MaxHistoryTokens = field.NewInt(tableName, "max_history_tokens")
+	_chat.SystemPrompt = field.NewString(tableName, "system_prompt")
 	_chat.DisabledMCPServerIDs = field.NewField(tableName, "disabled_mcp_server_ids")
 
 	_chat.fillFieldMap()
@@ -63,9 +69,15 @@ type chat struct {
 	ModelID              field.String
 	Temperature          field.Float64
 	TopP                 field.Float64
+	TopK                 field.Int
+	FrequencyPenalty     field.Float64
+	PresencePenalty      field.Float64
+	Seed                 field.Int64
+	StopSequences        field.Field
 	ReasoningEffort      field.String
 	MaxOutputTokens      field.Int
 	MaxHistoryTokens     field.Int
+	SystemPrompt         field.String
 	DisabledMCPServerIDs field.Field
 
 	fieldMap map[string]field.Expr
@@ -92,9 +104,15 @@ func (c *chat) updateTableName(table string) *chat {
 	c.ModelID = field.NewString(table, "model_id")
 	c.Temperature = field.NewFloat64(table, "temperature")
 	c.TopP = field.NewFloat64(table, "top_p")
+	c.TopK = field.NewInt(table, "top_k")
+	c.FrequencyPenalty = field.NewFloat64(table, "frequency_penalty")
+	c.PresencePenalty = field.NewFloat64(table, "presence_penalty")
+	c.Seed = field.NewInt64(table, "seed")
+	c.StopSequences = field.NewField(table, "stop_sequences")
 	c.ReasoningEffort = field.NewString(table, "reasoning_effort")
 	c.MaxOutputTokens = field.NewInt(table, "max_output_tokens")
 	c.MaxHistoryTokens = field.NewInt(table, "max_history_tokens")
+	c.SystemPrompt = field.NewString(table, "system_prompt")
 	c.DisabledMCPServerIDs = field.NewField(table, "disabled_mcp_server_ids")
 
 	c.fillFieldMap()
@@ -112,7 +130,7 @@ func (c *chat) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (c *chat) fillFieldMap() {
-	c.fieldMap = make(map[string]field.Expr, 13)
+	c.fieldMap = make(map[string]field.Expr, 19)
 	c.fieldMap["id"] = c.ID
 	c.fieldMap["created_at"] = c.CreatedAt
 	c.fieldMap["updated_at"] = c.UpdatedAt
@@ -122,9 +140,15 @@ func (c *chat) fillFieldMap() {
 	c.fieldMap["model_id"] = c.ModelID
 	c.fieldMap["temperature"] = c.Temperature
 	c.fieldMap["top_p"] = c.TopP
+	c.fieldMap["top_k"] = c.TopK
+	c.fieldMap["frequency_penalty"] = c.FrequencyPenalty
+	c.fieldMap["presence_penalty"] = c.PresencePenalty
+	c.fieldMap["seed"] = c.Seed
+	c.fieldMap["stop_sequences"] = c.StopSequences
 	c.fieldMap["reasoning_effort"] = c.ReasoningEffort
 	c.fieldMap["max_output_tokens"] = c.MaxOutputTokens
 	c.fieldMap["max_history_tokens"] = c.MaxHistoryTokens
+	c.fieldMap["system_prompt"] = c.SystemPrompt
 	c.fieldMap["disabled_mcp_server_ids"] = c.DisabledMCPServerIDs
 }
 

@@ -30,7 +30,7 @@ const chatWorkflowProbeJS = `JSON.stringify({
 	chatCount: document
 		.querySelectorAll('[data-testid=chat-menu]')
 		.length,
-	empty: document.body.textContent.includes('NO CHATS YET'),
+	empty: document.body.textContent.includes('No chats yet'),
 	noHorizontalOverflow:
 		document.documentElement.scrollWidth <= window.innerWidth &&
 		document.querySelector('.sidebar').scrollWidth <=

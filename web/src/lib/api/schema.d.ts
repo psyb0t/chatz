@@ -483,7 +483,23 @@ export interface components {
             availability: "available";
             /** @description Whether this is the instance's configured default model. */
             default: boolean;
+            controls?: components["schemas"]["ModelControls"];
         };
+        /** @description The generation settings this model accepts, from the upstream driver's per-model capabilities and any instance override. A chat setting the model does not accept is not sent to it. */
+        ModelControls: {
+            /** @description Reasoning effort levels the model takes, lowest first. `none` turns thinking off. Empty means the model has no reasoning control. */
+            reasoningEfforts: components["schemas"]["ReasoningEffort"][];
+            /** @description Whether temperature and topP are accepted. */
+            supportsSampling: boolean;
+            /** @description Whether frequencyPenalty and presencePenalty are accepted. */
+            supportsPenalties: boolean;
+            supportsSeed: boolean;
+            supportsTopK: boolean;
+            /** @description Whether stop sequences are accepted. */
+            supportsStop: boolean;
+        };
+        /** @enum {string} */
+        ReasoningEffort: "none" | "minimal" | "low" | "medium" | "high" | "xhigh" | "max";
         /** @description Price for one million tokens. Amount is a decimal string in the currency's smallest unit, avoiding floating-point loss in clients. */
         TokenPrice: {
             amount: string;
@@ -577,16 +593,26 @@ export interface components {
             offset: number;
             total: number;
         };
-        /** @description Per-chat model-generation settings. Every field is optional; an omitted field is unset — the provider default applies (temperature / topP / reasoningEffort / maxOutputTokens). maxHistoryTokens defaults to 100000 and caps the complete outbound prompt, including the sticky system message and current user message. */
+        /** @description Per-chat model-generation settings. Every field is optional; an omitted field is unset and the provider default applies. maxHistoryTokens defaults to 100000 and caps the complete outbound prompt, including the sticky system message and current user message. A setting the chat's model does not accept (see Model.controls) is stored but not sent. */
         ChatSettings: {
             /** Format: double */
             temperature?: number;
             /** Format: double */
             topP?: number;
-            /** @enum {string} */
-            reasoningEffort?: "minimal" | "low" | "medium" | "high";
+            topK?: number;
+            /** Format: double */
+            frequencyPenalty?: number;
+            /** Format: double */
+            presencePenalty?: number;
+            /** Format: int64 */
+            seed?: number;
+            /** @description Up to 4 stop sequences, each 1 to 64 characters. */
+            stop?: string[];
+            reasoningEffort?: components["schemas"]["ReasoningEffort"];
             maxOutputTokens?: number;
             maxHistoryTokens?: number;
+            /** @description Chat-specific instructions, added after chatz's own system prompt on every turn of this chat. */
+            systemPrompt?: string;
         };
         PromptContextPreviewRequest: {
             /** @description The unsent user message to include in the preview. */

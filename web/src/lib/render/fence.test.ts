@@ -7,7 +7,7 @@ import {
   type Segment,
   type SpecSegment,
 } from "./fence";
-import { COMP_CARD, COMP_TEXT } from "$lib/common/render";
+import { COMP_CARD, COMP_TEXT } from "#lib/common/render.js";
 
 // A minimal spec block body (JSONL patches) building a Card with one Text child.
 const SPEC_BODY = [

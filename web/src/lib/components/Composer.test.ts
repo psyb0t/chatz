@@ -1,8 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { TESTID_CONTEXT_METER } from "$lib/common/test-ids";
-import { conversation } from "$lib/stores/conversation.svelte";
-import { models } from "$lib/stores/models.svelte";
+import { TESTID_CONTEXT_METER } from "#lib/common/test-ids.js";
+import { conversation } from "#lib/stores/conversation.svelte.js";
+import { models } from "#lib/stores/models.svelte.js";
 import Composer from "./Composer.svelte";
 
 const { listChatMCPServersMock, previewChatContextMock } = vi.hoisted(() => ({
@@ -10,8 +10,8 @@ const { listChatMCPServersMock, previewChatContextMock } = vi.hoisted(() => ({
   previewChatContextMock: vi.fn(),
 }));
 
-vi.mock("$lib/api/client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("$lib/api/client")>()),
+vi.mock("#lib/api/client.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("#lib/api/client.js")>()),
   listChatMCPServers: listChatMCPServersMock,
   previewChatContext: previewChatContextMock,
 }));
@@ -67,8 +67,10 @@ describe("Composer", () => {
     });
 
     const meter = await screen.findByTestId(TESTID_CONTEXT_METER);
+    expect(meter).toHaveTextContent("41k / 100k");
     expect(meter).toHaveTextContent("41,025 / 100,000 tokens · 58,975 free");
-    expect(meter).toHaveTextContent("system 1,000 · history 40,000 · draft 25");
-    expect(meter).toHaveTextContent("omitted 2 earlier turns (4 messages)");
+    const detail = meter.getAttribute("title") ?? "";
+    expect(detail).toContain("system 1,000 · history 40,000 · draft 25");
+    expect(detail).toContain("omitted 2 earlier turns (4 messages)");
   });
 });

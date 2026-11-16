@@ -154,7 +154,7 @@ func TestToChatSettings(t *testing.T) {
 	topP := 0.9
 	maxOut := 1024
 	maxHist := 50000
-	effort := api.ChatSettingsReasoningEffort("high")
+	effort := api.ReasoningEffort("high")
 
 	t.Run("all fields including reasoning effort", func(t *testing.T) {
 		t.Parallel()
@@ -171,6 +171,32 @@ func TestToChatSettings(t *testing.T) {
 		assert.Equal(t, &maxOut, got.MaxOutputTokens)
 		assert.Equal(t, &maxHist, got.MaxHistoryTokens)
 		assert.Equal(t, "high", got.ReasoningEffort)
+	})
+
+	t.Run("new controls map through", func(t *testing.T) {
+		t.Parallel()
+
+		got := toChatSettings(&api.ChatSettings{
+			TopK:             new(40),
+			FrequencyPenalty: new(0.25),
+			PresencePenalty:  new(-0.25),
+			Seed:             new(int64(42)),
+			Stop:             &[]string{"END", "###"},
+			SystemPrompt:     new("Be brief."),
+		})
+		assert.Equal(t, new(40), got.TopK)
+		assert.Equal(t, new(0.25), got.FrequencyPenalty)
+		assert.Equal(t, new(-0.25), got.PresencePenalty)
+		assert.Equal(t, new(int64(42)), got.Seed)
+		assert.Equal(t, []string{"END", "###"}, got.StopSequences)
+		assert.Equal(t, new("Be brief."), got.SystemPrompt)
+	})
+
+	t.Run("blank system prompt is unset", func(t *testing.T) {
+		t.Parallel()
+
+		got := toChatSettings(&api.ChatSettings{SystemPrompt: new("  \n")})
+		assert.Nil(t, got.SystemPrompt)
 	})
 
 	t.Run("unset reasoning effort stays empty", func(t *testing.T) {

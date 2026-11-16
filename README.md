@@ -11,9 +11,9 @@ Self-hosted AI chat with OpenAI-compatible and Anthropic models, MCP tools, and 
 ## Features
 
 - **Streaming conversations.** Messages, reasoning, and tool calls arrive as the model produces them. Stop or refresh without losing the submitted prompt.
-- **Models you already use.** Connect OpenAI-compatible or Anthropic endpoints. chatz discovers their models and keeps provider-specific settings in the chat.
+- **Models you already use.** Connect OpenAI-compatible, Anthropic or Z.ai Coding endpoints. chatz discovers their models and keeps provider-specific settings in the chat.
 - **MCP tools.** Admins add stdio or HTTP MCP servers, then users enable their tools per chat. Stored MCP credentials are encrypted.
-- **Useful chat controls.** Set temperature, reasoning, output size, and the history budget per chat. Create, rename, search, and delete chats.
+- **Every generation control.** Per chat: reasoning effort or thinking off, a system prompt, temperature, top-p, top-k, penalties, seed, stop sequences, output size and the history budget. chatz shows only what the selected model accepts. Create, rename, search, and delete chats.
 - **Generative UI.** Models can answer with tables, status panels, charts, log viewers, and other live components rendered in the conversation.
 - **Admin-managed access.** The first user is the admin. That admin creates the other accounts and manages MCP servers.
 - **Demo mode.** Set `CHATZ_SHOWCASE_MODE=true` to return fixed streamed replies for exact demo prompts. Normal chats keep using the selected model.

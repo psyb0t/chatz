@@ -1,1 +1,4 @@
+**
+!Dockerfile.dev
+!requirements-semgrep.txt
 .telemetry/

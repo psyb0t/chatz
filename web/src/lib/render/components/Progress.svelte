@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_PROGRESS, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_PROGRESS, DATA_JR_TYPE } from "#lib/common/render.js";
 
   type ProgressProps = {
     id?: string | null;

@@ -5,21 +5,21 @@ import {
   setup as apiSetup,
   type Credentials,
   type User,
-} from "$lib/api/client";
+} from "#lib/api/client.js";
 import {
   PHASE_ANON,
   PHASE_AUTHED,
   PHASE_LOADING,
   PHASE_SETUP,
   type AuthPhase,
-} from "$lib/common/auth";
-import { log } from "$lib/log";
+} from "#lib/common/auth.js";
+import { log } from "#lib/log.js";
 import {
   EVENT_AUTH_LOGIN,
   EVENT_AUTH_LOGOUT,
   EVENT_AUTH_PHASE,
   EVENT_AUTH_SETUP,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 // AuthStore holds the current auth phase + user. refresh() re-derives the phase
 // from GET /auth/status; setup/login/logout mutate server-side then refresh so

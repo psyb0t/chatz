@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
 
-  // Blockquote with a heavy brutalist left rule + panel fill, tokens only.
+  // Blockquote with a left rule in muted text, tokens only.
   interface Props {
     children?: Snippet;
   }
@@ -15,10 +15,9 @@
 
 <style>
   .md-quote {
-    border-left: var(--space-1) solid var(--border);
-    background: var(--panel);
-    padding: var(--space-2) var(--space-3);
+    margin: var(--space-2) 0;
+    border-left: 3px solid var(--border-strong);
+    padding: var(--space-1) var(--space-4);
     color: var(--muted);
-    font-style: italic;
   }
 </style>

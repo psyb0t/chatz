@@ -6,14 +6,14 @@ import {
   renameChat as apiRenameChat,
   getOrCreateEmptyChat,
   type ChatSummary,
-} from "$lib/api/client";
-import { chatRoute } from "$lib/common/routes";
-import { log } from "$lib/log";
+} from "#lib/api/client.js";
+import { chatRoute } from "#lib/common/routes.js";
+import { log } from "#lib/log.js";
 import {
   EVENT_CHATS_ERROR,
   EVENT_CHATS_LOADED,
   EVENT_ADMIN_CHAT_RENAME,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 // SIDEBAR_CHATS_LIMIT is a generous page size so the sidebar shows the same
 // chats today's bare-array listing did for any realistic user, without

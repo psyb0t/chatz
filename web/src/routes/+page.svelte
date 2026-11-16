@@ -1,14 +1,14 @@
 <script lang="ts">
-  import { chats } from "$lib/stores/chats.svelte";
-  import { conversation } from "$lib/stores/conversation.svelte";
-  import StateBlock from "$lib/components/ui/StateBlock.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import { STATE_ERROR, STATE_LOADING } from "$lib/components/ui/variants";
+  import { chats } from "#lib/stores/chats.svelte.js";
+  import { conversation } from "#lib/stores/conversation.svelte.js";
+  import StateBlock from "#lib/components/ui/StateBlock.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import { STATE_ERROR, STATE_LOADING } from "#lib/components/ui/variants.js";
   import {
     TESTID_NEW_CHAT_LOADING,
     TESTID_NEW_CHAT_ERROR,
-  } from "$lib/common/test-ids";
-  import { STATE_STARTING_CHAT, LABEL_RETRY } from "$lib/common/labels";
+  } from "#lib/common/test-ids.js";
+  import { STATE_STARTING_CHAT, LABEL_RETRY } from "#lib/common/labels.js";
 
   // The root route is a pure redirector: it resolves the caller's reusable
   // empty chat (creating one if none exists — see chats.goToNewChat) and

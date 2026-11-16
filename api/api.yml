@@ -141,6 +141,43 @@ components:
         default:
           type: boolean
           description: Whether this is the instance's configured default model.
+        controls:
+          $ref: '#/components/schemas/ModelControls'
+
+    ModelControls:
+      type: object
+      description: >-
+        The generation settings this model accepts, from the upstream driver's
+        per-model capabilities and any instance override. A chat setting the
+        model does not accept is not sent to it.
+      required:
+        [reasoningEfforts, supportsSampling, supportsPenalties, supportsSeed,
+         supportsTopK, supportsStop]
+      properties:
+        reasoningEfforts:
+          type: array
+          description: >-
+            Reasoning effort levels the model takes, lowest first. `none`
+            turns thinking off. Empty means the model has no reasoning control.
+          items:
+            $ref: '#/components/schemas/ReasoningEffort'
+        supportsSampling:
+          type: boolean
+          description: Whether temperature and topP are accepted.
+        supportsPenalties:
+          type: boolean
+          description: Whether frequencyPenalty and presencePenalty are accepted.
+        supportsSeed:
+          type: boolean
+        supportsTopK:
+          type: boolean
+        supportsStop:
+          type: boolean
+          description: Whether stop sequences are accepted.
+
+    ReasoningEffort:
+      type: string
+      enum: [none, minimal, low, medium, high, xhigh, max]
 
     TokenPrice:
       type: object
@@ -360,10 +397,10 @@ components:
       type: object
       description: >-
         Per-chat model-generation settings. Every field is optional; an omitted
-        field is unset — the provider default applies (temperature / topP /
-        reasoningEffort / maxOutputTokens). maxHistoryTokens defaults to
-        100000 and caps the complete outbound prompt, including the sticky
-        system message and current user message.
+        field is unset and the provider default applies. maxHistoryTokens
+        defaults to 100000 and caps the complete outbound prompt, including the
+        sticky system message and current user message. A setting the chat's
+        model does not accept (see Model.controls) is stored but not sent.
       properties:
         temperature:
           type: number
@@ -375,15 +412,46 @@ components:
           format: double
           minimum: 0
           maximum: 1
+        topK:
+          type: integer
+          minimum: 1
+          maximum: 1000
+        frequencyPenalty:
+          type: number
+          format: double
+          minimum: -2
+          maximum: 2
+        presencePenalty:
+          type: number
+          format: double
+          minimum: -2
+          maximum: 2
+        seed:
+          type: integer
+          format: int64
+          minimum: 0
+        stop:
+          type: array
+          description: Up to 4 stop sequences, each 1 to 64 characters.
+          maxItems: 4
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
         reasoningEffort:
-          type: string
-          enum: [minimal, low, medium, high]
+          $ref: '#/components/schemas/ReasoningEffort'
         maxOutputTokens:
           type: integer
           minimum: 1
         maxHistoryTokens:
           type: integer
           minimum: 1
+        systemPrompt:
+          type: string
+          maxLength: 16000
+          description: >-
+            Chat-specific instructions, added after chatz's own system prompt
+            on every turn of this chat.
 
     PromptContextPreviewRequest:
       type: object

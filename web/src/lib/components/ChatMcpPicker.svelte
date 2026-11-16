@@ -1,20 +1,21 @@
 <script lang="ts">
-  import { chatMcpServers } from "$lib/stores/chatMcpServers.svelte";
-  import { mcpStatusLabel } from "$lib/common/mcp";
-  import { clampToViewport } from "$lib/actions/clampToViewport";
+  import Icon from "#lib/components/ui/Icon.svelte";
+  import { chatMcpServers } from "#lib/stores/chatMcpServers.svelte.js";
+  import { mcpStatusLabel } from "#lib/common/mcp.js";
+  import { clampToViewport } from "#lib/actions/clampToViewport.js";
   import {
     A11Y_CHAT_MCP,
     CHAT_MCP_TITLE,
     CHAT_MCP_TRIGGER,
     CHAT_MCP_EMPTY,
     LABEL_CLOSE,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
   import {
     TESTID_CHAT_MCP_TOGGLE,
     TESTID_CHAT_MCP_PANEL,
     TESTID_CHAT_MCP_ITEM,
     TESTID_CHAT_MCP_ITEM_TOGGLE,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
 
   interface Props {
     chatId: string;
@@ -106,10 +107,9 @@
     onclick={toggle}
     data-testid={TESTID_CHAT_MCP_TOGGLE}
   >
-    <span class="picker__value"
-      >{CHAT_MCP_TRIGGER} &middot; {chatMcpServers.enabledCount}</span
-    >
-    <span class="picker__caret" aria-hidden="true">▾</span>
+    <Icon name="plug" size={15} />
+    <span class="picker__value">{CHAT_MCP_TRIGGER}</span>
+    <span class="picker__count">{chatMcpServers.enabledCount}</span>
   </button>
 
   {#if open}
@@ -126,7 +126,7 @@
           class="picker__close"
           type="button"
           onclick={closePanel}
-          aria-label={LABEL_CLOSE}>&times;</button
+          aria-label={LABEL_CLOSE}><Icon name="x" size={14} /></button
         >
       </div>
 
@@ -165,19 +165,21 @@
   .picker__trigger {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-1);
+    gap: 6px;
+    height: var(--control-sm);
+    padding: 0 var(--space-2);
     background: transparent;
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius);
-    color: var(--ink);
-    cursor: pointer;
-    padding: var(--space-1) var(--space-2);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    border: none;
+    border-radius: var(--radius-pill);
+    color: var(--muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
   }
 
-  .picker__trigger:hover {
-    background: var(--panel-2);
+  .picker__trigger:hover:not(:disabled),
+  .picker__trigger[aria-expanded="true"] {
+    background: var(--fill-hover);
+    color: var(--ink);
   }
 
   .picker__value {
@@ -186,26 +188,35 @@
     white-space: nowrap;
   }
 
-  .picker__caret {
+  .picker__count {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: var(--radius-pill);
+    background: var(--panel-2);
     color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    line-height: 18px;
+    text-align: center;
   }
 
-  /* Opens upward — the composer sits at the bottom of the viewport. */
+  /* Opens upward, left-aligned under the composer's left controls. */
   .picker__panel {
     position: absolute;
-    bottom: calc(100% + var(--space-1));
-    right: 0;
+    bottom: calc(100% + var(--space-2));
+    left: 0;
     z-index: 20;
     width: 18rem;
-    max-width: min(22rem, calc(100vw - 2rem));
+    max-width: calc(100vw - 2rem);
     display: flex;
     flex-direction: column;
     gap: var(--space-2);
     border: var(--border-width) solid var(--border);
-    border-radius: var(--radius);
-    background: var(--panel);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
     padding: var(--space-3);
     box-shadow: var(--shadow-lg);
+    animation: fade-in var(--dur-fast) var(--ease);
   }
 
   .picker__head {
@@ -221,13 +232,21 @@
   }
 
   .picker__close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
     background: transparent;
     border: none;
+    border-radius: var(--radius-sm);
+    color: var(--muted);
+  }
+
+  .picker__close:hover:not(:disabled) {
+    background: var(--fill-hover);
     color: var(--ink);
-    cursor: pointer;
-    font-size: var(--text-lg);
-    line-height: 1;
-    padding: 0 var(--space-1);
   }
 
   .picker__list {
@@ -260,8 +279,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
   }
 
   .picker__status {

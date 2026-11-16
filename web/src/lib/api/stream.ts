@@ -5,9 +5,9 @@
 // data, and yield typed SSEEvents (see sse-events.ts). The server framing is
 // `event: <name>\ndata: <json>\n\n` (internal/pkg/sse/sink.go FrameLines).
 import { parseEvent, type SSEEvent } from "./sse-events";
-import { log } from "$lib/log";
-import { EVENT_SSE_OPEN } from "$lib/common/log-events";
-import { API_PATH_CHATS, chatPath } from "$lib/common/api-paths";
+import { log } from "#lib/log.js";
+import { EVENT_SSE_OPEN } from "#lib/common/log-events.js";
+import { API_PATH_CHATS, chatPath } from "#lib/common/api-paths.js";
 
 const METHOD_POST = "POST";
 const HEADER_CONTENT_TYPE = "Content-Type";

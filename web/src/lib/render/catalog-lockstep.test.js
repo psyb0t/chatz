@@ -1,7 +1,7 @@
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { GENUI_COMPONENT_NAMES } from "$lib/common/render";
+import { GENUI_COMPONENT_NAMES } from "#lib/common/render.js";
 import { genUICatalog } from "./catalog";
 import { registry } from "./registry";
 

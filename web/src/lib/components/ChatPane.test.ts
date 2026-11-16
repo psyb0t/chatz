@@ -5,9 +5,9 @@ import {
   ROLE_USER,
   type ConvMessage,
   conversation,
-} from "$lib/stores/conversation.svelte";
-import { CHAT_TURN_STATUS_WAITING_FOR_FIRST_TOKEN } from "$lib/common/turn-status";
-import { models } from "$lib/stores/models.svelte";
+} from "#lib/stores/conversation.svelte.js";
+import { CHAT_TURN_STATUS_WAITING_FOR_FIRST_TOKEN } from "#lib/common/turn-status.js";
+import { models } from "#lib/stores/models.svelte.js";
 import ChatPane from "./ChatPane.svelte";
 
 const { listChatMCPServersMock, previewChatContextMock } = vi.hoisted(() => ({
@@ -15,8 +15,8 @@ const { listChatMCPServersMock, previewChatContextMock } = vi.hoisted(() => ({
   previewChatContextMock: vi.fn(),
 }));
 
-vi.mock("$lib/api/client", async (importOriginal) => ({
-  ...(await importOriginal<typeof import("$lib/api/client")>()),
+vi.mock("#lib/api/client.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("#lib/api/client.js")>()),
   listChatMCPServers: listChatMCPServersMock,
   previewChatContext: previewChatContextMock,
 }));

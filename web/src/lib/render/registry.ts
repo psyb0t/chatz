@@ -1,7 +1,7 @@
 // The json-render registry: binds each catalog component type to its Svelte
 // implementation. defineRegistry returns { registry } which the Renderer feeds
 // to json-render's <Renderer>. Component keys MUST match the catalog keys (both
-// come from $lib/common/render constants).
+// come from #lib/common/render.js constants).
 import { defineRegistry } from "@json-render/svelte";
 import {
   COMP_AREA_CHART,
@@ -30,7 +30,7 @@ import {
   COMP_TIME_SERIES_CHART,
   COMP_TIMELINE,
   COMP_TREEMAP,
-} from "$lib/common/render";
+} from "#lib/common/render.js";
 import { genUICatalog } from "./catalog";
 
 import TextComponent from "./components/Text.svelte";

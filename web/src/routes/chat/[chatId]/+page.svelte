@@ -1,7 +1,7 @@
 <script lang="ts">
   import { page } from "$app/state";
-  import ChatPane from "$lib/components/ChatPane.svelte";
-  import { conversation } from "$lib/stores/conversation.svelte";
+  import ChatPane from "#lib/components/ChatPane.svelte";
+  import { conversation } from "#lib/stores/conversation.svelte.js";
 
   const chatId = $derived(page.params.chatId ?? "");
 

@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte";
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_CARD, DATA_JR_TYPE } from "$lib/common/render";
-  import Card from "$lib/components/ui/Card.svelte";
+  import { COMP_CARD, DATA_JR_TYPE } from "#lib/common/render.js";
+  import Card from "#lib/components/ui/Card.svelte";
 
   type CardProps = {
     id?: string | null;

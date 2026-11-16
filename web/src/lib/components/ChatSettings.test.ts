@@ -1,73 +1,117 @@
 import { fireEvent, render, screen } from "@testing-library/svelte";
-import { afterEach, beforeEach } from "vitest";
+import { afterEach, beforeEach, vi } from "vitest";
 import { describe, expect, it } from "vitest";
-import { conversation } from "$lib/stores/conversation.svelte";
+import type { ChatSettings as Settings, Model } from "#lib/api/client.js";
+import { conversation } from "#lib/stores/conversation.svelte.js";
 import ChatSettings from "./ChatSettings.svelte";
 
 const STORAGE_KEY = "chatz-composer-presets";
+const SAVE_DEBOUNCE_MS = 500;
+
+function model(controls?: Model["controls"]): Model {
+  return {
+    id: "some-model",
+    upstream: "gateway",
+    availability: "available",
+    default: false,
+    controls,
+  };
+}
+
+const THINKING_MODEL = model({
+  reasoningEfforts: ["none", "low", "medium", "high"],
+  supportsSampling: true,
+  supportsPenalties: true,
+  supportsSeed: true,
+  supportsTopK: false,
+  supportsStop: true,
+});
+
+const PLAIN_MODEL = model({
+  reasoningEfforts: [],
+  supportsSampling: false,
+  supportsPenalties: false,
+  supportsSeed: false,
+  supportsTopK: false,
+  supportsStop: true,
+});
+
+let saved: Settings[] = [];
 
 beforeEach(() => {
+  saved = [];
   conversation.settings = null;
+  vi.spyOn(conversation, "updateSettings").mockImplementation(
+    async (next: Settings) => {
+      saved.push(next);
+      conversation.settings = next;
+    },
+  );
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
+  vi.useRealTimers();
   localStorage.removeItem(STORAGE_KEY);
 });
 
-describe("ChatSettings", () => {
-  it("explains why reasoning effort is unavailable for a model without support", () => {
-    render(ChatSettings, {
-      props: {
-        model: {
-          id: "general-model",
-          upstream: "gateway",
-          availability: "available",
-          default: false,
-          supportsReasoning: false,
-        },
-        onClose: () => undefined,
-      },
-    });
+function renderPanel(selected: Model): void {
+  render(ChatSettings, {
+    props: { model: selected, onClose: () => undefined },
+  });
+}
 
-    expect(screen.getByLabelText("Reasoning effort")).toBeDisabled();
-    expect(
-      screen.getByText("This model does not advertise reasoning controls."),
-    ).toBeInTheDocument();
+describe("ChatSettings", () => {
+  it("offers the model's reasoning levels, with Off for thinking off", () => {
+    renderPanel(THINKING_MODEL);
+
+    const group = screen.getByRole("radiogroup", { name: "Reasoning effort" });
+    const labels = Array.from(group.querySelectorAll("button")).map((button) =>
+      button.textContent?.trim(),
+    );
+    expect(labels).toEqual(["Auto", "Off", "Low", "Medium", "High"]);
   });
 
-  it("keeps reasoning effort available when the selected model advertises it", () => {
-    render(ChatSettings, {
-      props: {
-        model: {
-          id: "reasoning-model",
-          upstream: "gateway",
-          availability: "available",
-          default: false,
-          supportsReasoning: true,
-        },
-        onClose: () => undefined,
-      },
-    });
+  it("explains a model without reasoning control and marks unsupported knobs", () => {
+    renderPanel(PLAIN_MODEL);
 
-    expect(screen.getByLabelText("Reasoning effort")).not.toBeDisabled();
     expect(
-      screen.queryByText("This model does not advertise reasoning controls."),
+      screen.queryByRole("radiogroup", { name: "Reasoning effort" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getByText("This model has no reasoning controls."),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Not supported by this model").length,
+    ).toBeGreaterThan(0);
+  });
+
+  it("autosaves only the settings that are switched on", async () => {
+    vi.useFakeTimers();
+    renderPanel(THINKING_MODEL);
+
+    await fireEvent.click(screen.getByRole("radio", { name: "High" }));
+    await fireEvent.click(
+      screen.getByRole("switch", { name: "Set Temperature" }),
+    );
+    await fireEvent.input(
+      screen.getByPlaceholderText(
+        "Instructions for this chat, added after chatz's own",
+      ),
+      { target: { value: "Answer in French." } },
+    );
+
+    await vi.advanceTimersByTimeAsync(SAVE_DEBOUNCE_MS + 50);
+
+    expect(saved.at(-1)).toEqual({
+      reasoningEffort: "high",
+      temperature: 0.7,
+      systemPrompt: "Answer in French.",
+    });
   });
 
   it("applies a built-in preset to the open settings form", async () => {
-    render(ChatSettings, {
-      props: {
-        model: {
-          id: "general-model",
-          upstream: "gateway",
-          availability: "available",
-          default: false,
-          supportsReasoning: true,
-        },
-        onClose: () => undefined,
-      },
-    });
+    renderPanel(THINKING_MODEL);
 
     await fireEvent.change(screen.getByLabelText("Preset"), {
       target: { value: "built-in-precise" },
@@ -77,18 +121,7 @@ describe("ChatSettings", () => {
   });
 
   it("saves and removes a browser-local preset", async () => {
-    render(ChatSettings, {
-      props: {
-        model: {
-          id: "general-model",
-          upstream: "gateway",
-          availability: "available",
-          default: false,
-          supportsReasoning: true,
-        },
-        onClose: () => undefined,
-      },
-    });
+    renderPanel(THINKING_MODEL);
 
     await fireEvent.input(screen.getByPlaceholderText("Preset name"), {
       target: { value: "Reports" },

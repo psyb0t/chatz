@@ -2,7 +2,7 @@ import {
   continueChatStream,
   StreamError,
   type StreamHandle,
-} from "$lib/api/stream";
+} from "#lib/api/stream.js";
 import {
   SSE_MESSAGE_START,
   SSE_CHAT_STATUS,
@@ -21,17 +21,17 @@ import {
   BLOCK_INPUT_JSON_DELTA,
   BLOCK_JSON_PARTIAL,
   type SSEEvent,
-} from "$lib/api/sse-events";
-import type { ChatTurnStatus } from "$lib/common/turn-status";
+} from "#lib/api/sse-events.js";
+import type { ChatTurnStatus } from "#lib/common/turn-status.js";
 import {
   getChat,
   listChatMessages,
   updateChatSettings,
   type Message as ApiMessage,
   type ChatSettings,
-} from "$lib/api/client";
-import { chats } from "$lib/stores/chats.svelte";
-import { log } from "$lib/log";
+} from "#lib/api/client.js";
+import { chats } from "#lib/stores/chats.svelte.js";
+import { log } from "#lib/log.js";
 import {
   EVENT_SSE_EVENT,
   EVENT_SSE_TEXT_DELTA,
@@ -43,7 +43,7 @@ import {
   EVENT_CHAT_SEND,
   EVENT_CHAT_LOAD,
   EVENT_CHAT_LOAD_ERROR,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 export const ROLE_USER = "user";
 export const ROLE_ASSISTANT = "assistant";

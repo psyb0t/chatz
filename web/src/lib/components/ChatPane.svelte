@@ -1,30 +1,34 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import Composer from "$lib/components/Composer.svelte";
-  import Message from "$lib/components/Message.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import StateBlock from "$lib/components/ui/StateBlock.svelte";
+  import Composer from "#lib/components/Composer.svelte";
+  import Message from "#lib/components/Message.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import StateBlock from "#lib/components/ui/StateBlock.svelte";
   import {
     STATE_ERROR,
     STATE_LOADING as STATE_VARIANT_LOADING,
-  } from "$lib/components/ui/variants";
-  import { conversation } from "$lib/stores/conversation.svelte";
-  import { chatTurnStatusLabel } from "$lib/common/turn-status";
+  } from "#lib/components/ui/variants.js";
+  import { conversation } from "#lib/stores/conversation.svelte.js";
+  import { models } from "#lib/stores/models.svelte.js";
+  import Spinner from "#lib/components/ui/Spinner.svelte";
+  import { chatTurnStatusLabel } from "#lib/common/turn-status.js";
   import {
     TESTID_MESSAGE_LIST,
     TESTID_CHAT_LOADING,
     TESTID_CHAT_ERROR,
     TESTID_CHAT_RETRY_TURN,
     TESTID_CHAT_TURN_STATUS,
-  } from "$lib/common/test-ids";
+    TESTID_EMPTY_SUGGESTION,
+  } from "#lib/common/test-ids.js";
   import {
-    EMPTY_CONVERSATION,
+    EMPTY_TITLE,
+    EMPTY_SUGGESTIONS,
     STATE_LOADING_HISTORY,
     LABEL_DISMISS,
     LABEL_RETRY,
     A11Y_CONVERSATION,
     turnElapsed,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
 
   const messages = $derived(conversation.messages);
   const error = $derived(conversation.error);
@@ -37,6 +41,17 @@
   const canRetryLoad = $derived(!streaming && empty);
   const canRetryTurn = $derived(conversation.retryAvailable);
   const elapsedSeconds = $derived(conversation.elapsedSeconds);
+
+  // The model the composer will use, for the empty-state heading.
+  const activeModel = $derived(
+    models.list.find((model) => model.id === conversation.model) ??
+      models.list.find((model) => model.default) ??
+      models.list[0],
+  );
+
+  function suggest(text: string): void {
+    composerEl?.setDraft(text);
+  }
 
   function dismiss(): void {
     conversation.dismissError();
@@ -185,7 +200,24 @@
         testid={TESTID_CHAT_LOADING}
       />
     {:else if empty && error === null}
-      <p class="chat__empty">{EMPTY_CONVERSATION}</p>
+      <div class="chat__empty">
+        <h1 class="chat__empty-title">{EMPTY_TITLE}</h1>
+        {#if activeModel !== undefined}
+          <p class="chat__empty-model">
+            {activeModel.alias ?? activeModel.id}
+          </p>
+        {/if}
+        <div class="chat__suggestions">
+          {#each EMPTY_SUGGESTIONS as suggestion (suggestion)}
+            <button
+              class="chat__suggestion"
+              type="button"
+              data-testid={TESTID_EMPTY_SUGGESTION}
+              onclick={() => suggest(suggestion)}>{suggestion}</button
+            >
+          {/each}
+        </div>
+      </div>
     {:else}
       {#each messages as message (message.id)}
         <Message {message} />
@@ -219,7 +251,9 @@
         data-testid={TESTID_CHAT_TURN_STATUS}
         role="status"
       >
-        {chatTurnStatusLabel(turnStatus)} · {turnElapsed(elapsedSeconds)}
+        <Spinner size={12} />
+        <span>{chatTurnStatusLabel(turnStatus)}</span>
+        <span class="chat__turn-elapsed">{turnElapsed(elapsedSeconds)}</span>
       </p>
     {/if}
   </div>
@@ -236,8 +270,11 @@
     max-width: 100%;
     min-height: 0;
     overflow: hidden;
+    background: var(--bg);
   }
 
+  /* The scroller spans the full pane so the wheel works anywhere; its content
+     is a centered reading column. */
   .chat__messages {
     flex: 1;
     overflow-y: auto;
@@ -246,24 +283,87 @@
     flex-direction: column;
     min-width: 0;
     max-width: 100%;
-    gap: var(--space-4);
-    padding: var(--space-4);
+    gap: var(--space-6);
+    padding: var(--space-8)
+      max(var(--space-4), calc((100% - var(--reading-width)) / 2))
+      var(--space-6);
   }
 
   .chat__empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding-bottom: 10vh;
+    text-align: center;
+    animation: fade-in var(--dur) var(--ease);
+  }
+
+  .chat__empty-title {
+    font-size: var(--text-xl);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+
+  .chat__empty-model {
+    color: var(--faint);
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+  }
+
+  .chat__suggestions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-2);
+    width: 100%;
+    max-width: 36rem;
+    margin-top: var(--space-6);
+  }
+
+  .chat__suggestion {
+    padding: var(--space-3) var(--space-4);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
     color: var(--muted);
-    font-family: var(--font-display);
     font-size: var(--text-sm);
+    font-weight: 400;
+    line-height: 1.4;
+    text-align: left;
+  }
+
+  .chat__suggestion:hover:not(:disabled) {
+    border-color: var(--border-strong);
+    background: var(--panel);
+    color: var(--ink);
   }
 
   .chat__turn-status {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
     align-self: flex-start;
     color: var(--muted);
-    font-family: var(--font-display);
+    font-size: var(--text-sm);
+  }
+
+  .chat__turn-elapsed {
+    color: var(--faint);
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
-    padding: var(--space-2) var(--space-3);
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius);
-    background: var(--panel);
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 640px) {
+    .chat__messages {
+      padding-top: var(--space-4);
+      gap: var(--space-4);
+    }
+
+    .chat__suggestions {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 </style>

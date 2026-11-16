@@ -3,12 +3,14 @@ package chats
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/psyb0t/chatz/internal/pkg/core/chats/fixedresponses"
 	"github.com/psyb0t/chatz/internal/pkg/db/models"
+	"github.com/psyb0t/chatz/internal/pkg/upstreams"
 	"github.com/psyb0t/elelem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -802,13 +804,55 @@ func TestDemoToolResultDelay(t *testing.T) {
 func TestChatSystemPrompt_AlwaysAppendsGenUIInstructions(t *testing.T) {
 	t.Parallel()
 
-	got := chatSystemPrompt()
+	got := chatSystemPrompt(nil)
 
 	require.Contains(t, got, baseSystemPrompt)
 	assert.Contains(t, got, "```spec")
 	assert.Contains(t, got, "AVAILABLE COMPONENTS")
 	assert.Contains(t, got, "Callout")
 	assert.Contains(t, got, "Progress")
+	assert.NotContains(t, got, chatInstructionsHeading)
+}
+
+// A chat's own instructions come after chatz's prompt, under their heading;
+// blank ones add nothing.
+func TestChatSystemPrompt_ChatInstructions(t *testing.T) {
+	t.Parallel()
+
+	got := chatSystemPrompt(
+		&models.Chat{SystemPrompt: new("  Reply in French.  ")},
+	)
+	assert.True(t, strings.HasSuffix(
+		got,
+		"\n\n"+chatInstructionsHeading+"\nReply in French.",
+	))
+	assert.Equal(t, chatSystemPrompt(nil), chatSystemPrompt(
+		&models.Chat{SystemPrompt: new(" \n ")},
+	))
+}
+
+// Settings the selected model does not accept are dropped rather than sent,
+// so a chat whose settings were made for another model keeps working.
+func TestGenParams_DropsWhatTheModelRejects(t *testing.T) {
+	t.Parallel()
+
+	chat := models.Chat{
+		Temperature:      new(0.4),
+		TopP:             new(0.9),
+		TopK:             new(40),
+		FrequencyPenalty: new(0.5),
+		Seed:             new(int64(7)),
+		ReasoningEffort:  "max",
+		MaxOutputTokens:  new(500),
+	}
+
+	got := genParams(&chat, upstreams.Controls{
+		ReasoningEfforts: []elelem.ReasoningEffort{"low", "high"},
+	})
+
+	assert.Equal(t, elelem.GenerationParams{
+		MaxOutputTokens: new(int64(500)),
+	}, got)
 }
 
 func TestGenParams(t *testing.T) {
@@ -827,17 +871,27 @@ func TestGenParams(t *testing.T) {
 		{
 			name: "all settings map through",
 			chat: models.Chat{
-				Temperature:     new(0.4),
-				TopP:            new(0.9),
-				ReasoningEffort: "high",
-				MaxOutputTokens: new(500),
+				Temperature:      new(0.4),
+				TopP:             new(0.9),
+				TopK:             new(40),
+				FrequencyPenalty: new(0.5),
+				PresencePenalty:  new(-0.5),
+				Seed:             new(int64(7)),
+				StopSequences:    []string{"END"},
+				ReasoningEffort:  "high",
+				MaxOutputTokens:  new(500),
 			},
 			want: elelem.GenerationParams{
-				Temperature:     new(0.4),
-				TopP:            new(0.9),
-				ReasoningEffort: "high",
+				Temperature:      new(0.4),
+				TopP:             new(0.9),
+				FrequencyPenalty: new(0.5),
+				PresencePenalty:  new(-0.5),
+				Seed:             new(int64(7)),
+				Stop:             []string{"END"},
+				ReasoningEffort:  "high",
 				// widened from *int to the client's *int64 field.
 				MaxOutputTokens: new(int64(500)),
+				Extra:           map[string]any{"top_k": 40},
 			},
 		},
 		{
@@ -851,7 +905,7 @@ func TestGenParams(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 
-			got := genParams(&tc.chat)
+			got := genParams(&tc.chat, upstreams.AllControls())
 			assert.Equal(t, tc.want, got)
 		})
 	}

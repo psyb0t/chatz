@@ -63,10 +63,12 @@ WEB_DEV_RUN := docker run --rm -it -u $(shell id -u):$(shell id -g) -e HOME=/tmp
 WEB_WORKSPACE := web/pnpm-workspace.yaml
 # Bump minimumReleaseAge to the whole-minutes distance between "7 days ago"
 # and now — a static 7-day floor frozen until the next conscious dep mutation.
+# Seven days in minutes. A constant: busybox date in the dev image cannot parse
+# relative dates, and the floor never depends on today's date.
+WEB_MIN_RELEASE_AGE_MINUTES := 10080
 WEB_BUMP_AGE = \
-	age=$$(( ( $$(date -u +%s) - $$(date -u -d '7 days ago' +%s) ) / 60 )); \
-	sed -i -E "s/^minimumReleaseAge:.*/minimumReleaseAge: $$age/" $(WEB_WORKSPACE); \
-	echo "bumped minimumReleaseAge -> $$age minutes"
+	sed -i -E "s/^minimumReleaseAge:.*/minimumReleaseAge: $(WEB_MIN_RELEASE_AGE_MINUTES)/" $(WEB_WORKSPACE); \
+	echo "bumped minimumReleaseAge -> $(WEB_MIN_RELEASE_AGE_MINUTES) minutes"
 
 dev-image: ## Build the dev container image
 	@bash "$(call find_script_path,dev_image.sh)"

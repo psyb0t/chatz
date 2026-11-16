@@ -10,7 +10,7 @@ import {
   COMP_STAT,
   COMP_TABLE,
   COMP_TIME_SERIES_CHART,
-} from "$lib/common/render";
+} from "#lib/common/render.js";
 import { genUICatalog } from "./catalog";
 import { ANALYTICAL_COMPONENTS, DEMO_MESSAGE } from "./__fixtures__/analytics";
 

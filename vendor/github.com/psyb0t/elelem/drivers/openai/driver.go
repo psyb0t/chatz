@@ -29,15 +29,36 @@ const Name = "openai"
 
 // Driver implements elelem.Driver over the official OpenAI Go SDK.
 type Driver struct {
-	api openaisdk.Client
+	api                   openaisdk.Client
+	assistantMessageExtra AssistantMessageExtra
+	finishReasonMapper    FinishReasonMapper
 }
 
 type driverConfig struct {
-	options []option.RequestOption
+	options               []option.RequestOption
+	assistantMessageExtra AssistantMessageExtra
+	finishReasonMapper    FinishReasonMapper
 }
 
 // DriverOption configures an OpenAI driver.
 type DriverOption func(*driverConfig)
+
+// AssistantMessageExtra adds trusted provider-specific fields to translated
+// assistant messages. It is intended for specialized drivers built over this
+// transport, not for caller-provided request fields.
+type AssistantMessageExtra func(
+	context.Context,
+	elelem.Model,
+	elelem.Message,
+) (map[string]any, error)
+
+// FinishReasonMapper maps a provider finish reason this transport does not
+// recognize. It returns the normalized reason, or an error when the provider
+// reports a failure through the finish reason instead of an error event; the
+// error ends the call. Returning FinishReasonUnset leaves the value unmapped.
+// It is intended for specialized drivers over providers that extend the
+// OpenAI finish-reason set.
+type FinishReasonMapper func(raw string) (elelem.FinishReason, error)
 
 // NewDriver builds an OpenAI-compatible driver.
 func NewDriver(opts ...DriverOption) *Driver {
@@ -51,7 +72,11 @@ func NewDriver(opts ...DriverOption) *Driver {
 		}
 	}
 
-	return &Driver{api: openaisdk.NewClient(cfg.options...)}
+	return &Driver{
+		api:                   openaisdk.NewClient(cfg.options...),
+		assistantMessageExtra: cfg.assistantMessageExtra,
+		finishReasonMapper:    cfg.finishReasonMapper,
+	}
 }
 
 // WithAPIKey supplies the bearer token used by the upstream. When omitted, the
@@ -147,6 +172,45 @@ func WithSDKOptions(opts ...option.RequestOption) DriverOption {
 	}
 }
 
+// WithAssistantMessageExtra appends trusted fields to assistant messages.
+// Specialized drivers use it to replay provider-owned response state on a
+// later request, such as reasoning content that accompanies a tool call.
+func WithAssistantMessageExtra(extra AssistantMessageExtra) DriverOption {
+	return func(cfg *driverConfig) {
+		cfg.assistantMessageExtra = extra
+	}
+}
+
+// WithFinishReasonMapper consults mapper for any finish reason the transport
+// does not recognize, after the response completes. The mapped value becomes
+// Usage.FinishReason, the reason the engine records.
+func WithFinishReasonMapper(mapper FinishReasonMapper) DriverOption {
+	return func(cfg *driverConfig) {
+		cfg.finishReasonMapper = mapper
+	}
+}
+
+// mapFinishReason applies the specialized driver's mapper to a finish reason
+// the transport left Unset.
+func (d *Driver) mapFinishReason(
+	raw string,
+	usage elelem.Usage,
+) (elelem.Usage, error) {
+	if d.finishReasonMapper == nil || raw == "" ||
+		usage.FinishReason != elelem.FinishReasonUnset {
+		return usage, nil
+	}
+
+	reason, err := d.finishReasonMapper(raw)
+	if err != nil {
+		return usage, ctxerrors.Wrap(err, "provider finish reason")
+	}
+
+	usage.FinishReason = reason
+
+	return usage, nil
+}
+
 // Stream issues one streaming chat completion.
 func (d *Driver) Stream(
 	ctx context.Context,
@@ -159,7 +223,7 @@ func (d *Driver) Stream(
 		return usage, err
 	}
 
-	params, err := toOpenAIParams(req)
+	params, err := d.toOpenAIParams(ctx, req)
 	if err != nil {
 		return usage, err
 	}
@@ -181,7 +245,11 @@ func (d *Driver) Stream(
 		extraOptions(req.Params.Extra)...,
 	)
 
-	rawFinishReason, streamErr := consumeStream(stream, onDelta, &usage)
+	reasoning := d.newReasoningState(req.Model.ID, onDelta)
+
+	rawFinishReason, streamErr := consumeStreamReasoning(
+		stream, onDelta, &usage, reasoning,
+	)
 	if streamErr != nil {
 		logger.Warn(
 			"openai stream failed",
@@ -193,17 +261,7 @@ func (d *Driver) Stream(
 		return usage, streamErr
 	}
 
-	warnUnmappedFinishReason(ctx, req.Model.ID, rawFinishReason, usage)
-
-	logger.Debug(
-		"openai request completed",
-		"model", usage.Model,
-		"finish_reason", usage.FinishReason,
-		"prompt_tokens", usage.Prompt,
-		"completion_tokens", usage.Completion,
-	)
-
-	return usage, streamErr
+	return d.finishResponse(ctx, req.Model.ID, rawFinishReason, usage)
 }
 
 // Complete issues the same chat completion with streaming off.
@@ -231,7 +289,7 @@ func (d *Driver) Complete(
 		return usage, err
 	}
 
-	params, err := toOpenAIParams(req)
+	params, err := d.toOpenAIParams(ctx, req)
 	if err != nil {
 		return usage, err
 	}
@@ -243,7 +301,6 @@ func (d *Driver) Complete(
 		"model", req.Model.ID,
 		"messages", len(req.Messages),
 		"tools", len(req.Tools),
-		"streaming", false,
 	)
 
 	completion, err := d.api.Chat.Completions.New(
@@ -265,14 +322,32 @@ func (d *Driver) Complete(
 		)
 	}
 
-	rawFinishReason, err := publishCompletion(*completion, onDelta, &usage)
+	rawFinishReason, err := publishCompletion(*completion, onDelta,
+		&usage, d.newReasoningState(req.Model.ID, onDelta))
 	if err != nil {
 		return usage, err
 	}
 
-	warnUnmappedFinishReason(ctx, req.Model.ID, rawFinishReason, usage)
+	return d.finishResponse(ctx, req.Model.ID, rawFinishReason, usage)
+}
 
-	logger.Debug(
+// finishResponse applies the specialized driver's finish-reason mapper, warns
+// about a reason nothing mapped, and logs the completed call. Stream and
+// Complete share it so the two modes cannot report a finish differently.
+func (d *Driver) finishResponse(
+	ctx context.Context,
+	modelID string,
+	rawFinishReason string,
+	usage elelem.Usage,
+) (elelem.Usage, error) {
+	usage, err := d.mapFinishReason(rawFinishReason, usage)
+	if err != nil {
+		return usage, err
+	}
+
+	warnUnmappedFinishReason(ctx, modelID, rawFinishReason, usage)
+
+	ctxscope.GetLogger(ctx).Debug(
 		"openai request completed",
 		"model", usage.Model,
 		"finish_reason", usage.FinishReason,
@@ -295,9 +370,22 @@ func publishCompletion(
 	completion openaisdk.ChatCompletion,
 	onDelta func(elelem.Delta) error,
 	usage *elelem.Usage,
+	reasoning *reasoningState,
 ) (string, error) {
 	if err := publishCompletionReasoning(completion, onDelta); err != nil {
 		return "", err
+	}
+
+	if reasoning != nil && len(completion.Choices) > 0 {
+		if err := reasoning.consume(
+			completion.Choices[0].Message.RawJSON(), false,
+		); err != nil {
+			return "", err
+		}
+
+		if err := reasoning.emit(); err != nil {
+			return "", err
+		}
 	}
 
 	chunk := chunkFromCompletion(completion)
@@ -370,10 +458,11 @@ func warnUnmappedFinishReason(
 // consumeStream drains the SSE stream and always closes it. The Close error is
 // joined rather than discarded — a leaked response body only surfaces under
 // sustained load, long after the change that caused it.
-func consumeStream(
+func consumeStreamReasoning(
 	stream *ssestream.Stream[openaisdk.ChatCompletionChunk],
 	onDelta func(elelem.Delta) error,
 	usage *elelem.Usage,
+	reasoning *reasoningState,
 ) (string, error) {
 	var (
 		streamErr       error
@@ -389,6 +478,11 @@ func consumeStream(
 	for stream.Next() {
 		chunk := stream.Current()
 		scanChoiceSignals(chunk, &rawFinishReason, &refused)
+
+		streamErr = consumeChunkReasoning(reasoning, chunk)
+		if streamErr != nil {
+			break
+		}
 
 		streamErr = publishChunk(chunk, onDelta, usage, refused)
 		if streamErr != nil {
@@ -413,7 +507,30 @@ func consumeStream(
 		streamErr = errors.Join(streamErr, wrappedCloseErr)
 	}
 
+	if streamErr == nil && reasoning != nil {
+		streamErr = reasoning.emit()
+	}
+
 	return rawFinishReason, streamErr
+}
+
+func consumeChunkReasoning(reasoning *reasoningState,
+	chunk openaisdk.ChatCompletionChunk,
+) error {
+	if reasoning == nil || len(chunk.Choices) == 0 {
+		return nil
+	}
+
+	choice := chunk.Choices[0]
+	if err := reasoning.consume(choice.Delta.RawJSON(), true); err != nil {
+		return err
+	}
+
+	if choice.FinishReason != "" {
+		return reasoning.emit()
+	}
+
+	return nil
 }
 
 // scanChoiceSignals accumulates the stream-scoped signals that no single chunk
@@ -491,9 +608,9 @@ var reservedRequestFields = map[string]bool{
 	"tool_choice": true,
 }
 
-// TokenCounter uses elelem's provider-neutral estimator.
+// TokenCounter counts only reasoning fields this transport replays.
 func (d *Driver) TokenCounter() elelem.TokenCounter {
-	return elelem.DefaultTokenCounter()
+	return reasoningTokenCounter{extra: d.assistantMessageExtra}
 }
 
 func extraOptions(extra map[string]any) []option.RequestOption {

@@ -1,13 +1,13 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { ApiError } from "$lib/api/errors";
-  import { getAdminReadiness, type AdminReadiness } from "$lib/api/client";
-  import { auth } from "$lib/stores/auth.svelte";
-  import Card from "$lib/components/ui/Card.svelte";
-  import Panel from "$lib/components/ui/Panel.svelte";
-  import Button from "$lib/components/ui/Button.svelte";
-  import Badge from "$lib/components/ui/Badge.svelte";
-  import StateBlock from "$lib/components/ui/StateBlock.svelte";
+  import { ApiError } from "#lib/api/errors.js";
+  import { getAdminReadiness, type AdminReadiness } from "#lib/api/client.js";
+  import { auth } from "#lib/stores/auth.svelte.js";
+  import Card from "#lib/components/ui/Card.svelte";
+  import Panel from "#lib/components/ui/Panel.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import Badge from "#lib/components/ui/Badge.svelte";
+  import StateBlock from "#lib/components/ui/StateBlock.svelte";
   import {
     BADGE_CRIT,
     BADGE_NEUTRAL,
@@ -16,7 +16,7 @@
     STATE_ERROR,
     STATE_LOADING,
     type BadgeVariant,
-  } from "$lib/components/ui/variants";
+  } from "#lib/components/ui/variants.js";
   import {
     ADMIN_FORBIDDEN_BODY,
     ADMIN_FORBIDDEN_TITLE,
@@ -28,14 +28,14 @@
     ADMIN_READINESS_UPSTREAMS,
     LABEL_REFRESH,
     STATE_LOADING as COPY_LOADING,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
   import {
     TESTID_ADMIN_ERROR,
     TESTID_ADMIN_FORBIDDEN,
     TESTID_ADMIN_LOADING,
     TESTID_ADMIN_READINESS,
     TESTID_ADMIN_READINESS_CONTENT,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
 
   const isAdmin = $derived(auth.user?.isAdmin === true);
 

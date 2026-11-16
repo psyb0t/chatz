@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_NETWORK_GRAPH, DATA_JR_TYPE } from "$lib/common/render";
+  import { COMP_NETWORK_GRAPH, DATA_JR_TYPE } from "#lib/common/render.js";
   import {
     CHART_VIEWBOX_HEIGHT,
     CHART_VIEWBOX_WIDTH,
@@ -8,9 +8,9 @@
     clamp,
     finiteNumber,
     formatChartNumber,
-  } from "$lib/render/charts/math";
-  import { CHART_GRID_COLOR, chartColor } from "$lib/render/charts/palette";
-  import type { NetworkEdge, NetworkNode } from "$lib/render/charts/types";
+  } from "#lib/render/charts/math.js";
+  import { CHART_GRID_COLOR, chartColor } from "#lib/render/charts/palette.js";
+  import type { NetworkEdge, NetworkNode } from "#lib/render/charts/types.js";
 
   type NetworkGraphProps = {
     id?: string | null;

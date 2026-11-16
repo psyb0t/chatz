@@ -9,7 +9,10 @@
 // block/delta `type` (see narrow* helpers) rather than trusting a bare `any`.
 
 // --- wire event names (server EventType) -----------------------------------
-import { isChatTurnStatus, type ChatTurnStatus } from "$lib/common/turn-status";
+import {
+  isChatTurnStatus,
+  type ChatTurnStatus,
+} from "#lib/common/turn-status.js";
 
 export const SSE_CHAT_STATUS = "chat_status";
 export const SSE_MESSAGE_START = "message_start";

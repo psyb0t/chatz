@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { BaseComponentProps } from "@json-render/svelte";
-  import { COMP_LOG_VIEWER, DATA_JR_TYPE } from "$lib/common/render";
-  import type { LogEntry, LogLevel } from "$lib/render/charts/types";
+  import { COMP_LOG_VIEWER, DATA_JR_TYPE } from "#lib/common/render.js";
+  import type { LogEntry, LogLevel } from "#lib/render/charts/types.js";
 
   type LogViewerProps = {
     id?: string | null;

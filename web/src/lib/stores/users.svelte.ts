@@ -4,14 +4,14 @@ import {
   deleteUser as apiDeleteUser,
   type User,
   type CreateUserRequest,
-} from "$lib/api/client";
-import { log } from "$lib/log";
+} from "#lib/api/client.js";
+import { log } from "#lib/log.js";
 import {
   EVENT_ADMIN_USER_CREATE,
   EVENT_ADMIN_USER_DELETE,
   EVENT_USERS_ERROR,
   EVENT_USERS_LOADED,
-} from "$lib/common/log-events";
+} from "#lib/common/log-events.js";
 
 // UsersStore holds the admin user list. load() is called by the admin users page
 // on mount (admin-only). create/remove mutate server-side then re-load so the

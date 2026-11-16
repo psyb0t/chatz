@@ -5,17 +5,38 @@
     MODEL_PICKER_SEARCH_PLACEHOLDER,
     MODEL_PICKER_EMPTY,
     MODEL_PICKER_DEFAULT,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
   import {
     TESTID_MODEL_PICKER,
     TESTID_MODEL_PICKER_SEARCH,
-  } from "$lib/common/test-ids";
-  import { clampToViewport } from "$lib/actions/clampToViewport";
+  } from "#lib/common/test-ids.js";
+  import { clampToViewport } from "#lib/actions/clampToViewport.js";
+  import Icon from "#lib/components/ui/Icon.svelte";
 
   interface ModelOption {
     id: string;
     alias?: string;
     default: boolean;
+    contextWindow?: number;
+    controls?: { reasoningEfforts: readonly string[] };
+  }
+
+  const TOKENS_PER_K = 1000;
+
+  function contextLabel(tokens: number | undefined): string {
+    if (tokens === undefined) {
+      return "";
+    }
+
+    return tokens >= TOKENS_PER_K * TOKENS_PER_K
+      ? `${(tokens / (TOKENS_PER_K * TOKENS_PER_K)).toFixed(1).replace(/\.0$/, "")}M`
+      : `${Math.round(tokens / TOKENS_PER_K)}k`;
+  }
+
+  function thinks(option: ModelOption): boolean {
+    return (option.controls?.reasoningEfforts ?? []).some(
+      (effort) => effort !== "none",
+    );
   }
 
   interface Props {
@@ -151,7 +172,7 @@
     data-testid={TESTID_MODEL_PICKER}
   >
     <span class="picker__value">{selectedLabel}</span>
-    <span class="picker__caret" aria-hidden="true">▾</span>
+    <span class="picker__caret"><Icon name="chevron-down" size={14} /></span>
   </button>
 
   {#if open}
@@ -186,13 +207,30 @@
               onmouseenter={() => (activeIndex = i)}
             >
               <span class="picker__option-label">{optionLabel(option)}</span>
+              <span class="picker__option-tags">
+                {#if thinks(option)}
+                  <span class="picker__tag" title="Reasoning">
+                    <Icon name="brain" size={12} />
+                  </span>
+                {/if}
+                {#if option.contextWindow !== undefined}
+                  <span class="picker__tag">
+                    {contextLabel(option.contextWindow)}
+                  </span>
+                {/if}
+                {#if option.default}
+                  <span class="picker__tag picker__tag--default"
+                    >{MODEL_PICKER_DEFAULT}</span
+                  >
+                {/if}
+                {#if option.id === value}
+                  <span class="picker__check"
+                    ><Icon name="check" size={14} /></span
+                  >
+                {/if}
+              </span>
               {#if option.alias !== undefined}
                 <span class="picker__option-id">{option.id}</span>
-              {/if}
-              {#if option.default}
-                <span class="picker__option-default"
-                  >{MODEL_PICKER_DEFAULT}</span
-                >
               {/if}
             </button>
           </li>
@@ -208,25 +246,29 @@
   .picker {
     position: relative;
     display: inline-flex;
+    min-width: 0;
   }
 
   .picker__trigger {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-1);
-    max-width: 12rem;
+    gap: 4px;
+    min-width: 0;
+    max-width: 14rem;
+    height: var(--control-sm);
+    padding: 0 var(--space-2);
     background: transparent;
-    border: var(--border-width) solid var(--border);
-    border-radius: var(--radius);
-    color: var(--ink);
-    cursor: pointer;
-    padding: var(--space-1) var(--space-2);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    border: none;
+    border-radius: var(--radius-pill);
+    color: var(--muted);
+    font-size: var(--text-sm);
+    font-weight: 500;
   }
 
-  .picker__trigger:hover:not(:disabled) {
-    background: var(--panel-2);
+  .picker__trigger:hover:not(:disabled),
+  .picker__trigger[aria-expanded="true"] {
+    background: var(--fill-hover);
+    color: var(--ink);
   }
 
   .picker__trigger:disabled {
@@ -241,35 +283,38 @@
   }
 
   .picker__caret {
-    color: var(--muted);
+    display: inline-flex;
+    color: var(--faint);
   }
 
-  /* Opens upward — the composer sits at the bottom of the viewport. */
+  /* Opens upward and right-aligned: the picker sits at the bottom right of the
+     composer. */
   .picker__panel {
     position: absolute;
-    bottom: calc(100% + var(--space-1));
-    left: 0;
+    bottom: calc(100% + var(--space-2));
+    right: 0;
     z-index: 20;
-    width: 16rem;
-    max-width: min(20rem, calc(100vw - 2rem));
+    width: 20rem;
+    max-width: calc(100vw - 2rem);
     display: flex;
     flex-direction: column;
     border: var(--border-width) solid var(--border);
-    border-radius: var(--radius);
-    background: var(--panel);
+    border-radius: var(--radius-lg);
+    background: var(--surface);
     box-shadow: var(--shadow-lg);
     overflow: hidden;
+    animation: fade-in var(--dur-fast) var(--ease);
   }
 
   .picker__search {
     margin: var(--space-2);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    border-radius: var(--radius);
+    font-size: var(--text-sm);
   }
 
   .picker__list {
     list-style: none;
-    max-height: 16rem;
+    max-height: 18rem;
     overflow-y: auto;
     padding: 0 var(--space-1) var(--space-1);
   }
@@ -278,17 +323,20 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: var(--space-1);
+    column-gap: var(--space-2);
     width: 100%;
     text-align: left;
     background: transparent;
     border: none;
-    border-radius: var(--radius-sm);
+    border-radius: var(--radius);
     color: var(--ink);
-    cursor: pointer;
     padding: var(--space-2);
-    font-family: var(--font-mono);
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
+    font-weight: 500;
+  }
+
+  .picker__option:hover:not(:disabled) {
+    background: transparent;
   }
 
   .picker__option-label,
@@ -300,30 +348,50 @@
 
   .picker__option-id {
     grid-column: 1;
-    color: var(--muted);
+    color: var(--faint);
+    font-family: var(--font-mono);
     font-size: var(--text-xs);
+    font-weight: 400;
   }
 
-  .picker__option-default {
+  .picker__option-tags {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
     grid-column: 2;
     grid-row: 1 / span 2;
+  }
+
+  .picker__tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: var(--radius-pill);
+    background: var(--panel-2);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 400;
+  }
+
+  .picker__tag--default {
+    background: var(--accent-soft);
     color: var(--accent);
-    font-size: var(--text-xs);
+  }
+
+  .picker__check {
+    display: inline-flex;
+    color: var(--ink);
   }
 
   .picker__option--active {
-    background: var(--panel-2);
-  }
-
-  .picker__option--selected {
-    color: var(--accent);
-    font-weight: 600;
+    background: var(--fill-hover) !important;
   }
 
   .picker__empty {
     color: var(--muted);
-    padding: var(--space-2);
-    font-size: var(--text-xs);
+    padding: var(--space-3);
+    font-size: var(--text-sm);
     text-align: center;
   }
 </style>

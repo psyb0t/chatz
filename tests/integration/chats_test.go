@@ -211,6 +211,8 @@ func TestServer_UpdateChatSettings(t *testing.T) {
 	assert.InDelta(t, 0.7, applied["temperature"], 0.0001)
 	assert.Equal(t, "high", applied["reasoningEffort"])
 
+	assertGenerationControlsRoundTrip(t, client, ts.URL, chatID, settingsURL)
+
 	var invalid map[string]any
 
 	status = requestJSON(
@@ -236,6 +238,57 @@ func TestServer_UpdateChatSettings(t *testing.T) {
 	)
 	assert.Equal(t, http.StatusNotFound, status)
 	assert.Equal(t, errCodeNotFound, missing["code"])
+}
+
+// assertGenerationControlsRoundTrip stores every newer control, reads them
+// back from GET /chats/{id}, then clears them with a full replacement.
+func assertGenerationControlsRoundTrip(
+	t *testing.T,
+	client *http.Client,
+	baseURL, chatID, settingsURL string,
+) {
+	t.Helper()
+
+	var applied map[string]any
+
+	status := requestJSON(t, client, http.MethodPatch, settingsURL,
+		map[string]any{
+			"reasoningEffort":  "none",
+			"topK":             40,
+			"frequencyPenalty": -0.5,
+			"presencePenalty":  1.5,
+			"seed":             9007199254740991,
+			"stop":             []string{"END", "###"},
+			"systemPrompt":     "Answer in French.",
+		},
+		&applied,
+	)
+	require.Equal(t, http.StatusOK, status)
+
+	var chat map[string]any
+
+	status = requestJSON(t, client, http.MethodGet,
+		baseURL+pathChatsPrefix+chatID, nil, &chat)
+	require.Equal(t, http.StatusOK, status)
+
+	stored, ok := chat["settings"].(map[string]any)
+	require.True(t, ok, "chat carries its settings")
+	assert.Equal(t, "none", stored["reasoningEffort"])
+	assert.InDelta(t, 40, stored["topK"], 0)
+	assert.InDelta(t, -0.5, stored["frequencyPenalty"], 0.0001)
+	assert.InDelta(t, 1.5, stored["presencePenalty"], 0.0001)
+	assert.InDelta(t, 9007199254740991, stored["seed"], 0)
+	assert.Equal(t, []any{"END", "###"}, stored["stop"])
+	assert.Equal(t, "Answer in French.", stored["systemPrompt"])
+
+	var cleared map[string]any
+
+	status = requestJSON(t, client, http.MethodPatch, settingsURL,
+		map[string]any{}, &cleared)
+	require.Equal(t, http.StatusOK, status)
+	assert.NotContains(t, cleared, "stop")
+	assert.NotContains(t, cleared, "systemPrompt")
+	assert.NotContains(t, cleared, "seed")
 }
 
 // TestServer_RenameChat drives the PATCH /chats/{id} rename endpoint through

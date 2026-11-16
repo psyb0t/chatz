@@ -38,8 +38,10 @@ Every message here is wrapped in `invalid upstream` and stops startup.
 | `parse CHATZ_UPSTREAMS json` | The value is not valid JSON. In `.env` keep the array on one line. |
 | `CHATZ_UPSTREAMS entry 0 has no name` | Give every entry a `name`. |
 | `CHATZ_UPSTREAMS contains duplicate name "..."` | Names must be unique. |
-| `CHATZ_UPSTREAMS entry "..." has no provider` | Add `"provider": "openai"` or `"anthropic"`. |
-| `CHATZ_UPSTREAMS entry "..." has unsupported provider "..."` | Only `openai` and `anthropic` exist. Use `openai` for every OpenAI-compatible server. |
+| `CHATZ_UPSTREAMS entry "..." has no provider` | Add `"provider": "openai"`, `"anthropic"` or `"zaicoding"`. |
+| `CHATZ_UPSTREAMS entry "..." has unsupported provider "..."` | Only `openai`, `anthropic` and `zaicoding` exist. Use `openai` for every OpenAI-compatible server. |
+| `upstream "..." model "..." has unknown reasoning effort "..."` | `reasoningEfforts` takes only `none`, `minimal`, `low`, `medium`, `high`, `xhigh` and `max`. |
+| `upstream "..." model "..." lists reasoning effort "..." twice` | List each level once. |
 | `upstream "..." references missing required environment variable "..."` | The variable named in `apiKeyEnv` is unset or empty in the container. With `docker run`, pass it with `--env-file`. Leave `apiKeyEnv` out for keyless servers. |
 | `upstream "..." has duplicate model metadata for "..."` | Two `models` entries share an `id`. |
 | `upstream "..." model entry 0 has no id` | Every `models` entry needs an `id`. |

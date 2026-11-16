@@ -13,7 +13,7 @@ import {
   COMP_SPARKLINE,
   COMP_TIME_SERIES_CHART,
   COMP_TREEMAP,
-} from "$lib/common/render";
+} from "#lib/common/render.js";
 
 // Every analytical GenUI component, in catalog registration order. Shared by
 // analytics.test.ts (mounts + mutates each through the real registry) and

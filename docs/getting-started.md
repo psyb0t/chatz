@@ -66,7 +66,7 @@ docker compose up --build --no-deps chatz
 
 ## Connect a first model
 
-Models come from upstreams listed in `CHATZ_UPSTREAMS`, a JSON array. Each upstream names a provider (`openai` for OpenAI and every OpenAI-compatible API, or `anthropic`), an optional base URL, and the name of the environment variable that holds its API key. The key itself never goes into the JSON.
+Models come from upstreams listed in `CHATZ_UPSTREAMS`, a JSON array. Each upstream names a provider (`openai` for OpenAI and every OpenAI-compatible API, `anthropic`, or `zaicoding` for the Z.ai Coding Plan), an optional base URL, and the name of the environment variable that holds its API key. The key itself never goes into the JSON.
 
 ```bash
 CHATZ_UPSTREAMS=[{"name":"openai","provider":"openai","baseUrl":"https://api.openai.com/v1","apiKeyEnv":"OPENAI_API_KEY"}]

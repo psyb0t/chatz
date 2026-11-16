@@ -154,8 +154,14 @@ func newElelemRequest(
 	).
 		OnError(state.onError)
 
+	// chatz's history budget caps the prompt alone: selectPromptHistory has
+	// already fitted the prompt to it. elelem counts the reply against the
+	// same limit unless the output reserve is zero, which would then trim a
+	// prompt chatz already sized.
 	if req.MaxContextTokens > 0 {
-		request.WithMaxContextTokens(req.MaxContextTokens)
+		request.
+			WithMaxContextTokens(req.MaxContextTokens).
+			WithOutputReserveTokens(0)
 	}
 
 	return request

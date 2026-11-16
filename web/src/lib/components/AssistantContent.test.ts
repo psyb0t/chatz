@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render } from "@testing-library/svelte";
-import { log } from "$lib/log";
+import { log } from "#lib/log.js";
 import AssistantContent from "./AssistantContent.svelte";
 
 // Regression: AssistantContent re-derives its segments from the FULL

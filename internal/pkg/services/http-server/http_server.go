@@ -36,6 +36,7 @@ import (
 	"github.com/psyb0t/elelem"
 	"github.com/psyb0t/elelem/drivers/anthropic"
 	"github.com/psyb0t/elelem/drivers/openai"
+	"github.com/psyb0t/elelem/drivers/zaicoding"
 	"github.com/psyb0t/elelem/elelemtest"
 )
 
@@ -364,35 +365,11 @@ func newUpstreamDriver(
 
 	switch upstream.Provider {
 	case config.UpstreamProviderOpenAI:
-		options := make([]openai.DriverOption, 0, driverOptionCapacity)
-
-		options = append(options, openai.WithoutEnvironmentDefaults())
-		if upstream.BaseURL != "" {
-			options = append(options, openai.WithBaseURL(upstream.BaseURL))
-		}
-
-		if apiKey != "" {
-			options = append(options, openai.WithAPIKey(apiKey))
-		}
-
-		options = append(options, openai.WithHTTPClient(httpClient))
-
-		return openai.NewDriver(options...), nil
+		return newOpenAIDriver(upstream, apiKey, httpClient), nil
 	case config.UpstreamProviderAnthropic:
-		options := make([]anthropic.DriverOption, 0, driverOptionCapacity)
-
-		options = append(options, anthropic.WithoutEnvironmentDefaults())
-		if upstream.BaseURL != "" {
-			options = append(options, anthropic.WithBaseURL(upstream.BaseURL))
-		}
-
-		if apiKey != "" {
-			options = append(options, anthropic.WithAPIKey(apiKey))
-		}
-
-		options = append(options, anthropic.WithHTTPClient(httpClient))
-
-		return anthropic.NewDriver(options...), nil
+		return newAnthropicDriver(upstream, apiKey, httpClient), nil
+	case config.UpstreamProviderZAICoding:
+		return newZAICodingDriver(upstream, apiKey, httpClient), nil
 	default:
 		return nil, ctxerrors.Wrapf(
 			config.ErrInvalidUpstream,
@@ -401,6 +378,67 @@ func newUpstreamDriver(
 			upstream.Provider,
 		)
 	}
+}
+
+func newOpenAIDriver(
+	upstream config.Upstream,
+	apiKey string,
+	httpClient *http.Client,
+) elelem.Driver {
+	options := make([]openai.DriverOption, 0, driverOptionCapacity)
+
+	options = append(options, openai.WithoutEnvironmentDefaults())
+	if upstream.BaseURL != "" {
+		options = append(options, openai.WithBaseURL(upstream.BaseURL))
+	}
+
+	if apiKey != "" {
+		options = append(options, openai.WithAPIKey(apiKey))
+	}
+
+	options = append(options, openai.WithHTTPClient(httpClient))
+
+	return openai.NewDriver(options...)
+}
+
+func newAnthropicDriver(
+	upstream config.Upstream,
+	apiKey string,
+	httpClient *http.Client,
+) elelem.Driver {
+	options := make([]anthropic.DriverOption, 0, driverOptionCapacity)
+
+	options = append(options, anthropic.WithoutEnvironmentDefaults())
+	if upstream.BaseURL != "" {
+		options = append(options, anthropic.WithBaseURL(upstream.BaseURL))
+	}
+
+	if apiKey != "" {
+		options = append(options, anthropic.WithAPIKey(apiKey))
+	}
+
+	options = append(options, anthropic.WithHTTPClient(httpClient))
+
+	return anthropic.NewDriver(options...)
+}
+
+// newZAICodingDriver needs no environment opt-out: the Z.ai Coding driver
+// never reads the environment. An empty base URL keeps the driver's default
+// endpoint.
+func newZAICodingDriver(
+	upstream config.Upstream,
+	apiKey string,
+	httpClient *http.Client,
+) elelem.Driver {
+	options := []zaicoding.DriverOption{
+		zaicoding.WithAPIKey(apiKey),
+		zaicoding.WithHTTPClient(httpClient),
+	}
+	if upstream.BaseURL != "" {
+		options = append(options, zaicoding.WithBaseURL(upstream.BaseURL))
+	}
+
+	return zaicoding.NewDriver(options...)
 }
 
 // newUpstreamHTTPClient creates a transport exclusively for one provider

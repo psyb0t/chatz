@@ -5,6 +5,39 @@ All notable changes to chatz are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-11-16
+
+Every chat now exposes the generation controls its model accepts, the web app has a new look, and the dependencies are current. The new database columns are added on startup. Code using the generated Go client in `pkg/http/api/client` must rename `ChatSettingsReasoningEffort` to `ReasoningEffort`.
+
+### Added
+
+- Per-chat settings for thinking off (`reasoningEffort: none`), `xhigh` and `max` reasoning effort, a chat system prompt, `topK`, `frequencyPenalty`, `presencePenalty`, `seed` and up to four `stop` sequences, next to the existing temperature, top-p and token limits.
+- `GET /api/v1/models` returns a `controls` object per model: the reasoning levels it takes and whether it accepts sampling, penalties, seed, top-k and stop sequences. The values come from the elelem driver for that model ID.
+- A turn drops any stored setting its model does not accept, so moving a chat to another model no longer makes its turns fail.
+- The `zaicoding` upstream provider for the Z.ai Coding Plan, which knows GLM 5.3's reasoning levels and output limit.
+- `reasoningEfforts`, `supportsTopK` and `supportsStop` in a model's `CHATZ_UPSTREAMS` metadata override what the driver reports.
+- A reasoning chip in the composer that shows and switches the chat's effort in one click, for models with reasoning control.
+- The settings panel saves as you change it, gives every numeric setting an on/off switch with a slider, and marks settings the model does not support.
+- The sidebar groups chats under Today, Yesterday, Previous 7 days, Previous 30 days and then by month.
+- Copy buttons on assistant replies and code blocks, and suggestions on an empty chat.
+
+### Changed
+
+- **Breaking for the Go client:** the reasoning effort enum in `pkg/http/api/client` is now the shared `ReasoningEffort` type (`ReasoningEffortNone` through `ReasoningEffortMax`) instead of `ChatSettingsReasoningEffort`. The HTTP API itself only gained values.
+- The web app is redesigned: neutral light and dark themes, the Geist and Geist Mono fonts, a centered reading column, a rounded composer with the model picker, context ring and send button in one toolbar, a thinking block that follows the stream and then shows how long the model thought, and tool cards with a status icon and an elapsed timer.
+- The web app moved to SvelteKit 3, Vite 8, TypeScript 6 and Vitest 5. Its configuration lives in `web/vite.config.ts`.
+- elelem is now v0.15.1. chatz keeps `maxHistoryTokens` as a cap on the prompt alone, which elelem v0.12 started counting the reply against.
+- The generative UI prompt is rebuilt for json-render 0.23. Its post-processing now matches the library's rules by text instead of by number, and generation fails if a stripped instruction (invented sample data, state, repeat, actions) survives.
+- servicepack is v1.10.2. Go modules are updated, including aichteeteapee v1.16.1, common-go v0.10.0, ctxerrors v0.9.2, essessey v0.7.7, gonfiguration v1.6.5, slogging v1.7.2, the MCP Go SDK v1.8.0, kin-openapi v0.153.0, prometheus client v1.25.0, tiktoken v0.10.0 and testcontainers v0.45.0.
+- Loading and empty states use sentence case instead of all caps.
+- `make web-pkg-*` targets work again: the age-gate bump no longer breaks on shell quoting.
+
+### Security
+
+- Links in model output open only `http`, `https` and `mailto` URLs; a `javascript:` or other link renders as plain text. Markdown images in model output are no longer loaded: they show as links, so a prompt-injected reply cannot send chat data to an outside server by embedding an image URL.
+- The images build with Go 1.26.11, fixing GO-2026-6859, a crash of the HTTP/1 server reachable from any client.
+- SvelteKit 3 clears the advisories that apply to SvelteKit 2 (form-data DoS, `query.batch` collisions, enhanced-form redirect, prerender cache-control XSS). chatz ships SvelteKit as a static app, so none of them were reachable in the published image.
+
 ## [0.7.13] - 2026-11-10
 
 v0.7.12 was tagged but never released because its security scan failed. This release ships its changes too.

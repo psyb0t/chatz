@@ -2,7 +2,7 @@
   import type { Snippet } from "svelte";
 
   // Inline `code` spans and the <code> inside fenced blocks both route here.
-  // Mono + a hairline brutalist border + panel fill; block-level layout is
+  // Mono on a soft fill; block-level layout is
   // handled by the surrounding <pre> (MdPre), so this stays inline-safe.
   interface Props {
     children?: Snippet;
@@ -18,10 +18,9 @@
 <style>
   .md-code {
     font-family: var(--font-mono);
-    font-size: var(--text-sm);
+    font-size: 0.875em;
     background: var(--panel-2);
-    border: var(--border-width) solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 0.1em var(--space-1);
+    padding: 0.15em 0.4em;
   }
 </style>

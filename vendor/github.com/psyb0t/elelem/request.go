@@ -39,9 +39,11 @@ type Request struct {
 	maxToolResultTokens      int
 	maxContextTokens         int
 	outputReserveTokens      int
+	outputReserveSet         bool
 	tokenCounter             TokenCounter
 	forceFinalAnswer         bool
 	autoToolCalls            bool
+	userMessageQueue         *UserMessageQueue
 	transcriptRepair         bool
 	strictResponseValidation bool
 	responseRepair           bool
@@ -275,8 +277,12 @@ func (r *Request) WithMaxContextTokens(value int) *Request {
 	return r
 }
 
+// WithOutputReserveTokens sets the room kept for the reply inside the context
+// limit. An explicit 0 keeps none. Unset, the reserve is MaxOutputTokens when
+// that is set, else 4096.
 func (r *Request) WithOutputReserveTokens(value int) *Request {
 	r.outputReserveTokens = value
+	r.outputReserveSet = true
 
 	return r
 }
@@ -295,6 +301,20 @@ func (r *Request) WithForceFinalAnswer(value bool) *Request {
 
 func (r *Request) WithAutoToolCalls() *Request {
 	r.autoToolCalls = true
+
+	return r
+}
+
+// WithUserMessageQueue attaches incoming user messages to this request's
+// agent loop. The queue is safe to enqueue from another goroutine while Run is
+// active. Its messages are delivered only at a round boundary, never into a
+// provider request already in flight.
+//
+// Only an automatic loop drains after a terminal answer. A manual caller still
+// controls terminal continuation, but executing pending tools carries queued
+// messages into the following provider request.
+func (r *Request) WithUserMessageQueue(queue *UserMessageQueue) *Request {
+	r.userMessageQueue = queue
 
 	return r
 }
@@ -695,7 +715,12 @@ func (r *Request) run(ctx context.Context) (*Response, error) {
 	}
 
 	ctx = withRetryCallback(ctx, r.onRetry)
+
 	state := newRunState(r, withTools)
+	if r.autoToolCalls {
+		state.acceptQueuedUserMessages()
+	}
+
 	// The first round is round 1; withholding is decided by the one predicate
 	// on runState rather than a hardcoded specialization of it here.
 	withholdTools := withTools && state.shouldWithholdTools(1)
@@ -779,6 +804,23 @@ func (r *Request) validateLimits() error {
 		return ctxerrors.Wrap(
 			ErrInvalidRequest,
 			"maximum output tokens must not be negative",
+		)
+	}
+
+	return r.validateOutputReserve()
+}
+
+// validateOutputReserve refuses an explicit limit the reserve swallows, which
+// would otherwise resolve to no budget at all, the opposite of what the caller
+// asked for.
+func (r *Request) validateOutputReserve() error {
+	reserve := r.resolvedOutputReserve()
+	if r.maxContextTokens > 0 && reserve >= r.maxContextTokens {
+		return ctxerrors.Wrapf(
+			ErrInvalidRequest,
+			"output reserve %d leaves no room in max context %d",
+			reserve,
+			r.maxContextTokens,
 		)
 	}
 
@@ -944,6 +986,15 @@ func (r *Request) staticTools() []Tool {
 }
 
 func (r *Request) resolvedCounter() TokenCounter {
+	counter := r.selectedCounter()
+	if modelCounter, ok := counter.(ModelTokenCounter); ok {
+		return modelCounter.ForModel(r.resolvedModel())
+	}
+
+	return counter
+}
+
+func (r *Request) selectedCounter() TokenCounter {
 	if r.tokenCounter != nil {
 		return r.tokenCounter
 	}
@@ -959,29 +1010,37 @@ func (r *Request) resolvedCounter() TokenCounter {
 	return DefaultTokenCounter()
 }
 
+// resolvedBudget is the room the prompt may take: the context limit, explicit
+// or the model's own, minus the reply's reserve. Prompt and reply share one
+// window, so a prompt that filled the limit would leave the reply nothing.
 func (r *Request) resolvedBudget(model Model) int {
-	if r.maxContextTokens > 0 {
-		return r.maxContextTokens
+	limit := r.maxContextTokens
+	if limit <= 0 {
+		limit = model.ContextSize
 	}
 
-	if model.ContextSize <= 0 {
+	if limit <= 0 {
 		return 0
 	}
 
-	reserve := r.outputReserveTokens
-	if reserve == 0 && r.params.MaxOutputTokens != nil {
-		reserve = int(*r.params.MaxOutputTokens)
-	}
-
-	if reserve == 0 {
-		reserve = defaultOutputReserveTokens
-	}
-
-	if reserve >= model.ContextSize {
+	reserve := r.resolvedOutputReserve()
+	if reserve >= limit {
 		return 0
 	}
 
-	return model.ContextSize - reserve
+	return limit - reserve
+}
+
+func (r *Request) resolvedOutputReserve() int {
+	if r.outputReserveSet {
+		return r.outputReserveTokens
+	}
+
+	if r.params.MaxOutputTokens != nil && *r.params.MaxOutputTokens > 0 {
+		return int(*r.params.MaxOutputTokens)
+	}
+
+	return defaultOutputReserveTokens
 }
 
 func nonEmptyStrings(values []string) []string {
@@ -1021,6 +1080,13 @@ func cloneParams(params GenerationParams) GenerationParams {
 // Anthropic accepts only four. The driver makes the final per-value call — the
 // same split MaxReasoningEffort already uses.
 func (r *Request) validateContentCapabilities(caps Capabilities) error {
+	return r.validateMessageContentCapabilities(r.prompt.Messages(), caps)
+}
+
+func (r *Request) validateMessageContentCapabilities(
+	messages []Message,
+	caps Capabilities,
+) error {
 	supported := map[PartType]bool{
 		PartTypeText:  true,
 		PartTypeImage: caps.SupportsImageInput,
@@ -1028,7 +1094,7 @@ func (r *Request) validateContentCapabilities(caps Capabilities) error {
 		PartTypeFile:  caps.SupportsFileInput,
 	}
 
-	for i, message := range r.prompt.Messages() {
+	for i, message := range messages {
 		if err := message.Content.Validate(); err != nil {
 			return ctxerrors.Wrapf(err, "message %d", i)
 		}

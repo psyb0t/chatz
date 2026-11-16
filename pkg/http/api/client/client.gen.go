@@ -105,30 +105,6 @@ func (e ChatMCPServerStatus) Valid() bool {
 	}
 }
 
-// Defines values for ChatSettingsReasoningEffort.
-const (
-	ChatSettingsReasoningEffortHigh    ChatSettingsReasoningEffort = "high"
-	ChatSettingsReasoningEffortLow     ChatSettingsReasoningEffort = "low"
-	ChatSettingsReasoningEffortMedium  ChatSettingsReasoningEffort = "medium"
-	ChatSettingsReasoningEffortMinimal ChatSettingsReasoningEffort = "minimal"
-)
-
-// Valid indicates whether the value is a known member of the ChatSettingsReasoningEffort enum.
-func (e ChatSettingsReasoningEffort) Valid() bool {
-	switch e {
-	case ChatSettingsReasoningEffortHigh:
-		return true
-	case ChatSettingsReasoningEffortLow:
-		return true
-	case ChatSettingsReasoningEffortMedium:
-		return true
-	case ChatSettingsReasoningEffortMinimal:
-		return true
-	default:
-		return false
-	}
-}
-
 // Defines values for CreateMCPServerRequestTransport.
 const (
 	CreateMCPServerRequestTransportHttp  CreateMCPServerRequestTransport = "http"
@@ -249,6 +225,39 @@ func (e ModelAvailability) Valid() bool {
 	}
 }
 
+// Defines values for ReasoningEffort.
+const (
+	ReasoningEffortHigh    ReasoningEffort = "high"
+	ReasoningEffortLow     ReasoningEffort = "low"
+	ReasoningEffortMax     ReasoningEffort = "max"
+	ReasoningEffortMedium  ReasoningEffort = "medium"
+	ReasoningEffortMinimal ReasoningEffort = "minimal"
+	ReasoningEffortNone    ReasoningEffort = "none"
+	ReasoningEffortXhigh   ReasoningEffort = "xhigh"
+)
+
+// Valid indicates whether the value is a known member of the ReasoningEffort enum.
+func (e ReasoningEffort) Valid() bool {
+	switch e {
+	case ReasoningEffortHigh:
+		return true
+	case ReasoningEffortLow:
+		return true
+	case ReasoningEffortMax:
+		return true
+	case ReasoningEffortMedium:
+		return true
+	case ReasoningEffortMinimal:
+		return true
+	case ReasoningEffortNone:
+		return true
+	case ReasoningEffortXhigh:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for UpdateMCPServerRequestTransport.
 const (
 	UpdateMCPServerRequestTransportHttp  UpdateMCPServerRequestTransport = "http"
@@ -333,7 +342,7 @@ type Chat struct {
 	// Model The model id the chat was created with (used for continuation).
 	Model string `json:"model"`
 
-	// Settings Per-chat model-generation settings. Every field is optional; an omitted field is unset — the provider default applies (temperature / topP / reasoningEffort / maxOutputTokens). maxHistoryTokens defaults to 100000 and caps the complete outbound prompt, including the sticky system message and current user message.
+	// Settings Per-chat model-generation settings. Every field is optional; an omitted field is unset and the provider default applies. maxHistoryTokens defaults to 100000 and caps the complete outbound prompt, including the sticky system message and current user message. A setting the chat's model does not accept (see Model.controls) is stored but not sent.
 	Settings *ChatSettings `json:"settings,omitempty"`
 	Title    string        `json:"title"`
 }
@@ -366,17 +375,24 @@ type ChatMCPServerUpdate struct {
 	Enabled bool `json:"enabled"`
 }
 
-// ChatSettings Per-chat model-generation settings. Every field is optional; an omitted field is unset — the provider default applies (temperature / topP / reasoningEffort / maxOutputTokens). maxHistoryTokens defaults to 100000 and caps the complete outbound prompt, including the sticky system message and current user message.
+// ChatSettings Per-chat model-generation settings. Every field is optional; an omitted field is unset and the provider default applies. maxHistoryTokens defaults to 100000 and caps the complete outbound prompt, including the sticky system message and current user message. A setting the chat's model does not accept (see Model.controls) is stored but not sent.
 type ChatSettings struct {
-	MaxHistoryTokens *int                         `json:"maxHistoryTokens,omitempty"`
-	MaxOutputTokens  *int                         `json:"maxOutputTokens,omitempty"`
-	ReasoningEffort  *ChatSettingsReasoningEffort `json:"reasoningEffort,omitempty"`
-	Temperature      *float64                     `json:"temperature,omitempty"`
-	TopP             *float64                     `json:"topP,omitempty"`
-}
+	FrequencyPenalty *float64         `json:"frequencyPenalty,omitempty"`
+	MaxHistoryTokens *int             `json:"maxHistoryTokens,omitempty"`
+	MaxOutputTokens  *int             `json:"maxOutputTokens,omitempty"`
+	PresencePenalty  *float64         `json:"presencePenalty,omitempty"`
+	ReasoningEffort  *ReasoningEffort `json:"reasoningEffort,omitempty"`
+	Seed             *int64           `json:"seed,omitempty"`
 
-// ChatSettingsReasoningEffort defines model for ChatSettings.ReasoningEffort.
-type ChatSettingsReasoningEffort string
+	// Stop Up to 4 stop sequences, each 1 to 64 characters.
+	Stop *[]string `json:"stop,omitempty"`
+
+	// SystemPrompt Chat-specific instructions, added after chatz's own system prompt on every turn of this chat.
+	SystemPrompt *string  `json:"systemPrompt,omitempty"`
+	Temperature  *float64 `json:"temperature,omitempty"`
+	TopK         *int     `json:"topK,omitempty"`
+	TopP         *float64 `json:"topP,omitempty"`
+}
 
 // ChatSummary defines model for ChatSummary.
 type ChatSummary struct {
@@ -560,6 +576,9 @@ type Model struct {
 	Availability  ModelAvailability `json:"availability"`
 	ContextWindow *int              `json:"contextWindow,omitempty"`
 
+	// Controls The generation settings this model accepts, from the upstream driver's per-model capabilities and any instance override. A chat setting the model does not accept is not sent to it.
+	Controls *ModelControls `json:"controls,omitempty"`
+
 	// Default Whether this is the instance's configured default model.
 	Default bool `json:"default"`
 
@@ -583,6 +602,23 @@ type Model struct {
 // ModelAvailability The model was advertised by its upstream during startup discovery.
 type ModelAvailability string
 
+// ModelControls The generation settings this model accepts, from the upstream driver's per-model capabilities and any instance override. A chat setting the model does not accept is not sent to it.
+type ModelControls struct {
+	// ReasoningEfforts Reasoning effort levels the model takes, lowest first. `none` turns thinking off. Empty means the model has no reasoning control.
+	ReasoningEfforts []ReasoningEffort `json:"reasoningEfforts"`
+
+	// SupportsPenalties Whether frequencyPenalty and presencePenalty are accepted.
+	SupportsPenalties bool `json:"supportsPenalties"`
+
+	// SupportsSampling Whether temperature and topP are accepted.
+	SupportsSampling bool `json:"supportsSampling"`
+	SupportsSeed     bool `json:"supportsSeed"`
+
+	// SupportsStop Whether stop sequences are accepted.
+	SupportsStop bool `json:"supportsStop"`
+	SupportsTopK bool `json:"supportsTopK"`
+}
+
 // PromptContextPreview The exact context selection the next turn would use, counted by the server tokenizer. availableTokens is zero when sticky instructions and the current message alone exceed the configured history budget.
 type PromptContextPreview struct {
 	AvailableTokens      int `json:"availableTokens"`
@@ -602,6 +638,9 @@ type PromptContextPreviewRequest struct {
 	// Message The unsent user message to include in the preview.
 	Message string `json:"message"`
 }
+
+// ReasoningEffort defines model for ReasoningEffort.
+type ReasoningEffort string
 
 // RenameChatRequest defines model for RenameChatRequest.
 type RenameChatRequest struct {

@@ -39,7 +39,7 @@
 // value (brace/bracket depth back to zero) — see `PatchAccumulator` below.
 import { applySpecPatch, parseSpecStreamLine } from "@json-render/core";
 import type { Spec } from "@json-render/svelte";
-import { SPEC_FENCE_CLOSE, SPEC_FENCE_OPEN } from "$lib/common/render";
+import { SPEC_FENCE_CLOSE, SPEC_FENCE_OPEN } from "#lib/common/render.js";
 
 export const SEGMENT_TEXT = "text";
 export const SEGMENT_SPEC = "spec";

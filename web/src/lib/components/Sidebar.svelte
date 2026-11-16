@@ -1,17 +1,19 @@
 <script lang="ts">
   import { page } from "$app/state";
   import { goto } from "$app/navigation";
-  import { auth } from "$lib/stores/auth.svelte";
-  import { chats } from "$lib/stores/chats.svelte";
+  import { auth } from "#lib/stores/auth.svelte.js";
+  import { chats } from "#lib/stores/chats.svelte.js";
   import {
     theme,
     THEME_TOGGLE_LABEL,
     TESTID_THEME_TOGGLE,
-  } from "$lib/stores/theme.svelte";
-  import { ROUTE_ADMIN, chatRoute } from "$lib/common/routes";
-  import Button from "$lib/components/ui/Button.svelte";
-  import StateBlock from "$lib/components/ui/StateBlock.svelte";
-  import { STATE_ERROR, STATE_LOADING } from "$lib/components/ui/variants";
+  } from "#lib/stores/theme.svelte.js";
+  import { ROUTE_ADMIN, chatRoute } from "#lib/common/routes.js";
+  import { groupChats } from "#lib/common/chat-groups.js";
+  import Icon from "#lib/components/ui/Icon.svelte";
+  import Button from "#lib/components/ui/Button.svelte";
+  import StateBlock from "#lib/components/ui/StateBlock.svelte";
+  import { STATE_ERROR, STATE_LOADING } from "#lib/components/ui/variants.js";
   import {
     EMPTY_CHATS,
     STATE_LOADING_CHATS,
@@ -30,7 +32,7 @@
     LABEL_DELETE,
     LABEL_CHAT_EDIT,
     SIDEBAR_SEARCH_PLACEHOLDER,
-  } from "$lib/common/labels";
+  } from "#lib/common/labels.js";
   import {
     TESTID_SIDEBAR_LOADING,
     TESTID_SIDEBAR_ERROR,
@@ -41,7 +43,7 @@
     TESTID_CHAT_DELETE,
     TESTID_CHAT_MENU,
     TESTID_CHAT_SEARCH,
-  } from "$lib/common/test-ids";
+  } from "#lib/common/test-ids.js";
 
   interface Props {
     collapsed: boolean;
@@ -74,6 +76,9 @@
   }
 
   const activeChatId = $derived(page.params.chatId ?? null);
+  // Grouped against the time the list last changed; a session open across
+  // midnight regroups on the next list update.
+  const groups = $derived(groupChats(chats.list, new Date()));
   const isAdmin = $derived(auth.user?.isAdmin === true);
 
   // Inline chat rename: the pencil swaps a row's link for an input; Enter (or
@@ -224,10 +229,14 @@
         <button
           class="sidebar__new"
           type="button"
-          onclick={() => chats.goToNewChat()}>+ New chat</button
+          onclick={() => chats.goToNewChat()}
+          ><Icon name="plus" size={16} /><span>New chat</span></button
         >
 
         <div class="sidebar__filters">
+          <span class="sidebar__search-icon"
+            ><Icon name="search" size={14} /></span
+          >
           <input
             class="sidebar__search"
             value={chats.search}
@@ -257,80 +266,85 @@
         {:else if chats.list.length === 0}
           <p class="sidebar__empty">{EMPTY_CHATS}</p>
         {:else}
-          <ul class="sidebar__list">
-            {#each chats.list as chat (chat.id)}
-              {@const active = chat.id === activeChatId}
-              <li class="sidebar__row">
-                {#if renamingId === chat.id}
-                  <input
-                    class="sidebar__rename-input"
-                    bind:this={renameInputEl}
-                    bind:value={renameValue}
-                    onkeydown={onRenameKeydown}
-                    onblur={commitRename}
-                    aria-label={A11Y_CHAT_RENAME}
-                    data-testid={TESTID_CHAT_RENAME_INPUT}
-                  />
-                {:else}
-                  <div class="sidebar__row-main">
-                    <a
-                      class="sidebar__item"
-                      class:sidebar__item--active={active}
-                      href={chatRoute(chat.id)}
-                      aria-current={active ? "page" : undefined}
-                    >
-                      <span class="sidebar__item-name">{chat.title}</span>
-                    </a>
-                    <!-- The ⋮ trigger + its popup. The trigger and the menu stop
+          {#each groups as group (group.label)}
+            <h2 class="sidebar__group">{group.label}</h2>
+            <ul class="sidebar__list">
+              {#each group.items as chat (chat.id)}
+                {@const active = chat.id === activeChatId}
+                <li class="sidebar__row">
+                  {#if renamingId === chat.id}
+                    <input
+                      class="sidebar__rename-input"
+                      bind:this={renameInputEl}
+                      bind:value={renameValue}
+                      onkeydown={onRenameKeydown}
+                      onblur={commitRename}
+                      aria-label={A11Y_CHAT_RENAME}
+                      data-testid={TESTID_CHAT_RENAME_INPUT}
+                    />
+                  {:else}
+                    <div class="sidebar__row-main">
+                      <a
+                        class="sidebar__item"
+                        class:sidebar__item--active={active}
+                        href={chatRoute(chat.id)}
+                        aria-current={active ? "page" : undefined}
+                      >
+                        <span class="sidebar__item-name">{chat.title}</span>
+                      </a>
+                      <!-- The ⋮ trigger + its popup. The trigger and the menu stop
                          their own pointerdown so the window outside-close handler
                          never fires for clicks on them. -->
-                    <div
-                      class="sidebar__actions"
-                      class:sidebar__actions--open={menuOpenId === chat.id}
-                    >
-                      <button
-                        class="icon-btn sidebar__menu-btn"
-                        type="button"
-                        aria-haspopup="menu"
-                        aria-expanded={menuOpenId === chat.id}
-                        aria-label={A11Y_CHAT_MENU}
-                        data-testid={TESTID_CHAT_MENU}
-                        onpointerdown={(e) => e.stopPropagation()}
-                        onclick={(e) => toggleMenu(e, chat.id)}>&#8942;</button
+                      <div
+                        class="sidebar__actions"
+                        class:sidebar__actions--open={menuOpenId === chat.id}
                       >
-                      {#if menuOpenId === chat.id}
-                        <div
-                          class="sidebar__menu"
-                          role="menu"
-                          tabindex="-1"
+                        <button
+                          class="icon-btn sidebar__menu-btn"
+                          type="button"
+                          aria-haspopup="menu"
+                          aria-expanded={menuOpenId === chat.id}
+                          aria-label={A11Y_CHAT_MENU}
+                          data-testid={TESTID_CHAT_MENU}
                           onpointerdown={(e) => e.stopPropagation()}
+                          onclick={(e) => toggleMenu(e, chat.id)}
+                          >&#8942;</button
                         >
-                          <button
-                            class="sidebar__menu-item"
-                            type="button"
-                            role="menuitem"
-                            onclick={(e) => onMenuEdit(e, chat.id, chat.title)}
-                            aria-label={A11Y_CHAT_RENAME}
-                            data-testid={TESTID_CHAT_RENAME}
-                            >{LABEL_CHAT_EDIT}</button
+                        {#if menuOpenId === chat.id}
+                          <div
+                            class="sidebar__menu"
+                            role="menu"
+                            tabindex="-1"
+                            onpointerdown={(e) => e.stopPropagation()}
                           >
-                          <button
-                            class="sidebar__menu-item sidebar__menu-item--danger"
-                            type="button"
-                            role="menuitem"
-                            onclick={() => onMenuDelete(chat.id)}
-                            aria-label={A11Y_CHAT_DELETE}
-                            data-testid={TESTID_CHAT_DELETE}
-                            >{LABEL_DELETE}</button
-                          >
-                        </div>
-                      {/if}
+                            <button
+                              class="sidebar__menu-item"
+                              type="button"
+                              role="menuitem"
+                              onclick={(e) =>
+                                onMenuEdit(e, chat.id, chat.title)}
+                              aria-label={A11Y_CHAT_RENAME}
+                              data-testid={TESTID_CHAT_RENAME}
+                              >{LABEL_CHAT_EDIT}</button
+                            >
+                            <button
+                              class="sidebar__menu-item sidebar__menu-item--danger"
+                              type="button"
+                              role="menuitem"
+                              onclick={() => onMenuDelete(chat.id)}
+                              aria-label={A11Y_CHAT_DELETE}
+                              data-testid={TESTID_CHAT_DELETE}
+                              >{LABEL_DELETE}</button
+                            >
+                          </div>
+                        {/if}
+                      </div>
                     </div>
-                  </div>
-                {/if}
-              </li>
-            {/each}
-          </ul>
+                  {/if}
+                </li>
+              {/each}
+            </ul>
+          {/each}
         {/if}
       </div>
 
@@ -362,7 +376,20 @@
               aria-label={THEME_TOGGLE_LABEL}
               data-testid={TESTID_THEME_TOGGLE}
             >
-              {theme.isDark ? "☀" : "☾"}
+              <svg
+                viewBox="0 0 24 24"
+                class="sidebar__theme-icon"
+                aria-hidden="true"
+              >
+                {#if theme.isDark}
+                  <circle cx="12" cy="12" r="4" />
+                  <path
+                    d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+                  />
+                {:else}
+                  <path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z" />
+                {/if}
+              </svg>
             </button>
             <Button
               type="button"
@@ -498,8 +525,9 @@
       color 0.12s ease;
   }
 
-  .icon-btn:hover {
-    background: var(--panel-2);
+  .icon-btn:hover:not(:disabled) {
+    background: var(--fill-hover);
+    border-color: transparent;
     color: var(--ink);
   }
 
@@ -508,7 +536,7 @@
     align-items: center;
     justify-content: space-between;
     gap: var(--space-2);
-    padding: var(--space-4);
+    padding: var(--space-4) var(--space-3) var(--space-3) var(--space-4);
   }
 
   .sidebar__brand-text {
@@ -521,15 +549,15 @@
   .sidebar__wordmark {
     margin: 0;
     font-family: var(--font-display);
-    font-weight: 600;
+    font-weight: 650;
     font-size: var(--text-lg);
-    letter-spacing: -0.01em;
+    letter-spacing: -0.02em;
   }
 
   .sidebar__repository {
     font-family: var(--font-display);
-    font-size: var(--text-sm);
-    color: var(--muted);
+    font-size: var(--text-xs);
+    color: var(--faint);
     text-decoration: none;
     overflow-wrap: anywhere;
   }
@@ -545,10 +573,10 @@
     min-height: 0;
     overflow-x: hidden;
     overflow-y: auto;
-    padding: 0 var(--space-3) var(--space-3);
+    padding: 0 var(--space-2) var(--space-3);
     display: flex;
     flex-direction: column;
-    gap: var(--space-2);
+    gap: 2px;
   }
 
   .sidebar__state {
@@ -567,32 +595,39 @@
     list-style: none;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 1px;
+  }
+
+  .sidebar__group {
+    margin: var(--space-3) var(--space-2) var(--space-1);
+    color: var(--faint);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0;
   }
 
   .sidebar__item {
     display: block;
-    padding: var(--space-2) var(--space-3);
+    padding: 7px var(--space-2);
     border-radius: var(--radius);
     text-decoration: none;
-    color: var(--muted);
+    color: var(--ink);
     font-family: var(--font-display);
     font-size: var(--text-sm);
     transition:
-      background-color 0.12s ease,
-      color 0.12s ease;
+      background-color var(--dur-fast) var(--ease),
+      color var(--dur-fast) var(--ease);
   }
 
   .sidebar__item:hover {
-    background: var(--panel-2);
-    color: var(--ink);
+    background: var(--fill-hover);
     text-decoration: none;
   }
 
-  .sidebar__item--active {
-    background: var(--accent-soft);
-    color: var(--accent);
-    font-weight: 600;
+  .sidebar__item--active,
+  .sidebar__item--active:hover {
+    background: var(--fill-active);
+    font-weight: 500;
   }
 
   .sidebar__item-name {
@@ -651,9 +686,9 @@
     flex-direction: column;
     min-width: 8rem;
     padding: var(--space-1);
-    background: var(--panel);
-    border: var(--border-width) solid var(--border-strong);
-    border-radius: var(--radius);
+    background: var(--surface);
+    border: var(--border-width) solid var(--border);
+    border-radius: var(--radius-lg);
     box-shadow: var(--shadow-lg);
   }
 
@@ -671,17 +706,17 @@
     cursor: pointer;
   }
 
-  .sidebar__menu-item:hover {
-    background: var(--panel-2);
+  .sidebar__menu-item:hover:not(:disabled) {
+    background: var(--fill-hover);
   }
 
   .sidebar__menu-item--danger {
-    color: var(--danger, var(--accent));
+    color: var(--crit);
   }
 
-  .sidebar__menu-item--danger:hover {
-    background: var(--danger-soft, var(--accent-soft));
-    color: var(--danger, var(--accent));
+  .sidebar__menu-item--danger:hover:not(:disabled) {
+    background: var(--crit-soft);
+    color: var(--crit);
   }
 
   .sidebar__rename-input {
@@ -694,44 +729,65 @@
   }
 
   .sidebar__new {
-    display: block;
-    text-align: center;
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
     text-decoration: none;
     color: var(--ink);
-    background: var(--bg);
-    border: var(--border-width) solid var(--border-strong);
+    background: transparent;
+    border: none;
     border-radius: var(--radius);
-    padding: var(--space-2) var(--space-4);
+    padding: 7px var(--space-2);
     font-family: var(--font-display);
     font-weight: 500;
     font-size: var(--text-sm);
-    transition:
-      background-color 0.12s ease,
-      border-color 0.12s ease;
   }
 
-  .sidebar__new:hover {
-    background: var(--panel-2);
+  .sidebar__new:hover:not(:disabled) {
+    background: var(--fill-hover);
+    border-color: transparent;
     text-decoration: none;
   }
 
   .sidebar__filters {
+    position: relative;
     display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
+    align-items: center;
+  }
+
+  .sidebar__search-icon {
+    position: absolute;
+    left: var(--space-2);
+    display: inline-flex;
+    color: var(--faint);
+    pointer-events: none;
   }
 
   .sidebar__search {
     box-sizing: border-box;
     width: 100%;
     min-width: 0;
-    border: var(--border-width) solid var(--border);
+    border: var(--border-width) solid transparent;
     border-radius: var(--radius);
-    background: var(--bg);
+    background: var(--fill-hover);
     color: var(--ink);
     font-family: var(--font-display);
-    font-size: var(--text-xs);
-    padding: var(--space-2);
+    font-size: var(--text-sm);
+    padding: 6px var(--space-2) 6px calc(var(--space-2) + 20px);
+  }
+
+  .sidebar__search:focus {
+    background: var(--surface);
+  }
+
+  .sidebar__theme-icon {
+    width: 1.05rem;
+    height: 1.05rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   /* Bottom cluster: admin nav (Users/MCP) above the user + logout row. */

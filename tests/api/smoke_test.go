@@ -21,7 +21,7 @@ const (
 		"quarter and are we on budget?"
 
 	smokeToolCardSel            = "[data-testid=tool-card]"
-	smokeToolCardHeadSel        = "[data-testid=tool-card] .tool-card__head"
+	smokeToolCardHeadSel        = "[data-testid=tool-card] > button"
 	smokeToolCardWaitSec        = 30
 	smokeSettleAfterTool        = 1500
 	smokeSendSel                = "[data-testid=send]"
@@ -57,10 +57,13 @@ const smokeThemeJS = `
 JSON.stringify(document.documentElement.getAttribute('data-theme'))
 `
 
+// The meter shows the totals inline and the breakdown in its tooltip.
 const smokeContextMeterJS = `
 (() => {
   const meter = document.querySelector('[data-testid=context-meter]');
-  return JSON.stringify(meter ? meter.textContent.trim() : '');
+  return JSON.stringify(
+    meter ? meter.textContent.trim() + ' ' + (meter.title || '') : ''
+  );
 })()
 `
 
@@ -69,7 +72,7 @@ const smokeContextMeterJS = `
 const smokeToolCardCollapsedJS = `
 (() => {
   const card = document.querySelector('[data-testid=tool-card]');
-  const body = card ? card.querySelector('.tool-card__body') : null;
+  const body = card ? card.querySelector('.tool__body') : null;
   return JSON.stringify({
     found: !!card,
     bodyVisibleBeforeExpand: !!body,
@@ -80,7 +83,7 @@ const smokeToolCardCollapsedJS = `
 const smokeToolCardExpandedJS = `
 (() => {
   const card = document.querySelector('[data-testid=tool-card]');
-  const body = card ? card.querySelector('.tool-card__body') : null;
+  const body = card ? card.querySelector('.tool__body') : null;
   return JSON.stringify({ bodyVisibleAfterExpand: !!body });
 })()
 `
